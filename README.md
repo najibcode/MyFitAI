@@ -40,7 +40,7 @@ The app provides an easy-to-use interface for managing fitness activities, calor
 - MongoDB
 
 ### AI Integration
-- OpenAI API / Gemini API *(Optional)*
+- Gemini API
 
 ---
 
