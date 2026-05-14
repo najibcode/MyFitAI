@@ -128,9 +128,9 @@ API_KEY=your_api_key
 Add your app screenshots here.
 
 ```bash
-/screenshots/home.png
-/screenshots/workout.png
-/screenshots/progress.png
+/screenshots/home.png<img width="321" height="806" alt="Screenshot 2026-05-15 at 1 21 06 AM" src="https://github.com/user-attachments/assets/e24134cd-0bea-49ac-9790-73a1801420f0" />
+<img width="292" height="796" alt="Screenshot 2026-05-15 at 1 09 16 AM" src="https://github.com/user-attachments/assets/c2c2d6e5-a1f0-4c59-adc2-a30f05619435" />
+<img width="294" height="799" alt="Screenshot 2026-05-15 at 1 08 21 AM" src="https://github.com/user-attachments/assets/708bc704-8815-41ff-adab-2c8309912f7e" />
 ```
 
 ---
