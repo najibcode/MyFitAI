@@ -84,13 +84,13 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     const saved = storage.get<GamificationState>('kinetic_gamification');
     if (saved) return saved;
     return {
-      xp: 2250,
-      level: 5,
-      streak: 14,
-      longestStreak: 21,
-      achievements: DEFAULT_ACHIEVEMENTS.map((a, i) => ({ ...a, unlocked: i < 3, unlockedAt: i < 3 ? new Date().toISOString() : undefined })),
-      weeklyMissions: DEFAULT_MISSIONS,
-      badges: ['first_workout', 'week_streak', 'month_streak'],
+      xp: 0,
+      level: 1,
+      streak: 0,
+      longestStreak: 0,
+      achievements: DEFAULT_ACHIEVEMENTS.map(a => ({ ...a, unlocked: false })),
+      weeklyMissions: DEFAULT_MISSIONS.map(m => ({ ...m, current: 0, completed: false })),
+      badges: [],
     };
   });
 

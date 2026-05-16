@@ -1,160 +1,143 @@
 import { useFitnessContext } from '../context/FitnessContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { useState } from 'react';
 
 export default function HealthHub() {
-  const { dailyStats, profile } = useFitnessContext();
+  const { dailyStats, profile, logActivity } = useFitnessContext();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [customSteps, setCustomSteps] = useState('');
+  const [showStepInput, setShowStepInput] = useState(false);
+  
+  const stepPrc = Math.min(100, Math.round((dailyStats.steps / profile.dailyStepGoal) * 100));
+  const stepStrokeDash = (stepPrc / 100) * 251.2;
+
+  const addSteps = (count: number) => {
+    logActivity({ type: 'Steps', value: count, caloriesBurned: Math.round(count * 0.04) });
+    showToast(`+${count.toLocaleString()} steps logged!`, 'success');
+  };
+
+  const handleCustomSteps = () => {
+    const num = parseInt(customSteps);
+    if (!num || num <= 0) return;
+    addSteps(num);
+    setCustomSteps('');
+    setShowStepInput(false);
+  };
   
   return (
-    <main className="max-w-7xl mx-auto px-6 md:px-10 py-8 pb-32">
-      {/* Header Section */}
-      <header className="mb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-secondary font-label font-bold tracking-widest uppercase text-[10px] mb-2">Diagnostic Scan</p>
-            <h1 className="font-headline font-extrabold text-4xl md:text-5xl tracking-tighter leading-none">RECOVERY HUB</h1>
-          </div>
-          <div className="flex items-center gap-3 bg-[var(--color-surface-container-low)] p-2 rounded-xl">
-            <button onClick={() => showToast('Front Anatomy View Selected', 'info')} className="px-6 py-2 rounded-lg bg-primary text-on-primary font-headline font-bold text-xs uppercase tracking-tight transition-all active:scale-95">Front</button>
-            <button onClick={() => showToast('Back Anatomy View Selected', 'info')} className="px-6 py-2 rounded-lg text-white/40 font-headline font-bold text-xs uppercase tracking-tight hover:text-white/80 transition-all active:scale-95">Back</button>
-          </div>
-        </div>
+    <main className="max-w-lg mx-auto px-5 py-6 pb-32 space-y-6">
+      <header>
+        <p className="text-secondary font-label font-bold tracking-widest uppercase text-[10px] mb-1">Health & Activity</p>
+        <h1 className="font-headline font-extrabold text-[28px] tracking-tight">Health Hub</h1>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Central Anatomical Model Section */}
-        <section className="lg:col-span-7 relative flex flex-col items-center justify-center min-h-[600px] bg-[var(--color-surface-container-low)] rounded-[2rem] overflow-hidden group">
-          {/* Technical Grid Background Decor */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #FF7A00 1px, transparent 0)", backgroundSize: "40px 40px" }}></div>
-          
-          {/* The 3D-styled Anatomical Figure */}
-          <div className="relative z-10 w-full max-w-md aspect-[3/5] flex items-center justify-center">
-            <img alt="Anatomical Muscle Model" className="w-full h-full object-contain mix-blend-lighten opacity-80 brightness-75" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMjw_TGwMn52EmOmMxrxmmB626-1WY5O3U0ND0hUvIowWdefd0ecNlU8ziyyNbs63jrdw2HJxEs68hg7VPIfXHyIJbteJNrj5db_T5SgEoHCHuo9OtZlxrIIUgWSaAAWhOnUavuqeOXzgd-NJbNYf--qn7Ika5icrvvo4yidfwidFptu1kbqU6Etpenfwwqdn2RQp4tkYjaZTd4_Fw8tPibxWDiJLKrfQf0W3d4_Gx2VxXk3Np-7xSSEUBVMuB0tqJ5cI3r2wokXXT"/>
-            {/* Muscle Hotspots */}
-            <div className="absolute top-[18%] left-[45%] w-12 h-12 rounded-full bg-error/40 drop-shadow-[0_0_8px_#ff716c44] border border-error animate-pulse cursor-pointer"></div>
-            <div className="absolute top-[35%] left-[30%] w-10 h-16 rounded-full bg-secondary/30 drop-shadow-[0_0_8px_#6ffb8544] border border-secondary cursor-pointer"></div>
-            <div className="absolute top-[35%] right-[30%] w-10 h-16 rounded-full bg-secondary/30 drop-shadow-[0_0_8px_#6ffb8544] border border-secondary cursor-pointer"></div>
-            <div className="absolute top-[55%] left-[35%] w-14 h-24 rounded-full bg-[#fab0ff]/40 drop-shadow-[0_0_8px_#f39cfb44] border border-[#fab0ff] cursor-pointer"></div>
-            <div className="absolute top-[55%] right-[35%] w-14 h-24 rounded-full bg-[#fab0ff]/40 drop-shadow-[0_0_8px_#f39cfb44] border border-[#fab0ff] cursor-pointer"></div>
+      {/* Step Tracker */}
+      <section className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 border border-white/5 relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#6FFB85]/5 rounded-full blur-3xl" />
+        <div className="flex items-center gap-6 relative z-10">
+          <div className="relative w-28 h-28 flex-shrink-0">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--color-surface-container-highest)" strokeWidth="8" />
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#6FFB85" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${stepStrokeDash} 251.2`} className="transition-all duration-700" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="material-symbols-outlined text-[#6FFB85] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>steps</span>
+              <span className="font-headline font-black text-lg leading-none mt-0.5">{stepPrc}%</span>
+            </div>
           </div>
+          <div className="flex-1">
+            <p className="font-headline font-black text-3xl tracking-tighter">{dailyStats.steps.toLocaleString()}</p>
+            <p className="text-on-surface-variant text-xs font-medium mt-0.5">of {profile.dailyStepGoal.toLocaleString()} step goal</p>
+            <p className="text-on-surface-variant text-[10px] mt-2">≈ {(dailyStats.steps * 0.000762).toFixed(1)} km • {Math.round(dailyStats.steps * 0.04)} kcal</p>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-5 relative z-10">
+          {[1000, 2500, 5000].map(count => (
+            <button key={count} onClick={() => addSteps(count)} className="flex-1 bg-[var(--color-surface-container-high)] hover:bg-[var(--color-surface-container-highest)] text-on-surface font-headline font-bold text-xs py-3 rounded-xl transition-colors active:scale-95">
+              +{(count/1000).toFixed(count < 1000 ? 0 : 1)}k
+            </button>
+          ))}
+          <button onClick={() => setShowStepInput(!showStepInput)} className="w-12 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl flex items-center justify-center transition-colors active:scale-95">
+            <span className="material-symbols-outlined text-lg">edit</span>
+          </button>
+        </div>
+        {showStepInput && (
+          <div className="flex gap-2 mt-3 relative z-10">
+            <input type="text" inputMode="numeric" pattern="[0-9]*" value={customSteps} onChange={e => { if (/^\d*$/.test(e.target.value)) setCustomSteps(e.target.value); }} onKeyDown={e => e.key === 'Enter' && handleCustomSteps()} placeholder="Enter steps..." autoFocus className="flex-1 bg-[var(--color-surface)] outline-none rounded-xl px-4 py-3 font-headline text-base font-bold border border-white/10 focus:border-primary transition-colors" />
+            <button onClick={handleCustomSteps} disabled={!customSteps || parseInt(customSteps) <= 0} className="px-5 bg-primary text-black font-bold rounded-xl text-sm active:scale-95 disabled:opacity-40">Add</button>
+          </div>
+        )}
+      </section>
 
-          {/* Muscle Info Floating Card */}
-          <div className="absolute bottom-8 left-8 right-8 z-20">
-            <div className="bg-[#19191c]/70 backdrop-blur-xl rounded-2xl p-6 border border-white/5 shadow-2xl flex items-center gap-6">
-              <div className="w-16 h-16 rounded-xl bg-[var(--color-error)]/20 flex items-center justify-center text-[var(--color-error)] border border-[var(--color-error)]/30">
-                <span className="material-symbols-outlined text-3xl" style={{fontVariationSettings: "'FILL' 1"}}>fitness_center</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-headline font-bold text-xl tracking-tight">Pectoralis Major</h3>
-                  <span className="px-3 py-1 rounded-full bg-[#9f0519] text-[#ffa8a3] font-label font-bold text-[10px] uppercase">Critical Fatigue</span>
-                </div>
-                <div className="flex gap-4">
-                  <div>
-                    <p className="text-white/40 font-label text-[10px] uppercase tracking-widest">State</p>
-                    <p className="text-white font-body font-semibold text-sm">Muscle Tears Detected</p>
-                  </div>
-                  <div className="border-l border-white/10 pl-4">
-                    <p className="text-white/40 font-label text-[10px] uppercase tracking-widest">Last Trained</p>
-                    <p className="text-white font-body font-semibold text-sm">14h ago (Hypertrophy)</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* Health Metrics Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 flex flex-col gap-3">
+          <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>bedtime</span>
+          <div>
+            <p className="font-headline font-black text-2xl tracking-tighter">{dailyStats.sleep || '—'}<span className="text-xs font-normal text-on-surface-variant ml-1">hrs</span></p>
+            <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider mt-0.5">Sleep</p>
           </div>
-
-          {/* Heatmap Legend */}
-          <div className="absolute top-8 right-8 flex flex-col gap-3">
-            <div className="flex items-center gap-3 bg-[var(--color-surface-container)]/40 backdrop-blur px-3 py-1.5 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-secondary)]"></div>
-              <span className="text-[10px] font-bold text-white/60 font-label uppercase">Optimal</span>
-            </div>
-            <div className="flex items-center gap-3 bg-[var(--color-surface-container)]/40 backdrop-blur px-3 py-1.5 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-tertiary)]"></div>
-              <span className="text-[10px] font-bold text-white/60 font-label uppercase">Recovering</span>
-            </div>
-            <div className="flex items-center gap-3 bg-[var(--color-surface-container)]/40 backdrop-blur px-3 py-1.5 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-error)]"></div>
-              <span className="text-[10px] font-bold text-white/60 font-label uppercase">Strained</span>
-            </div>
+          <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+            <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.sleep / 8) * 100)}%` }} />
           </div>
-        </section>
-
-        {/* Sidebar Health Metrics Section */}
-        <aside className="lg:col-span-5 space-y-6">
-          <h2 className="font-headline font-bold text-lg tracking-tight text-white/80 px-2">HEALTH METRICS</h2>
-          
-          {/* Sleep Metric Card */}
-          <div className="bg-[var(--color-surface-container)] rounded-3xl p-6 transition-all hover:bg-[var(--color-surface-container-high)] group">
-              <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined">bedtime</span>
-                </div>
-                <div>
-                  <p className="text-white/40 font-label text-[10px] uppercase tracking-widest">Sleep Quality</p>
-                  <p className="text-white font-headline font-bold text-xl tracking-tight">{Math.min(100, Math.round((dailyStats.sleep / 8) * 100))}% Recovery</p>
-                </div>
-              </div>
-              <span className="text-secondary font-label font-bold text-xs">+12% vs Avg</span>
-            </div>
-            {/* Simple Trend Sparkline */}
-            <div className="h-16 flex items-end gap-1.5 px-1">
-              <div className="flex-1 bg-primary/20 rounded-t h-[40%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary/20 rounded-t h-[60%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary/20 rounded-t h-[55%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary/20 rounded-t h-[85%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary/20 rounded-t h-[45%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary/20 rounded-t h-[90%] group-hover:bg-primary/40 transition-colors"></div>
-              <div className="flex-1 bg-primary rounded-t h-full"></div>
-            </div>
+        </div>
+        <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 flex flex-col gap-3">
+          <span className="material-symbols-outlined text-[#60A5FA] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
+          <div>
+            <p className="font-headline font-black text-2xl tracking-tighter">{dailyStats.water.toFixed(1)}<span className="text-xs font-normal text-on-surface-variant ml-1">L</span></p>
+            <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider mt-0.5">Hydration</p>
           </div>
-
-          {/* Hydration & RHR Metrics Grid */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Hydration */}
-            <div className="bg-[var(--color-surface-container)] rounded-3xl p-6 flex flex-col justify-between aspect-square">
-              <span className="material-symbols-outlined text-primary text-3xl">water_drop</span>
-              <div>
-                <p className="font-headline font-black text-3xl tracking-tighter text-white">{dailyStats.water.toFixed(1)}<span className="text-sm font-label text-white/40 ml-1">L</span></p>
-                <p className="text-white/40 font-label text-[10px] uppercase tracking-widest mt-1">Hydration</p>
-              </div>
-              <div className="w-full bg-[#252528] h-1 rounded-full overflow-hidden">
-                <div className="bg-primary h-full transition-all" style={{width: `${Math.min(100, (dailyStats.water / profile.dailyWaterGoal) * 100)}%`}}></div>
-              </div>
-            </div>
-            
-            {/* Resting Heart Rate */}
-            <div className="bg-[var(--color-surface-container)] rounded-3xl p-6 flex flex-col justify-between aspect-square relative overflow-hidden">
-              <span className="material-symbols-outlined text-[#ff716c] text-3xl" style={{fontVariationSettings: "'FILL' 1"}}>favorite</span>
-              <div className="relative z-10">
-                <p className="font-headline font-black text-3xl tracking-tighter text-white">52<span className="text-sm font-label text-white/40 ml-1">BPM</span></p>
-                <p className="text-white/40 font-label text-[10px] uppercase tracking-widest mt-1">Avg RHR</p>
-              </div>
-              {/* Subsurface Pulse Effect */}
-              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-[#ff716c]/5 rounded-full blur-3xl"></div>
-            </div>
+          <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+            <div className="bg-[#60A5FA] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.water / profile.dailyWaterGoal) * 100)}%` }} />
           </div>
-
-          {/* Recovery Score Card */}
-          <div className="bg-gradient-to-br from-[var(--color-secondary)]/10 to-transparent p-8 rounded-[2rem] border border-[var(--color-secondary)]/10">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-headline font-bold text-2xl tracking-tight">Daily Readiness</h3>
-              <div className="w-16 h-16 relative">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#252528" strokeWidth="3"></path>
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#6FFB85" strokeDasharray="92, 100" strokeWidth="3"></path>
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center font-headline font-black text-sm text-white">92</span>
-              </div>
-            </div>
-            <p className="text-white/60 text-sm leading-relaxed mb-6">Your nervous system is prime for peak intensity today. Muscle inflammation is localized to the chest region.</p>
-            <button onClick={() => navigate('/workout')} className="w-full bg-[var(--color-secondary)] text-[#004818] font-headline font-extrabold py-4 rounded-2xl uppercase tracking-wider text-sm transition-all hover:brightness-110 active:scale-95 shadow-[0_8px_32px_rgba(111,251,133,0.2)]">Generate Recovery Routine</button>
+        </div>
+        <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 flex flex-col gap-3">
+          <span className="material-symbols-outlined text-[#FF4D4D] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+          <div>
+            <p className="font-headline font-black text-2xl tracking-tighter">{dailyStats.calories}<span className="text-xs font-normal text-on-surface-variant ml-1">kcal</span></p>
+            <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider mt-0.5">Burned</p>
           </div>
-        </aside>
+          <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+            <div className="bg-[#FF4D4D] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.calories / profile.dailyCalorieGoal) * 100)}%` }} />
+          </div>
+        </div>
+        <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 flex flex-col gap-3">
+          <span className="material-symbols-outlined text-[#fab0ff] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>fitness_center</span>
+          <div>
+            <p className="font-headline font-black text-2xl tracking-tighter">{dailyStats.duration}<span className="text-xs font-normal text-on-surface-variant ml-1">min</span></p>
+            <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider mt-0.5">Exercise</p>
+          </div>
+          <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+            <div className="bg-[#fab0ff] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.duration / 60) * 100)}%` }} />
+          </div>
+        </div>
       </div>
+
+      {/* Recovery Score */}
+      <section className="bg-gradient-to-br from-secondary/10 to-transparent p-6 rounded-[2rem] border border-secondary/10">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-headline font-bold text-lg tracking-tight">Daily Readiness</h3>
+          <div className="w-14 h-14 relative">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--color-surface-container-highest)" strokeWidth="3" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#6FFB85" strokeDasharray={`${Math.min(100, Math.round((dailyStats.sleep / 8) * 100))}, 100`} strokeWidth="3" />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center font-headline font-black text-xs">
+              {dailyStats.sleep > 0 ? Math.min(100, Math.round((dailyStats.sleep / 8) * 100)) : '—'}
+            </span>
+          </div>
+        </div>
+        <p className="text-on-surface-variant text-sm leading-relaxed mb-4">
+          {dailyStats.sleep >= 7 ? 'Great recovery! Your body is ready for high intensity training.' :
+           dailyStats.sleep > 0 ? 'Recovery could be better. Consider a lighter workout today.' :
+           'Log your sleep to get a personalized readiness score.'}
+        </p>
+        <button onClick={() => navigate('/workout')} className="w-full bg-secondary text-[#004818] font-headline font-extrabold py-3.5 rounded-2xl uppercase tracking-wider text-sm transition-all hover:brightness-110 active:scale-95 shadow-[0_8px_32px_rgba(111,251,133,0.2)]">
+          {dailyStats.sleep >= 7 ? 'Start Intense Workout' : 'Generate Recovery Routine'}
+        </button>
+      </section>
     </main>
   );
 }

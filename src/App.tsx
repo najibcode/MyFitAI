@@ -15,6 +15,7 @@ import HelpCenter from './pages/HelpCenter';
 import Privacy from './pages/Privacy';
 import Feedback from './pages/Feedback';
 import AICoach from './pages/AICoach';
+import GoalsEditor from './pages/GoalsEditor';
 import BottomNavBar from './components/BottomNavBar';
 import { FitnessProvider } from './context/FitnessContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -30,6 +31,7 @@ import ActiveWorkout from './pages/ActiveWorkout';
 import WorkoutHistory from './pages/WorkoutHistory';
 import { WorkoutBuilderProvider } from './context/WorkoutBuilderContext';
 import { PreferencesProvider } from './context/PreferencesContext';
+import WeightCheckIn from './components/WeightCheckIn';
 import { ToastProvider } from './context/ToastContext';
 
 function AppContent() {
@@ -114,6 +116,7 @@ function AppContent() {
 
         <NotificationsPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
         <ActivityLogger isOpen={showLogger} onClose={() => setShowLogger(false)} />
+        <WeightCheckIn />
 
 
         <Routes>
@@ -131,6 +134,7 @@ function AppContent() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/ai-coach" element={<AICoach />} />
+          <Route path="/goals" element={<GoalsEditor />} />
           {/* ── Category 1: Workout Builder & Logging ── */}
           <Route path="/workout/active" element={<ActiveWorkout />} />
           <Route path="/workout/history" element={<WorkoutHistory />} />

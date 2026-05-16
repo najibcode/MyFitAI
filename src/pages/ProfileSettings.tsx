@@ -1,18 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFitnessContext } from '../context/FitnessContext';
 import OnboardingForm from '../components/OnboardingForm';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useGamification } from '../context/GamificationContext';
 
 export default function ProfileSettings() {
-  const { profile } = useFitnessContext();
+  const { profile, dailyStats, activities } = useFitnessContext();
   const { weightUnit, heightUnit } = usePreferences();
+  const { streak, longestStreak } = useGamification();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { showToast } = useToast();
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
-  const activeStreak = profile.goal === 'Fat Loss' ? 12 : 42; 
+  const totalWorkouts = activities.filter(a => a.type === 'Workout').length;
 
   const displayWeight = weightUnit === 'kg' ? Math.round(profile.weight / 2.20462 * 10) / 10 : profile.weight;
   const displayTargetWeight = weightUnit === 'kg' ? Math.round(profile.targetWeight / 2.20462 * 10) / 10 : profile.targetWeight;
@@ -48,6 +52,20 @@ export default function ProfileSettings() {
         </div>
       </section>
 
+      {/* My Goals — prominent link */}
+      <section className="mb-8">
+        <div onClick={() => navigate('/goals')} className="bg-gradient-to-r from-primary/10 to-transparent rounded-2xl p-5 border border-primary/20 flex items-center gap-4 cursor-pointer hover:border-primary/40 active:scale-[0.98] transition-all">
+          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-headline font-bold text-sm">My Goals</p>
+            <p className="text-on-surface-variant text-xs mt-0.5">{profile.goal} · {profile.dailyCalorieGoal} kcal · {profile.dailyWaterGoal}L water · {profile.dailyStepGoal} steps</p>
+          </div>
+          <span className="material-symbols-outlined text-primary text-base">chevron_right</span>
+        </div>
+      </section>
+
       {/* Personal Records */}
       <section className="mb-8">
         <h2 className="font-headline font-bold text-lg mb-4">Personal Records</h2>
@@ -57,33 +75,35 @@ export default function ProfileSettings() {
             <span className="material-symbols-outlined text-[#FF4D4D] text-2xl" style={{fontVariationSettings: "'FILL' 1"}}>local_fire_department</span>
             <div className="flex-1">
               <p className="font-headline font-bold text-sm">Active Streak</p>
-              <p className="text-on-surface-variant text-xs mt-0.5">{activeStreak} consecutive days</p>
+              <p className="text-on-surface-variant text-xs mt-0.5">{streak} consecutive days</p>
             </div>
-            <span className="font-headline font-black text-2xl">{activeStreak}</span>
+            <span className="font-headline font-black text-2xl">{streak}</span>
           </div>
 
-          {/* PRs row */}
+          {/* Stats row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--color-surface-container)] rounded-2xl p-4">
-              <p className="text-on-surface-variant text-xs font-medium mb-1">Deadlift PR</p>
-              <p className="font-headline font-bold text-xl">{weightUnit === 'kg' ? Math.round(315 / 2.20462) : 315} <span className="text-xs text-on-surface-variant font-normal">{weightUnit}</span></p>
+              <p className="text-on-surface-variant text-xs font-medium mb-1">Total Workouts</p>
+              <p className="font-headline font-bold text-xl">{totalWorkouts}</p>
             </div>
             <div className="bg-[var(--color-surface-container)] rounded-2xl p-4">
-              <p className="text-on-surface-variant text-xs font-medium mb-1">5K Time</p>
-              <p className="font-headline font-bold text-xl">21:04 <span className="text-xs text-on-surface-variant font-normal">min</span></p>
+              <p className="text-on-surface-variant text-xs font-medium mb-1">Best Streak</p>
+              <p className="font-headline font-bold text-xl">{longestStreak} <span className="text-xs text-on-surface-variant font-normal">days</span></p>
             </div>
           </div>
 
           {/* Sleep Score */}
           <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <p className="text-on-surface-variant text-xs font-medium mb-1">Avg Sleep Score</p>
-              <p className="font-headline font-bold text-xl">92<span className="text-sm text-on-surface-variant font-normal">/100</span></p>
+              <p className="text-on-surface-variant text-xs font-medium mb-1">Today's Sleep</p>
+              <p className="font-headline font-bold text-xl">{dailyStats.sleep > 0 ? `${dailyStats.sleep}h` : '—'}<span className="text-sm text-on-surface-variant font-normal ml-1">{dailyStats.sleep > 0 ? `${Math.min(100, Math.round((dailyStats.sleep / 8) * 100))}% recovery` : 'Not logged'}</span></p>
             </div>
             <div className="h-8 flex items-end gap-1">
-              {[40, 60, 50, 70, 85].map((h, i) => (
-                <div key={i} className="w-1.5 bg-primary rounded-sm transition-all" style={{ height: `${h}%`, opacity: 0.3 + (i * 0.15) }} />
-              ))}
+              {dailyStats.sleep > 0 ? (
+                <div className="w-3 bg-primary rounded-sm" style={{ height: `${Math.min(100, (dailyStats.sleep / 8) * 100)}%` }} />
+              ) : (
+                <span className="text-on-surface-variant text-xs">—</span>
+              )}
             </div>
           </div>
         </div>
