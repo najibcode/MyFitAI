@@ -23,6 +23,11 @@ export interface UserProfile {
   dailyStepGoal: number;
   dailyCalorieGoal: number;
   dailyWaterGoal: number; // in Liters
+  dailyProteinGoal: number; // grams
+  dailyCarbsGoal: number; // grams
+  dailyFatGoal: number; // grams
+  dailySleepGoal: number; // hours
+  dailyWorkoutDurationGoal: number; // minutes
 }
 
 export interface Activity {
@@ -143,6 +148,11 @@ const defaultProfile: UserProfile = {
   dailyStepGoal: 10000,
   dailyCalorieGoal: 2800,
   dailyWaterGoal: 3.0,
+  dailyProteinGoal: 180,
+  dailyCarbsGoal: 280,
+  dailyFatGoal: 93,
+  dailySleepGoal: 8,
+  dailyWorkoutDurationGoal: 60,
 };
 
 const DEFAULT_SUPPLEMENTS: Supplement[] = [
@@ -161,10 +171,10 @@ function getTodayDateString(): string {
 export function FitnessProvider({ children }: { children: React.ReactNode }) {
   const { cloudData } = useAuth();
 
-  // Try to load from storage
+  // Try to load from storage — merge with defaults so new fields get fallback values
   const loadInitialProfile = () => {
     const saved = storage.get<UserProfile>('kinetic_profile');
-    return saved || defaultProfile;
+    return saved ? { ...defaultProfile, ...saved } : defaultProfile;
   };
 
   const loadInitialActivities = () => {
@@ -228,7 +238,7 @@ export function FitnessProvider({ children }: { children: React.ReactNode }) {
   // Sync from cloud on load
   useEffect(() => {
     if (cloudData && cloudData.fitness) {
-      if (cloudData.fitness.profile) setProfile(cloudData.fitness.profile);
+      if (cloudData.fitness.profile) setProfile(prev => ({ ...prev, ...cloudData.fitness.profile }));
       if (cloudData.fitness.activities) setActivities(cloudData.fitness.activities);
       if (cloudData.fitness.weightHistory) setWeightHistory(cloudData.fitness.weightHistory);
       if (cloudData.fitness.mealLogs) setMealLogs(cloudData.fitness.mealLogs);

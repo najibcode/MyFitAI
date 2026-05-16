@@ -58,11 +58,12 @@ export default function ProfileSettings() {
           <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="font-headline font-bold text-sm">My Goals</p>
-            <p className="text-on-surface-variant text-xs mt-0.5">{profile.goal} · {profile.dailyCalorieGoal} kcal · {profile.dailyWaterGoal}L water · {profile.dailyStepGoal} steps</p>
+            <p className="text-on-surface-variant text-xs mt-0.5 truncate">{profile.goal} · {profile.dailyCalorieGoal} kcal · P {profile.dailyProteinGoal}g · C {profile.dailyCarbsGoal}g · F {profile.dailyFatGoal}g</p>
+            <p className="text-on-surface-variant text-[10px] mt-0.5">{profile.dailyWaterGoal}L water · {profile.dailyStepGoal} steps · {profile.dailySleepGoal}h sleep · {profile.dailyWorkoutDurationGoal} min workout</p>
           </div>
-          <span className="material-symbols-outlined text-primary text-base">chevron_right</span>
+          <span className="material-symbols-outlined text-primary text-base flex-shrink-0">chevron_right</span>
         </div>
       </section>
 

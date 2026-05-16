@@ -88,7 +88,17 @@ export default function Onboarding() {
   };
 
   const handleFinish = () => {
-    completeOnboarding(formData);
+    const finalWeight = weightUnit === 'kg' && typeof formData.weight === 'number' ? formData.weight * 2.20462 : Number(formData.weight);
+    const finalTargetWeight = weightUnit === 'kg' && typeof formData.targetWeight === 'number' ? formData.targetWeight * 2.20462 : Number(formData.targetWeight);
+    const finalHeight = heightUnit === 'cm' && typeof formData.height === 'number' ? formData.height / 2.54 : Number(formData.height);
+
+    completeOnboarding({
+      ...formData,
+      age: Number(formData.age) || 25,
+      height: finalHeight || 70,
+      weight: finalWeight || 170,
+      targetWeight: finalTargetWeight || 165,
+    });
   };
 
   const nextStep = () => {

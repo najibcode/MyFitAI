@@ -187,15 +187,42 @@ export default function Dashboard() {
             <h2 className="font-headline font-bold text-base">Nutrition</h2>
             <span className="text-on-surface-variant text-xs font-medium">See all →</span>
           </div>
-          {dailyStats.calories > 0 ? (
+          {(dailyStats.calories > 0 || dailyStats.caloriesConsumed > 0) ? (
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-on-surface-variant font-medium">Calories</span>
-                  <span className="font-semibold">{dailyStats.calories} <span className="text-on-surface-variant font-normal">/ {profile.dailyCalorieGoal} kcal</span></span>
+                  <span className="font-semibold">{dailyStats.caloriesConsumed} <span className="text-on-surface-variant font-normal">/ {profile.dailyCalorieGoal} kcal</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.calories / profile.dailyCalorieGoal) * 100)}%` }} />
+                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.caloriesConsumed / profile.dailyCalorieGoal) * 100)}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium" style={{ color: '#FF7A00' }}>Protein</span>
+                  <span className="font-semibold">{dailyStats.protein}g <span className="text-on-surface-variant font-normal">/ {profile.dailyProteinGoal}g</span></span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FF7A00', width: `${Math.min(100, (dailyStats.protein / (profile.dailyProteinGoal || 1)) * 100)}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium" style={{ color: '#FBBF24' }}>Carbs</span>
+                  <span className="font-semibold">{dailyStats.carbs}g <span className="text-on-surface-variant font-normal">/ {profile.dailyCarbsGoal}g</span></span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FBBF24', width: `${Math.min(100, (dailyStats.carbs / (profile.dailyCarbsGoal || 1)) * 100)}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium" style={{ color: '#A78BFA' }}>Fat</span>
+                  <span className="font-semibold">{dailyStats.fat}g <span className="text-on-surface-variant font-normal">/ {profile.dailyFatGoal}g</span></span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#A78BFA', width: `${Math.min(100, (dailyStats.fat / (profile.dailyFatGoal || 1)) * 100)}%` }} />
                 </div>
               </div>
               <div>
@@ -207,20 +234,11 @@ export default function Dashboard() {
                   <div className="bg-[#60A5FA] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.water / profile.dailyWaterGoal) * 100)}%` }} />
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-on-surface-variant font-medium">Exercise</span>
-                  <span className="font-semibold">{dailyStats.duration} <span className="text-on-surface-variant font-normal">/ 60 min</span></span>
-                </div>
-                <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#6FFB85] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.duration / 60) * 100)}%` }} />
-                </div>
-              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3 py-4 text-on-surface-variant">
               <span className="material-symbols-outlined text-2xl opacity-40">restaurant</span>
-              <p className="text-sm">Log activities to track your daily nutrition →</p>
+              <p className="text-sm">Log meals to track your daily nutrition →</p>
             </div>
           )}
         </Link>

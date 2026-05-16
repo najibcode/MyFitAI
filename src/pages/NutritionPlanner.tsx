@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useFitnessContext, type MealType } from '../context/FitnessContext';
-import { useNavigate } from 'react-router-dom';
 import { INDIAN_DISHES, CATEGORIES, type IndianDish } from '../data/indianDishes';
 import { NUTRITION_FOODS, FOOD_CATEGORIES, type NutritionFood } from '../data/nutritionFoods';
 import { useToast } from '../context/ToastContext';
 
 export default function NutritionPlanner() {
   const { profile, dailyStats, logActivity, todaysMeals, logMeal, deleteMeal, supplements, toggleSupplement, addSupplement, removeSupplement, groceryItems, addGroceryItem, removeGroceryItem, toggleGroceryItem, clearCheckedGroceries } = useFitnessContext();
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedDish, setSelectedDish] = useState<IndianDish | null>(null);
@@ -28,7 +26,7 @@ export default function NutritionPlanner() {
   const [newGroceryCat, setNewGroceryCat] = useState('Proteins');
   // Food browser state
   const [selectedFood, setSelectedFood] = useState<NutritionFood | null>(null);
-  const [foodServings, setFoodServings] = useState(1);
+  const [foodGrams, setFoodGrams] = useState<number>(100);
   const [foodSearch, setFoodSearch] = useState('');
   const [foodCatFilter, setFoodCatFilter] = useState<string>('All');
 
@@ -40,10 +38,8 @@ export default function NutritionPlanner() {
   const fGoal = Math.round(profile.dailyCalorieGoal * 0.3 / 9);
 
   const addHydration = () => {
-    if (hydrationLogged < hydrationGoal) {
-      logActivity({ type: 'Water', value: 0.25 });
-      showToast('+0.25L Water Logged!', 'success');
-    } else showToast('Goal already met!', 'info');
+    logActivity({ type: 'Water', value: 0.25 });
+    showToast('+0.25L Water Logged!', 'success');
   };
 
   const handleQuickAdd = () => {
@@ -84,9 +80,9 @@ export default function NutritionPlanner() {
   };
 
   const handleLogFood = (food: NutritionFood, type: MealType) => {
-    const mult = foodServings * food.servingSize / 100;
+    const mult = foodGrams / 100;
     logMeal({
-      name: `${food.emoji} ${food.name} (${foodServings}×${food.servingLabel})`,
+      name: `${food.emoji} ${food.name} (${foodGrams}g)`,
       mealType: type,
       calories: Math.round(food.calories * mult),
       protein: Math.round(food.protein * mult),
@@ -95,7 +91,6 @@ export default function NutritionPlanner() {
     });
     showToast(`${food.name} logged as ${type}! (+${Math.round(food.calories * mult)} kcal)`, 'success');
     setSelectedFood(null);
-    setFoodServings(1);
   };
 
   const filteredFoods = NUTRITION_FOODS.filter(f => {
@@ -373,7 +368,7 @@ export default function NutritionPlanner() {
         {/* Food grid */}
         <div className="grid grid-cols-2 gap-3">
           {filteredFoods.slice(0,20).map(food=>(
-            <button key={food.id} onClick={()=>{setSelectedFood(food);setFoodServings(1)}} className="bg-[var(--color-surface-container)] rounded-2xl p-4 text-left hover:ring-1 hover:ring-primary/30 transition-all active:scale-[0.97] space-y-2">
+            <button key={food.id} onClick={()=>{setSelectedFood(food);setFoodGrams(food.servingSize)}} className="bg-[var(--color-surface-container)] rounded-2xl p-4 text-left hover:ring-1 hover:ring-primary/30 transition-all active:scale-[0.97] space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{food.emoji}</span>
                 <span className="text-sm font-bold leading-tight truncate">{food.name}</span>
@@ -419,29 +414,33 @@ export default function NutritionPlanner() {
               <p className="text-xs text-on-surface-variant leading-relaxed">{selectedFood.benefits}</p>
             </div>
 
-            {/* Serving Selector */}
+            {/* Amount in Grams */}
             <div>
-              <p className="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">Serving Size</p>
+              <p className="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">Amount (Grams)</p>
               <div className="flex items-center gap-3 bg-[var(--color-surface)] rounded-xl p-3">
-                <button onClick={()=>setFoodServings(Math.max(0.5,foodServings-0.5))} className="w-8 h-8 rounded-lg bg-[var(--color-surface-container)] flex items-center justify-center active:scale-90"><span className="material-symbols-outlined text-base">remove</span></button>
-                <div className="flex-1 text-center">
-                  <span className="font-headline font-bold text-xl">{foodServings}</span>
-                  <span className="text-xs text-on-surface-variant ml-1">× {selectedFood.servingLabel}</span>
-                  <p className="text-[10px] text-on-surface-variant">{Math.round(foodServings * selectedFood.servingSize)}g total</p>
-                </div>
-                <button onClick={()=>setFoodServings(foodServings+0.5)} className="w-8 h-8 rounded-lg bg-[var(--color-surface-container)] flex items-center justify-center active:scale-90"><span className="material-symbols-outlined text-base">add</span></button>
+                <input 
+                  type="number" 
+                  inputMode="numeric"
+                  value={foodGrams || ''} 
+                  onChange={e => setFoodGrams(Math.max(0, parseInt(e.target.value) || 0))} 
+                  className="flex-1 bg-transparent font-headline font-bold text-2xl text-center outline-none"
+                />
+                <span className="text-sm text-on-surface-variant font-bold pr-4">g</span>
               </div>
+              <p className="text-center text-[10px] text-on-surface-variant mt-2">
+                Standard serving: {selectedFood.servingSize}g ({selectedFood.servingLabel})
+              </p>
             </div>
 
             {/* Macro breakdown */}
             <div>
-              <p className="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">Nutrition per serving</p>
+              <p className="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">Nutrition for {foodGrams}g</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label:'Calories', val:Math.round(selectedFood.calories*foodServings*selectedFood.servingSize/100), unit:'kcal', color:'#ff9800' },
-                  { label:'Protein', val:Math.round(selectedFood.protein*foodServings*selectedFood.servingSize/100), unit:'g', color:'#FF4D4D' },
-                  { label:'Carbs', val:Math.round(selectedFood.carbs*foodServings*selectedFood.servingSize/100), unit:'g', color:'#ff9800' },
-                  { label:'Fat', val:Math.round(selectedFood.fat*foodServings*selectedFood.servingSize/100), unit:'g', color:'#fab0ff' },
+                  { label:'Calories', val:Math.round(selectedFood.calories*foodGrams/100), unit:'kcal', color:'#ff9800' },
+                  { label:'Protein', val:Math.round(selectedFood.protein*foodGrams/100), unit:'g', color:'#FF4D4D' },
+                  { label:'Carbs', val:Math.round(selectedFood.carbs*foodGrams/100), unit:'g', color:'#ff9800' },
+                  { label:'Fat', val:Math.round(selectedFood.fat*foodGrams/100), unit:'g', color:'#fab0ff' },
                 ].map((m,i)=>(
                   <div key={i} className="bg-[var(--color-surface)] rounded-xl p-3 text-center">
                     <p className="font-headline font-bold text-lg" style={{color:m.color}}>{m.val}</p>
@@ -454,7 +453,7 @@ export default function NutritionPlanner() {
               {selectedFood.fiber > 0 && (
                 <div className="mt-2 flex items-center gap-2 bg-[var(--color-surface)] rounded-xl px-3 py-2">
                   <span className="material-symbols-outlined text-[#6FFB85] text-sm" style={{fontVariationSettings:"'FILL' 1"}}>grass</span>
-                  <span className="text-xs text-on-surface-variant">Fiber: <span className="font-bold text-on-surface">{Math.round(selectedFood.fiber*foodServings*selectedFood.servingSize/100)}g</span></span>
+                  <span className="text-xs text-on-surface-variant">Fiber: <span className="font-bold text-on-surface">{Math.round(selectedFood.fiber*foodGrams/100)}g</span></span>
                 </div>
               )}
             </div>
