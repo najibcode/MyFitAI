@@ -9,6 +9,7 @@ import { useWorkoutBuilder } from '../context/WorkoutBuilderContext';
 import HistoryCalendar from '../components/WorkoutHistory/HistoryCalendar';
 import SessionCard from '../components/WorkoutHistory/SessionCard';
 import SessionDetail from '../components/WorkoutHistory/SessionDetail';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkoutHistory() {
   const navigate = useNavigate();
@@ -27,10 +28,17 @@ export default function WorkoutHistory() {
   const handlePrevMonth = () => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this workout session?')) {
-      await deleteSession(id);
+    setDeleteTarget(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteSession(deleteTarget);
       setDetailId(null);
+      setDeleteTarget(null);
     }
   };
 
@@ -89,6 +97,16 @@ export default function WorkoutHistory() {
       {detailSession && (
         <SessionDetail session={detailSession} onClose={() => setDetailId(null)} onDelete={handleDelete} />
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+        title="Delete Workout?"
+        message="This workout session will be permanently removed from your history."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </main>
   );
 }

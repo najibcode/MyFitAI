@@ -2,12 +2,13 @@
 // MyFitAI — Plate Calculator Modal
 // ─────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
 
 interface PlateCalculatorProps {
   isOpen: boolean;
   onClose: () => void;
+  initialWeight?: number;
 }
 
 type BarType = 'standard' | 'olympic' | 'ez';
@@ -41,10 +42,16 @@ function calculatePlates(targetWeight: number, barWeight: number, availablePlate
   return plates;
 }
 
-export default function PlateCalculator({ isOpen, onClose }: PlateCalculatorProps) {
+export default function PlateCalculator({ isOpen, onClose, initialWeight }: PlateCalculatorProps) {
   const { weightUnit } = usePreferences();
-  const [targetWeight, setTargetWeight] = useState('');
+  const [targetWeight, setTargetWeight] = useState(initialWeight ? String(initialWeight) : '');
   const [barType, setBarType] = useState<BarType>('standard');
+
+  useEffect(() => {
+    if (isOpen && initialWeight !== undefined && initialWeight > 0) {
+      setTargetWeight(String(initialWeight));
+    }
+  }, [isOpen, initialWeight]);
 
   if (!isOpen) return null;
 
@@ -78,13 +85,18 @@ export default function PlateCalculator({ isOpen, onClose }: PlateCalculatorProp
         </div>
 
         {/* Bar type selector */}
-        <div className="flex gap-2 mb-6">
-          {([['standard', `Standard (${barWeight}${weightUnit})`], ['olympic', `Olympic (${barWeight}${weightUnit})`], ['ez', `EZ Bar (${BAR_WEIGHTS[weightUnit].ez}${weightUnit})`]] as [BarType, string][]).map(([type, label]) => (
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {([
+            ['standard', 'Standard', `${BAR_WEIGHTS[weightUnit].standard}${weightUnit}`],
+            ['olympic', 'Olympic', `${BAR_WEIGHTS[weightUnit].olympic}${weightUnit}`],
+            ['ez', 'EZ Bar', `${BAR_WEIGHTS[weightUnit].ez}${weightUnit}`],
+          ] as [BarType, string, string][]).map(([type, title, weightStr]) => (
             <button key={type} onClick={() => setBarType(type)}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
-                barType === type ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-white/[0.03] text-on-surface-variant border border-white/[0.04]'
+              className={`py-2 px-1 rounded-xl text-center transition-all active:scale-95 ${
+                barType === type ? 'bg-primary/20 text-primary border border-primary/40 shadow-sm' : 'bg-white/[0.03] text-on-surface-variant border border-white/[0.04]'
               }`}>
-              {label}
+              <span className="block text-[10px] font-black uppercase tracking-wider">{title}</span>
+              <span className="block text-[9px] opacity-75 font-mono font-bold mt-0.5">{weightStr}</span>
             </button>
           ))}
         </div>

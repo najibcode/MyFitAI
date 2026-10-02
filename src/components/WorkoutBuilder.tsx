@@ -9,9 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkoutBuilder } from '../context/WorkoutBuilderContext';
 import { usePreferences } from '../context/PreferencesContext';
 import type { WorkoutTemplate, WorkoutExercise, WorkoutType } from '../types/workout';
-import type { MuscleGroup } from '../types/exercise';
+import type { MuscleGroup, ExerciseType } from '../types/exercise';
 import { MUSCLE_GROUP_LABELS } from '../types/exercise';
-import { EXERCISE_LIBRARY, getYouTubeUrl } from '../data/exerciseLibrary';
+import { EXERCISE_LIBRARY } from '../data/exerciseLibrary';
 
 interface WorkoutBuilderProps {
   existingTemplate?: WorkoutTemplate;
@@ -49,19 +49,29 @@ export default function WorkoutBuilder({ existingTemplate, onClose }: WorkoutBui
     setTargetMuscles(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
   };
 
-  const addExercise = (name: string, emoji: string, muscles: MuscleGroup[], videoId?: string) => {
+  const addExercise = (
+    name: string,
+    emoji: string,
+    muscles: MuscleGroup[],
+    gifUrl?: string,
+    imageUrl?: string,
+    exerciseType: ExerciseType = 'weight_reps'
+  ) => {
     const ex: WorkoutExercise = {
       exerciseId: crypto.randomUUID(),
       exerciseName: name,
       thumbnailEmoji: emoji,
       primaryMuscles: muscles,
+      exerciseType,
+      gifUrl,
+      imageUrl,
       sets: [
-        { targetReps: 10, targetWeight: 0 },
-        { targetReps: 10, targetWeight: 0 },
-        { targetReps: 10, targetWeight: 0 },
+        { targetReps: 10, targetWeight: 0, setType: 'normal' },
+        { targetReps: 10, targetWeight: 0, setType: 'normal' },
+        { targetReps: 10, targetWeight: 0, setType: 'normal' },
       ],
       restSeconds: defaultRestTimer,
-      notes: videoId ? `📹 ${getYouTubeUrl(videoId)}` : '',
+      notes: '',
     };
     setExercises(prev => [...prev, ex]);
     setShowPicker(false);
@@ -77,7 +87,7 @@ export default function WorkoutBuilder({ existingTemplate, onClose }: WorkoutBui
       const next = [...prev];
       const ex = { ...next[idx] };
       if (count > ex.sets.length) {
-        ex.sets = [...ex.sets, ...Array.from({ length: count - ex.sets.length }, () => ({ targetReps: 10, targetWeight: 0 }))];
+        ex.sets = [...ex.sets, ...Array.from({ length: count - ex.sets.length }, () => ({ targetReps: 10, targetWeight: 0, setType: 'normal' as const }))];
       } else {
         ex.sets = ex.sets.slice(0, count);
       }
@@ -141,7 +151,7 @@ export default function WorkoutBuilder({ existingTemplate, onClose }: WorkoutBui
 
   const filteredExercises = EXERCISE_LIBRARY.filter(ex =>
     ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ex.muscles.some(m => m.includes(searchQuery.toLowerCase())) ||
+    ex.primaryMuscles.some(m => m.includes(searchQuery.toLowerCase())) ||
     ex.equipment.includes(searchQuery.toLowerCase())
   );
 
@@ -216,7 +226,13 @@ export default function WorkoutBuilder({ existingTemplate, onClose }: WorkoutBui
               <div className="flex items-center gap-3 mb-3">
                 <span className="material-symbols-outlined text-on-surface-variant/30 text-[16px] cursor-grab">drag_indicator</span>
                 <div className="w-1 h-8 bg-primary rounded-full flex-shrink-0" />
-                <span className="text-xl">{ex.thumbnailEmoji}</span>
+                {ex.imageUrl || ex.gifUrl ? (
+                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-black/40 border border-white/10 flex-shrink-0 flex items-center justify-center">
+                    <img src={ex.imageUrl || ex.gifUrl} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <span className="text-xl">{ex.thumbnailEmoji}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-on-surface truncate">{ex.exerciseName}</p>
                   <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">
@@ -285,24 +301,26 @@ export default function WorkoutBuilder({ existingTemplate, onClose }: WorkoutBui
             </div>
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
               {filteredExercises.map((ex, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <button onClick={() => addExercise(ex.name, ex.emoji, ex.muscles, ex.videoId)}
-                    className="flex-1 flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[var(--color-surface-container)] transition-colors text-left active:scale-[0.98]">
-                    <span className="text-xl w-8 text-center">{ex.emoji}</span>
+                <div key={i} className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-[var(--color-surface-container)] transition-colors">
+                  <button
+                    onClick={() => addExercise(ex.name, ex.emoji, ex.primaryMuscles, ex.gifUrl, ex.imageUrl, ex.exerciseType)}
+                    className="flex-1 flex items-center gap-3 text-left active:scale-[0.98]"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-black/40 overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center">
+                      {ex.imageUrl || ex.gifUrl ? (
+                        <img src={ex.imageUrl || ex.gifUrl} alt={ex.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <span className="text-xl">{ex.emoji}</span>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-on-surface truncate">{ex.name}</p>
-                      <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">
-                        {ex.muscles.map(m => MUSCLE_GROUP_LABELS[m]).join(' · ')}
+                      <p className="text-[10px] text-on-surface-variant uppercase tracking-wider truncate">
+                        {ex.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(' · ')}
                       </p>
                     </div>
-                    <span className="material-symbols-outlined text-on-surface-variant/30 text-[18px]">add_circle</span>
+                    <span className="material-symbols-outlined text-primary text-[20px]">add_circle</span>
                   </button>
-                  <a href={getYouTubeUrl(ex.videoId)} target="_blank" rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-[#FF0000]/60 hover:text-[#FF0000] hover:bg-[#FF0000]/10 transition-all active:scale-90 flex-shrink-0"
-                    title={`Watch tutorial: ${ex.name}`}>
-                    <span className="material-symbols-outlined text-[16px]">play_circle</span>
-                  </a>
                 </div>
               ))}
             </div>

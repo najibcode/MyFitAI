@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// MyFitAI — Workout Builder & Active Session Context
-// Manages template creation, active session tracking, PR detection,
-// crash recovery, and Wake Lock API integration.
+// MyFitAI — Workout Builder & Active Session Context (Enhanced)
+// Manages template creation, routines, scheduling, active session
+// tracking, PR detection, crash recovery, and Wake Lock API.
 // ─────────────────────────────────────────────────────────────
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
@@ -14,15 +14,23 @@ import type {
   LoggedSet,
   PRRecord,
   WorkoutType,
+  Routine,
+  ScheduleOverride,
+  EffortMode,
+  ProgressionRule,
 } from '../types/workout';
-import { calculateSessionVolume, calculate1RM } from '../types/workout';
-import type { MuscleGroup } from '../types/exercise';
+import { calculateSessionVolume, createDefaultLoggedSet, DEFAULT_PROGRESSION } from '../types/workout';
+import type { MuscleGroup, ExerciseType } from '../types/exercise';
+import { detectPR, detectSessionPRs } from '../engine/prDetection';
+import { getProgressionRecommendation, countConsecutiveFailures, type ProgressionRecommendation } from '../engine/progression';
+import { audioFeedback } from '../utils/audioTones';
 
 // ─── Types ─────────────────────────────────────────────────
 
 interface RestTimerState {
   remaining: number;
   total: number;
+  paused: boolean;
 }
 
 interface WorkoutBuilderContextType {
@@ -33,6 +41,21 @@ interface WorkoutBuilderContextType {
   deleteTemplate: (id: string) => Promise<void>;
   duplicateTemplate: (id: string) => Promise<WorkoutTemplate | null>;
 
+  // Routines
+  routines: Routine[];
+  activeRoutine: Routine | null;
+  loadRoutines: () => Promise<void>;
+  saveRoutine: (routine: Routine) => Promise<void>;
+  deleteRoutine: (id: string) => Promise<void>;
+  setActiveRoutine: (id: string | null) => Promise<void>;
+
+  // Schedule Overrides
+  scheduleOverrides: ScheduleOverride[];
+  loadScheduleOverrides: () => Promise<void>;
+  addScheduleOverride: (override: ScheduleOverride) => Promise<void>;
+  removeScheduleOverride: (id: string) => Promise<void>;
+  getTodaysWorkout: () => { templateId?: string; label: string; isRest: boolean } | null;
+
   // Active Session
   activeSession: WorkoutSession | null;
   isSessionActive: boolean;
@@ -40,22 +63,34 @@ interface WorkoutBuilderContextType {
   startSession: (template?: WorkoutTemplate) => void;
   endSession: () => Promise<WorkoutSession | null>;
   cancelSession: () => void;
+  updateSessionNotes: (notes: string) => void;
 
   // Set Logging
   logSet: (exerciseIdx: number, setIdx: number, set: LoggedSet) => void;
   addSetToExercise: (exerciseIdx: number) => void;
   removeSet: (exerciseIdx: number, setIdx: number) => void;
+  prependWarmupSets: (exerciseIdx: number, warmupSets: LoggedSet[]) => void;
   updateExerciseNotes: (exerciseIdx: number, notes: string) => void;
+  addExerciseToSession: (exercise: SessionExercise) => void;
+  removeExerciseFromSession: (exerciseIdx: number) => void;
+  reorderExercisesInSession: (from: number, to: number) => void;
+  toggleExerciseSuperset: (exIdx: number) => void;
 
   // Rest Timer
   restTimer: RestTimerState | null;
   startRestTimer: (seconds: number) => void;
+  pauseRestTimer: () => void;
+  resumeRestTimer: () => void;
   skipRest: () => void;
+  addRestTime: (seconds: number) => void;
 
   // PR Detection
   personalRecords: Map<string, PRRecord[]>;
   loadPRs: () => Promise<void>;
   checkForPR: (exerciseId: string, exerciseName: string, weight: number, reps: number, sessionId: string) => PRRecord | null;
+
+  // Progression
+  getProgressionRec: (exerciseId: string, exerciseType: ExerciseType, rule?: ProgressionRule) => ProgressionRecommendation;
 
   // History
   sessions: WorkoutSession[];
@@ -64,29 +99,43 @@ interface WorkoutBuilderContextType {
   updateSession: (session: WorkoutSession) => Promise<void>;
 
   // Previous session data for ghost values
-  getPreviousSessionData: (exerciseId: string) => { reps: number; weight: number; rpe: number }[];
+  getPreviousSessionData: (exerciseId: string) => { reps: number; weight: number; rpe: number; duration?: number; distance?: number }[];
+
+  // Effort mode
+  effortMode: EffortMode;
+  setEffortMode: (mode: EffortMode) => void;
+
+  // Data Export / Import
+  exportAllData: () => Promise<string>;
+  importData: (jsonStr: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const WorkoutBuilderContext = createContext<WorkoutBuilderContextType | undefined>(undefined);
 
 const CRASH_RECOVERY_KEY = 'active_session_backup';
 const PR_STORAGE_KEY = 'personal_records';
+const EFFORT_MODE_KEY = 'effort_mode';
 
 export function WorkoutBuilderProvider({ children }: { children: React.ReactNode }) {
   // ─── State ────────────────────────────────────────────────
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [activeRoutine, setActiveRoutineState] = useState<Routine | null>(null);
+  const [scheduleOverrides, setScheduleOverrides] = useState<ScheduleOverride[]>([]);
   const [activeSession, setActiveSession] = useState<WorkoutSession | null>(null);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
   const [personalRecords, setPersonalRecords] = useState<Map<string, PRRecord[]>>(new Map());
+  const [effortMode, setEffortModeState] = useState<EffortMode>(() => {
+    return storage.get<EffortMode>(EFFORT_MODE_KEY) || 'off';
+  });
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isSessionActive = activeSession !== null;
-  const isRestTimerRunning = Boolean(restTimer && restTimer.remaining > 0);
 
   // ─── Load Data on Mount ───────────────────────────────────
 
@@ -94,12 +143,13 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     loadTemplates();
     loadSessions();
     loadPRs();
+    loadRoutines();
+    loadScheduleOverrides();
 
     // Check for crash recovery
     const backup = storage.get<WorkoutSession>(CRASH_RECOVERY_KEY);
     if (backup && !activeSession) {
       setActiveSession(backup);
-      // Calculate elapsed from startedAt
       const elapsed = Math.floor((Date.now() - new Date(backup.startedAt).getTime()) / 1000);
       setSessionElapsed(elapsed);
     }
@@ -127,13 +177,17 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   // ─── Rest Timer ───────────────────────────────────────────
 
   useEffect(() => {
-    if (isRestTimerRunning) {
+    const isRunning = restTimer && restTimer.remaining > 0 && !restTimer.paused;
+    if (isRunning) {
       restTimerRef.current = setInterval(() => {
         setRestTimer(prev => {
           if (!prev || prev.remaining <= 1) {
-            // Timer complete — vibrate
-            if (navigator.vibrate) navigator.vibrate(200);
+            audioFeedback.playTimerComplete();
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             return null;
+          }
+          if (prev.remaining <= 4) {
+            audioFeedback.playCountdownTick();
           }
           return { ...prev, remaining: prev.remaining - 1 };
         });
@@ -147,7 +201,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     return () => {
       if (restTimerRef.current) clearInterval(restTimerRef.current);
     };
-  }, [isRestTimerRunning]);
+  }, [restTimer?.remaining, restTimer?.paused]);
 
   // ─── Crash Recovery — save active session every 10s ───────
 
@@ -156,11 +210,11 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       storage.remove(CRASH_RECOVERY_KEY);
       return;
     }
-
+    // Save immediately and then every 10 seconds
+    storage.set(CRASH_RECOVERY_KEY, activeSession);
     const interval = setInterval(() => {
       storage.set(CRASH_RECOVERY_KEY, activeSession);
     }, 10000);
-
     return () => clearInterval(interval);
   }, [activeSession]);
 
@@ -171,9 +225,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       if ('wakeLock' in navigator) {
         wakeLockRef.current = await navigator.wakeLock.request('screen');
       }
-    } catch {
-      // Wake Lock not supported or denied — not critical
-    }
+    } catch { /* Wake Lock not supported or denied — not critical */ }
   };
 
   const releaseWakeLock = () => {
@@ -182,6 +234,13 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       wakeLockRef.current = null;
     }
   };
+
+  // ─── Effort Mode ──────────────────────────────────────────
+
+  const setEffortMode = useCallback((mode: EffortMode) => {
+    setEffortModeState(mode);
+    storage.set(EFFORT_MODE_KEY, mode);
+  }, []);
 
   // ─── Template Operations ──────────────────────────────────
 
@@ -219,6 +278,94 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     return duplicate;
   }, [loadTemplates]);
 
+  // ─── Routine Operations ───────────────────────────────────
+
+  const loadRoutines = useCallback(async () => {
+    try {
+      const all = await db.routines.getAll();
+      setRoutines(all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      const active = all.find(r => r.isActive);
+      setActiveRoutineState(active || null);
+    } catch (e) {
+      console.error('[WorkoutBuilder] Failed to load routines:', e);
+    }
+  }, []);
+
+  const saveRoutine = useCallback(async (routine: Routine) => {
+    await db.routines.save(routine);
+    await loadRoutines();
+  }, [loadRoutines]);
+
+  const deleteRoutine = useCallback(async (id: string) => {
+    await db.routines.delete(id);
+    await loadRoutines();
+  }, [loadRoutines]);
+
+  const setActiveRoutine = useCallback(async (id: string | null) => {
+    // Deactivate all
+    for (const r of routines) {
+      if (r.isActive) {
+        await db.routines.save({ ...r, isActive: false, updatedAt: new Date().toISOString() });
+      }
+    }
+    // Activate selected
+    if (id) {
+      const routine = routines.find(r => r.id === id);
+      if (routine) {
+        await db.routines.save({ ...routine, isActive: true, updatedAt: new Date().toISOString() });
+      }
+    }
+    await loadRoutines();
+  }, [routines, loadRoutines]);
+
+  // ─── Schedule Overrides ───────────────────────────────────
+
+  const loadScheduleOverrides = useCallback(async () => {
+    try {
+      const all = await db.scheduleOverrides.getAll();
+      setScheduleOverrides(all);
+    } catch (e) {
+      console.error('[WorkoutBuilder] Failed to load schedule overrides:', e);
+    }
+  }, []);
+
+  const addScheduleOverride = useCallback(async (override: ScheduleOverride) => {
+    await db.scheduleOverrides.save(override);
+    await loadScheduleOverrides();
+  }, [loadScheduleOverrides]);
+
+  const removeScheduleOverride = useCallback(async (id: string) => {
+    await db.scheduleOverrides.delete(id);
+    await loadScheduleOverrides();
+  }, [loadScheduleOverrides]);
+
+  const getTodaysWorkout = useCallback(() => {
+    if (!activeRoutine) return null;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dayOfWeek = today.getDay();
+
+    // Check for override first
+    const override = scheduleOverrides.find(o => o.date === todayStr);
+    if (override) {
+      if (override.isSkipped) return { label: 'Rest (rescheduled)', isRest: true };
+      return {
+        templateId: override.newTemplateId,
+        label: override.newTemplateLabel || 'Rescheduled',
+        isRest: false,
+      };
+    }
+
+    // Fall back to routine schedule
+    const daySlot = activeRoutine.days.find(d => d.dayOfWeek === dayOfWeek);
+    if (!daySlot) return { label: 'Rest', isRest: true };
+    return {
+      templateId: daySlot.templateId,
+      label: daySlot.label,
+      isRest: daySlot.isRest,
+    };
+  }, [activeRoutine, scheduleOverrides]);
+
   // ─── Session Operations ───────────────────────────────────
 
   const startSession = useCallback((template?: WorkoutTemplate) => {
@@ -226,17 +373,12 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       ? template.exercises.map(ex => ({
           exerciseId: ex.exerciseId,
           exerciseName: ex.exerciseName,
+          exerciseType: ex.exerciseType || 'weight_reps',
           thumbnailEmoji: ex.thumbnailEmoji,
           primaryMuscles: ex.primaryMuscles,
-          sets: ex.sets.map(() => ({
-            reps: 0,
-            weight: 0,
-            rpe: 0,
-            setType: 'normal' as const,
-            completed: false,
-            skipped: false,
-            timestamp: '',
-          })),
+          isUnilateral: ex.isUnilateral,
+          supersetGroup: ex.supersetGroup,
+          sets: ex.sets.map(s => createDefaultLoggedSet(s.setType)),
         }))
       : [];
 
@@ -254,13 +396,14 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       prsHit: [],
       notes: '',
       musclesWorked: template?.targetMuscles || [],
+      effortMode,
     };
 
     setActiveSession(session);
     setSessionElapsed(0);
     setRestTimer(null);
     acquireWakeLock();
-  }, []);
+  }, [effortMode]);
 
   const logSet = useCallback((exerciseIdx: number, setIdx: number, set: LoggedSet) => {
     setActiveSession(prev => {
@@ -280,15 +423,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       if (!prev) return prev;
       const exercises = [...prev.exercises];
       const exercise = { ...exercises[exerciseIdx] };
-      exercise.sets = [...exercise.sets, {
-        reps: 0,
-        weight: 0,
-        rpe: 0,
-        setType: 'normal' as const,
-        completed: false,
-        skipped: false,
-        timestamp: '',
-      }];
+      exercise.sets = [...exercise.sets, createDefaultLoggedSet()];
       exercises[exerciseIdx] = exercise;
       return { ...prev, exercises };
     });
@@ -305,6 +440,17 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     });
   }, []);
 
+  const prependWarmupSets = useCallback((exerciseIdx: number, warmupSets: LoggedSet[]) => {
+    setActiveSession(prev => {
+      if (!prev || warmupSets.length === 0) return prev;
+      const exercises = [...prev.exercises];
+      const exercise = { ...exercises[exerciseIdx] };
+      exercise.sets = [...warmupSets, ...exercise.sets];
+      exercises[exerciseIdx] = exercise;
+      return { ...prev, exercises };
+    });
+  }, []);
+
   const updateExerciseNotes = useCallback((exerciseIdx: number, notes: string) => {
     setActiveSession(prev => {
       if (!prev) return prev;
@@ -312,6 +458,63 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       exercises[exerciseIdx] = { ...exercises[exerciseIdx], notes };
       return { ...prev, exercises };
     });
+  }, []);
+
+  const addExerciseToSession = useCallback((exercise: SessionExercise) => {
+    setActiveSession(prev => {
+      if (!prev) return prev;
+      return { ...prev, exercises: [...prev.exercises, exercise] };
+    });
+  }, []);
+
+  const removeExerciseFromSession = useCallback((exerciseIdx: number) => {
+    setActiveSession(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.filter((_, i) => i !== exerciseIdx);
+      return { ...prev, exercises };
+    });
+  }, []);
+
+  const reorderExercisesInSession = useCallback((from: number, to: number) => {
+    setActiveSession(prev => {
+      if (!prev) return prev;
+      const exercises = [...prev.exercises];
+      const [moved] = exercises.splice(from, 1);
+      exercises.splice(to, 0, moved);
+      return { ...prev, exercises };
+    });
+  }, []);
+
+  const toggleExerciseSuperset = useCallback((exIdx: number) => {
+    setActiveSession(prev => {
+      if (!prev) return prev;
+      const exercises = [...prev.exercises];
+      const current = exercises[exIdx];
+      const next = exercises[exIdx + 1];
+      if (!current) return prev;
+
+      if (current.supersetGroup) {
+        const group = current.supersetGroup;
+        return {
+          ...prev,
+          exercises: exercises.map(ex =>
+            ex.supersetGroup === group ? { ...ex, supersetGroup: undefined } : ex
+          ),
+        };
+      } else if (next) {
+        const existingGroups = new Set(exercises.map(e => e.supersetGroup).filter(Boolean));
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        const nextLetter = letters.find(l => !existingGroups.has(l)) || 'A';
+        exercises[exIdx] = { ...current, supersetGroup: nextLetter };
+        exercises[exIdx + 1] = { ...next, supersetGroup: nextLetter };
+        return { ...prev, exercises };
+      }
+      return prev;
+    });
+  }, []);
+
+  const updateSessionNotes = useCallback((notes: string) => {
+    setActiveSession(prev => prev ? { ...prev, notes } : prev);
   }, []);
 
   const endSession = useCallback(async (): Promise<WorkoutSession | null> => {
@@ -333,16 +536,15 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
       )] as MuscleGroup[],
     };
 
-    // Detect PRs
-    const prs: PRRecord[] = [];
-    for (const ex of completedSession.exercises) {
-      for (const set of ex.sets) {
-        if (!set.completed || set.skipped) continue;
-        const pr = checkForPR(ex.exerciseId, ex.exerciseName, set.weight, set.reps, completedSession.id);
-        if (pr) prs.push(pr);
-      }
-    }
+    // Detect PRs across session
+    const { prs, updatedPRMap } = detectSessionPRs(completedSession, personalRecords);
     completedSession.prsHit = prs;
+
+    // Update PRs in state and storage
+    setPersonalRecords(updatedPRMap);
+    const prObj: Record<string, PRRecord[]> = {};
+    updatedPRMap.forEach((value, key) => { prObj[key] = value; });
+    storage.set(PR_STORAGE_KEY, prObj);
 
     // Save
     await db.sessions.save(completedSession);
@@ -353,12 +555,10 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     setSessionElapsed(0);
     setRestTimer(null);
 
-    // Refresh sessions list
     await loadSessions();
 
     return completedSession;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSession, sessionElapsed]);
+  }, [activeSession, sessionElapsed, personalRecords]);
 
   const cancelSession = useCallback(() => {
     setActiveSession(null);
@@ -371,11 +571,23 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   // ─── Rest Timer ───────────────────────────────────────────
 
   const startRestTimer = useCallback((seconds: number) => {
-    setRestTimer({ remaining: seconds, total: seconds });
+    setRestTimer({ remaining: seconds, total: seconds, paused: false });
+  }, []);
+
+  const pauseRestTimer = useCallback(() => {
+    setRestTimer(prev => prev ? { ...prev, paused: true } : prev);
+  }, []);
+
+  const resumeRestTimer = useCallback(() => {
+    setRestTimer(prev => prev ? { ...prev, paused: false } : prev);
   }, []);
 
   const skipRest = useCallback(() => {
     setRestTimer(null);
+  }, []);
+
+  const addRestTime = useCallback((seconds: number) => {
+    setRestTimer(prev => prev ? { ...prev, remaining: prev.remaining + seconds, total: prev.total + seconds } : prev);
   }, []);
 
   // ─── PR Detection ────────────────────────────────────────
@@ -385,14 +597,6 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     if (saved) {
       setPersonalRecords(new Map(Object.entries(saved)));
     }
-  }, []);
-
-  const savePRs = useCallback((prs: Map<string, PRRecord[]>) => {
-    const obj: Record<string, PRRecord[]> = {};
-    prs.forEach((value, key) => {
-      obj[key] = value;
-    });
-    storage.set(PR_STORAGE_KEY, obj);
   }, []);
 
   const checkForPR = useCallback((
@@ -405,89 +609,56 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     if (weight <= 0 || reps <= 0) return null;
 
     const existing = personalRecords.get(exerciseId) || [];
-    const currentVolume = weight * reps;
-    const current1RM = calculate1RM(weight, reps);
+    const mockSet: LoggedSet = {
+      reps, weight, rpe: 0, effortMode: 'off', setType: 'normal',
+      status: 'completed', completed: true, skipped: false, timestamp: new Date().toISOString(),
+    };
 
-    // Check weight PR
-    const bestWeight = existing.find(pr => pr.type === 'weight');
-    if (!bestWeight || weight > bestWeight.value) {
-      const pr: PRRecord = {
-        exerciseId,
-        exerciseName,
-        type: 'weight',
-        value: weight,
-        previousValue: bestWeight?.value,
-        date: new Date().toISOString(),
-        sessionId,
-      };
+    const result = detectPR(exerciseId, exerciseName, 'weight_reps', mockSet, sessionId, existing);
 
+    if (result.pr) {
       const updated = new Map(personalRecords);
-      const exPRs = [...(updated.get(exerciseId) || [])];
-      const existingIdx = exPRs.findIndex(p => p.type === 'weight');
-      if (existingIdx >= 0) exPRs[existingIdx] = pr;
-      else exPRs.push(pr);
-      updated.set(exerciseId, exPRs);
+      updated.set(exerciseId, result.allPRs);
       setPersonalRecords(updated);
-      savePRs(updated);
 
-      // Vibrate for PR
+      const prObj: Record<string, PRRecord[]> = {};
+      updated.forEach((value, key) => { prObj[key] = value; });
+      storage.set(PR_STORAGE_KEY, prObj);
+
+      audioFeedback.playPRCelebration();
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
-      return pr;
     }
 
-    // Check 1RM PR
-    const best1RM = existing.find(pr => pr.type === '1rm');
-    if (!best1RM || current1RM > best1RM.value) {
-      const pr: PRRecord = {
-        exerciseId,
-        exerciseName,
-        type: '1rm',
-        value: current1RM,
-        previousValue: best1RM?.value,
-        date: new Date().toISOString(),
-        sessionId,
-      };
+    return result.pr;
+  }, [personalRecords]);
 
-      const updated = new Map(personalRecords);
-      const exPRs = [...(updated.get(exerciseId) || [])];
-      const existingIdx = exPRs.findIndex(p => p.type === '1rm');
-      if (existingIdx >= 0) exPRs[existingIdx] = pr;
-      else exPRs.push(pr);
-      updated.set(exerciseId, exPRs);
-      setPersonalRecords(updated);
-      savePRs(updated);
+  // ─── Progression ──────────────────────────────────────────
 
-      return pr;
+  const getProgressionRec = useCallback((
+    exerciseId: string,
+    exerciseType: ExerciseType,
+    rule?: ProgressionRule,
+  ): ProgressionRecommendation => {
+    const effectiveRule = rule || DEFAULT_PROGRESSION;
+
+    // Find previous session data
+    const prevSets: LoggedSet[] = [];
+    for (const session of sessions) {
+      const ex = session.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex) {
+        prevSets.push(...ex.sets.filter(s => s.completed && !s.skipped));
+        break;
+      }
     }
 
-    // Check volume PR
-    const bestVolume = existing.find(pr => pr.type === 'volume');
-    if (!bestVolume || currentVolume > bestVolume.value) {
-      const pr: PRRecord = {
-        exerciseId,
-        exerciseName,
-        type: 'volume',
-        value: currentVolume,
-        previousValue: bestVolume?.value,
-        date: new Date().toISOString(),
-        sessionId,
-      };
+    const failures = countConsecutiveFailures(
+      exerciseId,
+      sessions,
+      effectiveRule.minReps,
+    );
 
-      const updated = new Map(personalRecords);
-      const exPRs = [...(updated.get(exerciseId) || [])];
-      const existingIdx = exPRs.findIndex(p => p.type === 'volume');
-      if (existingIdx >= 0) exPRs[existingIdx] = pr;
-      else exPRs.push(pr);
-      updated.set(exerciseId, exPRs);
-      setPersonalRecords(updated);
-      savePRs(updated);
-
-      return pr;
-    }
-
-    return null;
-  }, [personalRecords, savePRs]);
+    return getProgressionRecommendation(effectiveRule, exerciseType, prevSets, failures);
+  }, [sessions]);
 
   // ─── History ──────────────────────────────────────────────
 
@@ -513,49 +684,94 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   // ─── Ghost Values ────────────────────────────────────────
 
   const getPreviousSessionData = useCallback((exerciseId: string) => {
-    // Find the most recent session containing this exercise
     for (const session of sessions) {
       const ex = session.exercises.find(e => e.exerciseId === exerciseId);
       if (ex) {
         return ex.sets
           .filter(s => s.completed)
-          .map(s => ({ reps: s.reps, weight: s.weight, rpe: s.rpe }));
+          .map(s => ({
+            reps: s.reps,
+            weight: s.weight,
+            rpe: s.rpe,
+            duration: s.duration,
+            distance: s.distance,
+          }));
       }
     }
     return [];
   }, [sessions]);
+
+  // ─── Data Export / Import ─────────────────────────────────
+
+  const exportAllData = useCallback(async (): Promise<string> => {
+    const data = await db.exportAll();
+    // Add preferences and PRs
+    const prObj: Record<string, PRRecord[]> = {};
+    personalRecords.forEach((value, key) => { prObj[key] = value; });
+    return JSON.stringify({
+      ...data,
+      personalRecordsMap: prObj,
+      effortMode,
+    }, null, 2);
+  }, [personalRecords, effortMode]);
+
+  const importData = useCallback(async (jsonStr: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const data = JSON.parse(jsonStr);
+      await db.importAll(data);
+
+      // Import PRs if present
+      if (data.personalRecordsMap) {
+        const newPRs = new Map(Object.entries(data.personalRecordsMap) as [string, PRRecord[]][]);
+        setPersonalRecords(prev => {
+          const merged = new Map(prev);
+          newPRs.forEach((value, key) => {
+            const existing = merged.get(key) || [];
+            // Merge, keeping the best values
+            for (const pr of value) {
+              const existingIdx = existing.findIndex(e => e.type === pr.type);
+              if (existingIdx >= 0) {
+                if (pr.value > existing[existingIdx].value) {
+                  existing[existingIdx] = pr;
+                }
+              } else {
+                existing.push(pr);
+              }
+            }
+            merged.set(key, existing);
+          });
+          return merged;
+        });
+      }
+
+      // Reload all data
+      await Promise.all([loadTemplates(), loadSessions(), loadRoutines(), loadScheduleOverrides()]);
+      return { success: true };
+    } catch (e) {
+      console.error('[WorkoutBuilder] Import failed:', e);
+      return { success: false, error: e instanceof Error ? e.message : 'Import failed' };
+    }
+  }, [loadTemplates, loadSessions, loadRoutines, loadScheduleOverrides]);
 
   // ─── Provider ─────────────────────────────────────────────
 
   return (
     <WorkoutBuilderContext.Provider
       value={{
-        templates,
-        loadTemplates,
-        saveTemplate,
-        deleteTemplate,
-        duplicateTemplate,
-        activeSession,
-        isSessionActive,
-        sessionElapsed,
-        startSession,
-        endSession,
-        cancelSession,
-        logSet,
-        addSetToExercise,
-        removeSet,
-        updateExerciseNotes,
-        restTimer,
-        startRestTimer,
-        skipRest,
-        personalRecords,
-        loadPRs,
-        checkForPR,
-        sessions,
-        loadSessions,
-        deleteSession,
-        updateSession,
+        templates, loadTemplates, saveTemplate, deleteTemplate, duplicateTemplate,
+        routines, activeRoutine, loadRoutines, saveRoutine, deleteRoutine, setActiveRoutine,
+        scheduleOverrides, loadScheduleOverrides, addScheduleOverride, removeScheduleOverride, getTodaysWorkout,
+        activeSession, isSessionActive, sessionElapsed,
+        startSession, endSession, cancelSession, updateSessionNotes,
+        logSet, addSetToExercise, removeSet, prependWarmupSets, updateExerciseNotes,
+        addExerciseToSession, removeExerciseFromSession, reorderExercisesInSession, toggleExerciseSuperset,
+        restTimer, startRestTimer, pauseRestTimer, resumeRestTimer, skipRest, addRestTime,
+        personalRecords, loadPRs, checkForPR,
+        getProgressionRec,
+        sessions, loadSessions, deleteSession, updateSession,
         getPreviousSessionData,
+        effortMode, setEffortMode,
+        exportAllData, importData,
       }}
     >
       {children}

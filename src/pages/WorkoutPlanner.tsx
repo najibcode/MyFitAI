@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useFitnessContext } from '../context/FitnessContext';
 import { quickPrompt, type UserContext } from '../services/gemini';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import { storage } from '../utils/storage';
+import ConfirmModal from '../components/ConfirmModal';
+import { EXERCISE_LIBRARY as GLOBAL_EXERCISE_LIBRARY } from '../data/exerciseLibrary';
 
 interface Exercise {
   id: string;
@@ -11,8 +14,9 @@ interface Exercise {
   tips: string;
   muscles: string[];
   description?: string;
-  videoUrl?: string; // YouTube video ID
+  videoUrl?: string; // YouTube video ID (legacy)
   imageUrl?: string; // High-Res Thumbnail
+  gifUrl?: string;   // Animated GIF
 }
 
 interface DailyWorkout {
@@ -58,12 +62,33 @@ interface LiveSet {
   setType: SetType;
 }
 
-const createExercise = (name: string, reps: string, muscles: string[], tips: string, description: string = '', videoUrl: string = '', fallbackImageUrl: string = '/ai_gym_placeholder.png'): Exercise => {
-  // DYNAMIC IMAGE RESOLUTION: If videoUrl exists, bind the image directly to the HD Youtube Thumbnail.
-  const validUrl = resolveValidVideo(videoUrl);
-  const imageUrl = validUrl ? `https://img.youtube.com/vi/${validUrl}/hqdefault.jpg` : fallbackImageUrl;
+const createExercise = (
+  name: string,
+  reps: string,
+  muscles: string[],
+  tips: string,
+  description: string = '',
+  videoUrl: string = '',
+  fallbackImageUrl: string = '/ai_gym_placeholder.png',
+  gifUrl: string = ''
+): Exercise => {
+  const libEntry = GLOBAL_EXERCISE_LIBRARY.find(
+    l => l.name.toLowerCase() === name.toLowerCase() ||
+         (l.aliases && l.aliases.some(a => a.toLowerCase() === name.toLowerCase()))
+  );
+  const validUrl = resolveValidVideo(videoUrl || libEntry?.videoId);
+  const resolvedGif = gifUrl || libEntry?.gifUrl || '';
+  const resolvedImage = libEntry?.imageUrl || (validUrl ? `https://img.youtube.com/vi/${validUrl}/hqdefault.jpg` : fallbackImageUrl);
   return {
-    id: crypto.randomUUID(), name, reps, muscles, tips, description, videoUrl: validUrl, imageUrl
+    id: crypto.randomUUID(),
+    name,
+    reps,
+    muscles,
+    tips: tips || libEntry?.tips || '',
+    description,
+    videoUrl: validUrl,
+    imageUrl: resolvedImage,
+    gifUrl: resolvedGif,
   };
 };
 
@@ -452,6 +477,7 @@ export default function WorkoutPlanner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [customFormState, setCustomFormState] = useState(false);
   const [customEx, setCustomEx] = useState({ name: '', reps: '3x10', muscles: 'Full Body' });
+  const [workoutDeleteTarget, setWorkoutDeleteTarget] = useState<number | null>(null);
 
   const activeWorkout = workouts[activeDay] || workouts[0];
 
@@ -609,11 +635,16 @@ Rules:
 
   const deleteWorkout = (e: React.MouseEvent, idx: number) => {
     e.stopPropagation();
-    if(confirm("Are you sure you want to delete this workout?")) {
-      const next = workouts.filter((_, i) => i !== idx);
+    setWorkoutDeleteTarget(idx);
+  };
+
+  const confirmDeleteWorkout = () => {
+    if (workoutDeleteTarget !== null) {
+      const next = workouts.filter((_, i) => i !== workoutDeleteTarget);
       setWorkouts(next);
       if (next.length === 0) setMode('gateway');
       if (activeDay >= next.length) setActiveDay(Math.max(0, next.length - 1));
+      setWorkoutDeleteTarget(null);
     }
   };
 
@@ -855,17 +886,41 @@ Rules:
           <p className="text-on-surface-variant text-sm leading-relaxed px-4 italic">"{analyzingExercise.description || 'Professional grade exercise for maximal output.'}"</p>
         </div>
         
-        {analyzingExercise.videoUrl ? (
-          <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black z-10 group">
-            <div className="absolute top-3 left-3 z-30 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-white/10 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#FF0000] animate-pulse"></span><span className="text-[8px] font-bold uppercase tracking-widest text-white">Live Stream</span></div>
-            <iframe className="w-full h-full absolute inset-0 z-20 scale-105 pointer-events-none group-active:pointer-events-auto" src={`https://www.youtube-nocookie.com/embed/${resolveValidVideo(analyzingExercise.videoUrl)}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${resolveValidVideo(analyzingExercise.videoUrl)}&rel=0&showinfo=0&modestbranding=1&controls=0`} title={analyzingExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
-          </div>
-        ) : analyzingExercise.imageUrl ? (
-          <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black">
-              <img src={analyzingExercise.imageUrl} alt={analyzingExercise.name} className="w-full h-full object-cover opacity-80" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4"><span className="text-xs uppercase tracking-widest text-primary font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">auto_awesome</span> Custom Library Item</span></div>
-          </div>
-        ) : null}
+        {(() => {
+          const analyzingGif = analyzingExercise.gifUrl || GLOBAL_EXERCISE_LIBRARY.find(
+            l => l.name.toLowerCase() === analyzingExercise.name.toLowerCase() ||
+                 (l.aliases && l.aliases.some(a => a.toLowerCase() === analyzingExercise.name.toLowerCase()))
+          )?.gifUrl;
+          const analyzingImg = analyzingExercise.imageUrl || GLOBAL_EXERCISE_LIBRARY.find(
+            l => l.name.toLowerCase() === analyzingExercise.name.toLowerCase() ||
+                 (l.aliases && l.aliases.some(a => a.toLowerCase() === analyzingExercise.name.toLowerCase()))
+          )?.imageUrl;
+
+          if (analyzingGif) {
+            return (
+              <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black flex items-center justify-center">
+                <img src={analyzingGif} alt={analyzingExercise.name} className="w-full h-full object-contain p-2" />
+                <div className="absolute top-3 left-3 z-30 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-white">Animated Demonstration</span>
+                </div>
+              </div>
+            );
+          }
+          if (analyzingImg) {
+            return (
+              <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black flex items-center justify-center">
+                <img src={analyzingImg} alt={analyzingExercise.name} className="w-full h-full object-contain p-2 opacity-90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                  <span className="text-xs uppercase tracking-widest text-primary font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">fitness_center</span> Exercise Guide
+                  </span>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="space-y-4">
           <div className="bg-[var(--color-surface-container)] rounded-[1.5rem] p-6 border border-white/5">
@@ -1022,8 +1077,6 @@ Rules:
         {!activeWorkout.isRest && (
           <div className="space-y-4 flex-1">
             {activeWorkout.exercises.map((ex, i) => {
-              const validLiveVid = resolveValidVideo(ex.videoUrl);
-              const ytParams = `?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${validLiveVid}&rel=0&showinfo=0&modestbranding=1&controls=0`;
               const currentExerciseSets = liveSetsData[i] || [];
               const isExerciseCompleted = currentExerciseSets.length > 0 && currentExerciseSets.every(s => s.completed);
 
@@ -1045,14 +1098,36 @@ Rules:
                     </button>
                   </div>
                 </div>
-                {validLiveVid && !isExerciseCompleted && (
-                  <div className="w-full aspect-video rounded-xl overflow-hidden mt-2 mb-4 relative border border-white/10 bg-black group z-10">
-                     <iframe className="absolute inset-0 w-full h-full scale-105 pointer-events-none group-active:pointer-events-auto z-20" src={`https://www.youtube-nocookie.com/embed/${validLiveVid}${ytParams}`} title={ex.name}></iframe>
-                  </div>
-                )}
-                {ex.imageUrl && !ex.videoUrl && !isExerciseCompleted && (
-                   <div className="w-full aspect-video rounded-xl overflow-hidden mt-2 mb-4 relative border border-white/10 bg-black"><img src={ex.imageUrl} alt="" className="w-full h-full object-cover opacity-80" /></div>
-                )}
+                {/* Animated GIF demonstration */}
+                {(() => {
+                  const effectiveGif = ex.gifUrl || GLOBAL_EXERCISE_LIBRARY.find(
+                    l => l.name.toLowerCase() === ex.name.toLowerCase() ||
+                         (l.aliases && l.aliases.some(a => a.toLowerCase() === ex.name.toLowerCase()))
+                  )?.gifUrl;
+                  const effectiveImg = ex.imageUrl || GLOBAL_EXERCISE_LIBRARY.find(
+                    l => l.name.toLowerCase() === ex.name.toLowerCase() ||
+                         (l.aliases && l.aliases.some(a => a.toLowerCase() === ex.name.toLowerCase()))
+                  )?.imageUrl;
+
+                  if (!isExerciseCompleted && (effectiveGif || effectiveImg)) {
+                    return (
+                      <div className="w-full aspect-video rounded-xl overflow-hidden mt-2 mb-4 relative border border-white/10 bg-black flex items-center justify-center">
+                        {effectiveGif ? (
+                          <img src={effectiveGif} alt={ex.name} className="w-full h-full object-contain p-1" loading="lazy" />
+                        ) : (
+                          <img src={effectiveImg} alt={ex.name} className="w-full h-full object-cover opacity-80" />
+                        )}
+                        {effectiveGif && (
+                          <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5 z-30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Animated Form Demo
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 
                 {/* AI Coaching Box */}
                 {!isExerciseCompleted && (
@@ -1222,6 +1297,40 @@ Rules:
         </div>
       </section>
 
+      {/* ─── Workout Navigation Hub ─── */}
+      <section className="mb-5">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
+          <Link
+            to="/workout/weekly-planner"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-primary text-[16px]">calendar_month</span>
+            Weekly Planner
+          </Link>
+          <Link
+            to="/exercises"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[#6FFB85] text-[16px]">menu_book</span>
+            Exercises
+          </Link>
+          <Link
+            to="/workout/templates/new"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[#60A5FA] text-[16px]">add_box</span>
+            New Template
+          </Link>
+          <Link
+            to="/workout/history"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[#FBBF24] text-[16px]">history</span>
+            History
+          </Link>
+        </div>
+      </section>
+
       {/* ─── Horizontal Day Selector ─── */}
       <section className="mb-6">
         <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
@@ -1347,18 +1456,7 @@ Rules:
                     <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-on-surface-variant">Muscle Activation Map</span>
                   </div>
                   <div className="bg-black/20 rounded-2xl border border-white/[0.04] p-4 flex items-center justify-center">
-                    <MuscleHeatmap muscles={allWorkoutMuscles} size={130} />
-                  </div>
-                  {/* Legend */}
-                  <div className="flex items-center justify-center gap-4 mt-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#FF7A00] to-[#FF4500] shadow-[0_0_6px_rgba(255,122,0,0.5)]"></div>
-                      <span className="text-[9px] text-on-surface-variant/60 font-medium">Active</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-white/5 border border-white/10"></div>
-                      <span className="text-[9px] text-on-surface-variant/60 font-medium">Inactive</span>
-                    </div>
+                    <MuscleHeatmap muscles={allWorkoutMuscles} size={135} showControls={true} showLegend={true} />
                   </div>
                 </div>
               </>
@@ -1437,21 +1535,25 @@ Rules:
                           </p>
                         )}
 
-                        {/* Video thumbnail */}
-                        {validVid && (
-                          <div className="w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black relative group/vid">
-                            <img
-                              src={`https://img.youtube.com/vi/${validVid}/hqdefault.jpg`}
-                              alt={ex.name}
-                              className="w-full h-full object-cover opacity-80 group-hover/vid:opacity-100 transition-opacity"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 group-hover/vid:scale-110 transition-transform">
-                                <span className="material-symbols-outlined text-white text-xl ml-0.5">play_arrow</span>
-                              </div>
-                            </div>
-                            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded text-[8px] font-bold text-white/80 uppercase tracking-wider flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#FF0000]"></span> Form Guide
+                        {/* Form Guide demonstration */}
+                        {(ex.gifUrl || ex.imageUrl || validVid) && (
+                          <div className="w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black relative flex items-center justify-center group/vid">
+                            {ex.gifUrl ? (
+                              <img
+                                src={ex.gifUrl}
+                                alt={ex.name}
+                                className="w-full h-full object-contain p-1"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <img
+                                src={ex.imageUrl || (validVid ? `https://img.youtube.com/vi/${validVid}/hqdefault.jpg` : '')}
+                                alt={ex.name}
+                                className="w-full h-full object-cover opacity-80 group-hover/vid:opacity-100 transition-opacity"
+                              />
+                            )}
+                            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full text-[8px] font-bold text-white/90 uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Form Guide
                             </div>
                           </div>
                         )}
@@ -1559,6 +1661,16 @@ Rules:
       <button onClick={addNewDay} className="w-full py-4 rounded-2xl border-2 border-dashed border-[var(--color-outline)] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2 text-sm font-semibold mt-2 mb-6">
         <span className="material-symbols-outlined text-lg">add</span> Add Day
       </button>
+
+      <ConfirmModal
+        isOpen={workoutDeleteTarget !== null}
+        onConfirm={confirmDeleteWorkout}
+        onCancel={() => setWorkoutDeleteTarget(null)}
+        title="Delete Workout?"
+        message="Are you sure you want to delete this workout day? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </main>
   );
 }
