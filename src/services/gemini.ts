@@ -49,6 +49,22 @@ export interface UserContext {
     territoryLevel?: number;
     territoryTitle?: string;
   };
+  muscleRecoveryStats?: Array<{
+    muscleName: string;
+    recoveryPercentage: number;
+    status: 'recovered' | 'recovering' | 'fatigued';
+    weeklySets: number;
+  }>;
+  nutritionSummary?: {
+    caloriesConsumed: number;
+    calorieGoal: number;
+    proteinGrams: number;
+    proteinGoal: number;
+    carbsGrams?: number;
+    carbsGoal?: number;
+    fatGrams?: number;
+    fatGoal?: number;
+  };
 }
 
 const SYSTEM_PROMPT = `You are MyFitAI Coach — a world-class personal fitness and nutrition coach built into a mobile fitness app. You are friendly, knowledgeable, motivating, and concise.
@@ -108,6 +124,24 @@ function buildSystemContext(userContext: UserContext): string {
       act.recentActivities.slice(0, 5).forEach(a => {
         ctx += `  • ${a.type}: ${a.distanceKm.toFixed(2)} km in ${a.durationMin}m (pace: ${a.pace}/km) on ${a.date}\n`;
       });
+    }
+  }
+
+  if (userContext.muscleRecoveryStats && userContext.muscleRecoveryStats.length > 0) {
+    ctx += `\nMUSCLE RECOVERY & FATIGUE STATUS:\n`;
+    userContext.muscleRecoveryStats.forEach(m => {
+      ctx += `- ${m.muscleName}: ${m.recoveryPercentage}% (${m.status}, ${m.weeklySets} sets this week)\n`;
+    });
+    ctx += `Advise user based on which muscles are recovered vs fatigued.\n`;
+  }
+
+  if (userContext.nutritionSummary) {
+    const n = userContext.nutritionSummary;
+    ctx += `\nTODAY'S NUTRITION STATUS:\n`;
+    ctx += `- Calories: ${n.caloriesConsumed} / ${n.calorieGoal} kcal (${Math.round((n.caloriesConsumed / (n.calorieGoal || 1)) * 100)}%)\n`;
+    ctx += `- Protein: ${n.proteinGrams}g / ${n.proteinGoal}g (${Math.round((n.proteinGrams / (n.proteinGoal || 1)) * 100)}%)\n`;
+    if (n.carbsGrams !== undefined && n.carbsGoal) {
+      ctx += `- Carbs: ${n.carbsGrams}g / ${n.carbsGoal}g | Fat: ${n.fatGrams || 0}g / ${n.fatGoal || 0}g\n`;
     }
   }
   
@@ -199,5 +233,48 @@ export async function quickPrompt(
   } catch (error) {
     console.error('Gemini request failed:', error);
     throw error;
+  }
+}
+
+/**
+ * AI-powered social share caption generator based on actual workout session and muscle metrics
+ */
+export async function generateAICaption(stats: {
+  periodLabel: string;
+  totalWorkouts: number;
+  totalSets: number;
+  totalVolumeKg: number;
+  prsCount: number;
+  topMuscles: string[];
+  prNames?: string[];
+}): Promise<string> {
+  const prompt = `Write an authentic, motivating, concise Instagram/social media fitness caption based strictly on this verified user training data:
+Timeframe: ${stats.periodLabel}
+Workouts completed: ${stats.totalWorkouts}
+Total sets: ${stats.totalSets}
+Total volume lifted: ${stats.totalVolumeKg.toLocaleString()} kg
+PRs achieved: ${stats.prsCount} ${stats.prNames?.length ? `(${stats.prNames.join(', ')})` : ''}
+Primary muscle focus: ${stats.topMuscles.join(', ')}
+
+Guidelines:
+1. Keep it concise (2-4 sentences max).
+2. Sound like a dedicated athlete sharing their authentic training grind.
+3. Mention the muscle focus and volume/PR highlights naturally.
+4. End with #MyFitAI #TrainSmarter.
+5. Do NOT invent stats or exercises not provided.`;
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 256,
+      },
+    });
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (err) {
+    console.warn('[gemini] AI caption generation fallback:', err);
+    throw err;
   }
 }

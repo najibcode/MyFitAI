@@ -4,8 +4,11 @@
 
 import type { WorkoutSession } from '../../types/workout';
 import { formatDuration, formatVolume } from '../../types/workout';
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { CSSProperties } from 'react';
+import MuscleHeatmap from '../MuscleHeatmap';
+import ShareableMuscleCardModal from '../share/ShareableMuscleCardModal';
+import { triggerHaptic } from '../../utils/audioFeedback';
 
 interface SessionSummaryProps {
   session: WorkoutSession;
@@ -13,6 +16,7 @@ interface SessionSummaryProps {
 }
 
 export default function SessionSummary({ session, onDone }: SessionSummaryProps) {
+  const [showShareModal, setShowShareModal] = useState(false);
   const hasPRs = session.prsHit.length > 0;
   const confettiPieces = useMemo(
     () => Array.from({ length: 30 }, (_, i) => ({
@@ -134,6 +138,52 @@ export default function SessionSummary({ session, onDone }: SessionSummaryProps)
             })}
           </div>
         </div>
+
+        {/* Muscle Training Map & Share Progress Card */}
+        <div className="mb-6 p-4 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.04]">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-base">accessibility_new</span>
+              <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-on-surface">
+                Muscles Stimulated
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowShareModal(true);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-xs">share</span>
+              Share Card
+            </button>
+          </div>
+
+          <MuscleHeatmap
+            sessions={[session]}
+            mode="target"
+            initialView="both"
+            showControls={false}
+            showLegend={false}
+            showShareButton={false}
+            interactive={false}
+            className="scale-95 origin-top"
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('medium');
+              setShowShareModal(true);
+            }}
+            className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-transparent hover:border-primary/40 border border-primary/30 text-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-base">share</span>
+            Share Workout & Muscle Map
+          </button>
+        </div>
       </div>
 
       {/* Bottom CTA */}
@@ -143,6 +193,14 @@ export default function SessionSummary({ session, onDone }: SessionSummaryProps)
           Done
         </button>
       </div>
+
+      {/* Share Card Modal */}
+      <ShareableMuscleCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        initialSession={session}
+        initialPeriod="session"
+      />
     </div>
   );
 }

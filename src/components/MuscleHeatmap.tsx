@@ -27,6 +27,8 @@ import {
 import AnatomicalFrontBody from './muscleMap/AnatomicalFrontBody';
 import AnatomicalBackBody from './muscleMap/AnatomicalBackBody';
 import MuscleInspectionDrawer from './muscleMap/MuscleInspectionDrawer';
+import ShareableMuscleCardModal from './share/ShareableMuscleCardModal';
+import { triggerHaptic } from '../utils/audioFeedback';
 
 export type HeatmapMode = 'target' | 'volume' | 'fatigue';
 export type HeatmapView = 'both' | 'front' | 'back';
@@ -48,6 +50,7 @@ export interface MuscleHeatmapProps {
   timeframe?: HeatmapTimeframe;
   showTimeframeSelector?: boolean;
   showSymmetryCard?: boolean;
+  showShareButton?: boolean;
   onSelectMuscle?: (muscle: string) => void;
 }
 
@@ -66,6 +69,7 @@ export default function MuscleHeatmap({
   timeframe = '7d',
   showTimeframeSelector = false,
   showSymmetryCard = false,
+  showShareButton = true,
   onSelectMuscle,
 }: MuscleHeatmapProps) {
   const [currentMode, setCurrentMode] = useState<HeatmapMode>(mode);
@@ -75,6 +79,7 @@ export default function MuscleHeatmap({
   const [hoveredMuscleId, setHoveredMuscleId] = useState<string | null>(null);
   const [dbSessions, setDbSessions] = useState<WorkoutSession[]>([]);
   const [symmetryOpen, setSymmetryOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // If no muscles and no propSessions were passed, fetch completed sessions from IndexedDB
   const hasPropsData = (muscles && muscles.length > 0) || Object.keys(muscleVolumes).length > 0;
@@ -220,6 +225,22 @@ export default function MuscleHeatmap({
               </button>
             ))}
           </div>
+
+          {/* Share Muscle Progress Button */}
+          {showShareButton && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowShareModal(true);
+              }}
+              className="px-3 py-1 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ml-auto"
+              title="Share Muscle Progress"
+            >
+              <span className="material-symbols-outlined text-[14px]">share</span>
+              <span>Share Progress</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -432,6 +453,20 @@ export default function MuscleHeatmap({
           onClose={() => setSelectedMuscleId(null)}
         />
       )}
+
+      {/* ── Shareable Muscle Card Modal ── */}
+      <ShareableMuscleCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        initialSession={propSessions && propSessions.length > 0 ? propSessions[0] : undefined}
+        initialPeriod={
+          currentTimeframe === 'session'
+            ? 'session'
+            : currentTimeframe === '30d'
+            ? '30d'
+            : '7d'
+        }
+      />
     </div>
   );
 }

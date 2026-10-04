@@ -3,6 +3,8 @@ import { useGamification } from '../context/GamificationContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useState, useMemo } from 'react';
 import MuscleHeatmap from '../components/MuscleHeatmap';
+import ShareableMuscleCardModal from '../components/share/ShareableMuscleCardModal';
+import { triggerHaptic } from '../utils/audioFeedback';
 
 const EXERCISES = ['Bench Press','Squat','Deadlift','OHP','Barbell Row','Lat Pulldown','Leg Press','Dumbbell Curl'];
 const BODY_LABELS = [
@@ -22,6 +24,7 @@ export default function Progress() {
   const [sWeight, setSWeight] = useState('');
   const [sReps, setSReps] = useState('');
   const [showBodyModal, setShowBodyModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [bLabel, setBLabel] = useState(BODY_LABELS[0].label);
   const [bValue, setBValue] = useState('');
   // 1RM Calculator
@@ -367,6 +370,18 @@ export default function Progress() {
                   Interactive biomechanical mapping of primary movers, synergists, hypertrophy volume landmarks (MEV/MAV/MRV), and physiological recovery decay curves.
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  setShowShareModal(true);
+                }}
+                className="self-start sm:self-center px-4 py-2.5 rounded-2xl bg-primary text-black font-bold text-xs uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">share</span>
+                Share Muscle Progress
+              </button>
             </div>
 
             <MuscleHeatmap
@@ -621,6 +636,12 @@ export default function Progress() {
           </div>
         </div>
       )}
+
+      {/* ── Shareable Muscle Card Modal ── */}
+      <ShareableMuscleCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </main>
   );
 }

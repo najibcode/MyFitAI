@@ -6,12 +6,14 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useGamification } from '../context/GamificationContext';
+import ShareableMuscleCardModal from '../components/share/ShareableMuscleCardModal';
 
 export default function ProfileSettings() {
   const { profile, dailyStats, activities } = useFitnessContext();
   const { weightUnit, heightUnit } = usePreferences();
   const { streak, longestStreak } = useGamification();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const { showToast } = useToast();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -64,6 +66,26 @@ export default function ProfileSettings() {
             <p className="text-on-surface-variant text-[10px] mt-0.5">{profile.dailyWaterGoal}L water · {profile.dailyStepGoal} steps · {profile.dailySleepGoal}h sleep · {profile.dailyWorkoutDurationGoal} min workout</p>
           </div>
           <span className="material-symbols-outlined text-primary text-base flex-shrink-0">chevron_right</span>
+        </div>
+      </section>
+
+      {/* Share Muscle Progress Quick Card */}
+      <section className="mb-8">
+        <div 
+          onClick={() => setShowShareModal(true)} 
+          className="bg-gradient-to-r from-secondary/15 via-primary/10 to-transparent rounded-2xl p-5 border border-secondary/25 flex items-center gap-4 cursor-pointer hover:border-secondary/40 active:scale-[0.98] transition-all shadow-sm"
+        >
+          <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>share</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-headline font-bold text-sm">Share Muscle Progress</p>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-bold uppercase tracking-wider">New</span>
+            </div>
+            <p className="text-on-surface-variant text-xs mt-0.5 truncate">Export your anatomical heatmap & workout records for social</p>
+          </div>
+          <span className="material-symbols-outlined text-secondary text-base flex-shrink-0">chevron_right</span>
         </div>
       </section>
 
@@ -152,6 +174,12 @@ export default function ProfileSettings() {
       </section>
 
       <OnboardingForm isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+
+      {/* ── Shareable Muscle Card Modal ── */}
+      <ShareableMuscleCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </main>
   );
 }
