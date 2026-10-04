@@ -1,18 +1,34 @@
 import { useFitnessContext } from '../context/FitnessContext';
 import { useGamification } from '../context/GamificationContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useNutrition } from '../context/NutritionContext';
+import { useActivity } from '../context/ActivityContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 
 export default function Dashboard() {
   const { profile, dailyStats, weightHistory } = useFitnessContext();
+  const { dailySummary, nutritionTarget, waterConsumedMl } = useNutrition();
+  const { activities, territoryStats } = useActivity();
   const { streak } = useGamification();
   const { weightUnit } = usePreferences();
   const navigate = useNavigate();
-  
+
+  // Combine fitness context stats with centralized nutrition summary
+  const caloriesConsumed = dailySummary?.caloriesConsumed || dailyStats.caloriesConsumed || 0;
+  const proteinConsumed = dailySummary?.proteinConsumed || dailyStats.protein || 0;
+  const carbsConsumed = dailySummary?.carbsConsumed || dailyStats.carbs || 0;
+  const fatConsumed = dailySummary?.fatConsumed || dailyStats.fat || 0;
+  const calorieGoal = nutritionTarget?.dailyCalories || profile.dailyCalorieGoal || 2000;
+  const proteinGoal = nutritionTarget?.proteinGrams || profile.dailyProteinGoal || 150;
+  const carbsGoal = nutritionTarget?.carbsGrams || profile.dailyCarbsGoal || 200;
+  const fatGoal = nutritionTarget?.fatGrams || profile.dailyFatGoal || 65;
+  const totalWaterLiters = Math.max(dailyStats.water || 0, (waterConsumedMl || 0) / 1000);
+  const waterGoal = nutritionTarget?.waterLiters || profile.dailyWaterGoal || 3.0;
+
   const movePrc = Math.min(100, Math.round((dailyStats.calories / profile.dailyCalorieGoal) * 100)) || 0;
   const exercisePrc = Math.min(100, Math.round((dailyStats.duration / 60) * 100)) || 0;
-  const waterPrc = Math.min(100, Math.round((dailyStats.water / profile.dailyWaterGoal) * 100)) || 0;
+  const waterPrc = Math.min(100, Math.round((totalWaterLiters / waterGoal) * 100)) || 0;
   const overallPrc = Math.round((movePrc + exercisePrc + waterPrc) / 3);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -134,7 +150,7 @@ export default function Dashboard() {
                   <div className="w-2.5 h-2.5 rounded-full bg-[#60A5FA]" />
                   <span className="text-xs font-medium text-on-surface-variant">Water</span>
                 </div>
-                <span className="text-sm font-bold">{dailyStats.water.toFixed(1)} <span className="text-on-surface-variant font-normal text-xs">L</span></span>
+                <span className="text-sm font-bold">{totalWaterLiters.toFixed(1)} <span className="text-on-surface-variant font-normal text-xs">L</span></span>
               </div>
             </div>
           </div>
@@ -144,8 +160,8 @@ export default function Dashboard() {
         <section className="grid grid-cols-3 gap-3">
           <Link to="/nutrition" className="bg-[var(--color-surface-container)] rounded-2xl p-4 hover:bg-[var(--color-surface-container-high)] transition-colors text-center">
             <span className="material-symbols-outlined text-primary text-xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-            <p className="font-headline font-bold text-lg leading-none">{dailyStats.calories}</p>
-            <p className="text-[10px] text-on-surface-variant font-medium mt-1">Calories</p>
+            <p className="font-headline font-bold text-lg leading-none">{caloriesConsumed > 0 ? caloriesConsumed : dailyStats.calories}</p>
+            <p className="text-[10px] text-on-surface-variant font-medium mt-1">{caloriesConsumed > 0 ? 'Intake' : 'Burned'}</p>
           </Link>
           <Link to="/health" className="bg-[var(--color-surface-container)] rounded-2xl p-4 hover:bg-[var(--color-surface-container-high)] transition-colors text-center">
             <span className="material-symbols-outlined text-[#6FFB85] text-xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>steps</span>
@@ -154,14 +170,14 @@ export default function Dashboard() {
           </Link>
           <Link to="/health" className="bg-[var(--color-surface-container)] rounded-2xl p-4 hover:bg-[var(--color-surface-container-high)] transition-colors text-center">
             <span className="material-symbols-outlined text-[#60A5FA] text-xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-            <p className="font-headline font-bold text-lg leading-none">{dailyStats.water.toFixed(1)}<span className="text-xs font-normal text-on-surface-variant ml-0.5">L</span></p>
+            <p className="font-headline font-bold text-lg leading-none">{totalWaterLiters.toFixed(1)}<span className="text-xs font-normal text-on-surface-variant ml-0.5">L</span></p>
             <p className="text-[10px] text-on-surface-variant font-medium mt-1">Water</p>
           </Link>
         </section>
 
         {/* Next Workout Card — with photo */}
         <Link to="/workout" className="block bg-[var(--color-surface-container)] rounded-2xl overflow-hidden group hover:bg-[var(--color-surface-container-high)] transition-colors">
-          <div className="h-36 bg-[url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=640&auto=format&fit=crop')] bg-cover bg-center relative">
+          <div className="h-36 bg-gradient-to-br from-primary/20 via-[#FF4D4D]/10 to-transparent relative">
             <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface-container)] via-transparent to-transparent" />
             <div className="absolute top-3 left-3">
               <span className="bg-primary text-black text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wide">Up Next</span>
@@ -187,51 +203,51 @@ export default function Dashboard() {
             <h2 className="font-headline font-bold text-base">Nutrition</h2>
             <span className="text-on-surface-variant text-xs font-medium">See all →</span>
           </div>
-          {(dailyStats.calories > 0 || dailyStats.caloriesConsumed > 0) ? (
+          {(caloriesConsumed > 0 || dailyStats.calories > 0) ? (
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-on-surface-variant font-medium">Calories</span>
-                  <span className="font-semibold">{dailyStats.caloriesConsumed} <span className="text-on-surface-variant font-normal">/ {profile.dailyCalorieGoal} kcal</span></span>
+                  <span className="font-semibold">{caloriesConsumed} <span className="text-on-surface-variant font-normal">/ {calorieGoal} kcal</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.caloriesConsumed / profile.dailyCalorieGoal) * 100)}%` }} />
+                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, (caloriesConsumed / calorieGoal) * 100)}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="font-medium" style={{ color: '#FF7A00' }}>Protein</span>
-                  <span className="font-semibold">{dailyStats.protein}g <span className="text-on-surface-variant font-normal">/ {profile.dailyProteinGoal}g</span></span>
+                  <span className="font-semibold">{proteinConsumed}g <span className="text-on-surface-variant font-normal">/ {proteinGoal}g</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FF7A00', width: `${Math.min(100, (dailyStats.protein / (profile.dailyProteinGoal || 1)) * 100)}%` }} />
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FF7A00', width: `${Math.min(100, (proteinConsumed / (proteinGoal || 1)) * 100)}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="font-medium" style={{ color: '#FBBF24' }}>Carbs</span>
-                  <span className="font-semibold">{dailyStats.carbs}g <span className="text-on-surface-variant font-normal">/ {profile.dailyCarbsGoal}g</span></span>
+                  <span className="font-semibold">{carbsConsumed}g <span className="text-on-surface-variant font-normal">/ {carbsGoal}g</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FBBF24', width: `${Math.min(100, (dailyStats.carbs / (profile.dailyCarbsGoal || 1)) * 100)}%` }} />
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#FBBF24', width: `${Math.min(100, (carbsConsumed / (carbsGoal || 1)) * 100)}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="font-medium" style={{ color: '#A78BFA' }}>Fat</span>
-                  <span className="font-semibold">{dailyStats.fat}g <span className="text-on-surface-variant font-normal">/ {profile.dailyFatGoal}g</span></span>
+                  <span className="font-semibold">{fatConsumed}g <span className="text-on-surface-variant font-normal">/ {fatGoal}g</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#A78BFA', width: `${Math.min(100, (dailyStats.fat / (profile.dailyFatGoal || 1)) * 100)}%` }} />
+                  <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#A78BFA', width: `${Math.min(100, (fatConsumed / (fatGoal || 1)) * 100)}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-on-surface-variant font-medium">Water</span>
-                  <span className="font-semibold">{dailyStats.water.toFixed(1)} <span className="text-on-surface-variant font-normal">/ {profile.dailyWaterGoal}L</span></span>
+                  <span className="font-semibold">{totalWaterLiters.toFixed(1)} <span className="text-on-surface-variant font-normal">/ {waterGoal}L</span></span>
                 </div>
                 <div className="w-full bg-white/[0.04] h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#60A5FA] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyStats.water / profile.dailyWaterGoal) * 100)}%` }} />
+                  <div className="bg-[#60A5FA] h-full rounded-full transition-all" style={{ width: `${Math.min(100, (totalWaterLiters / waterGoal) * 100)}%` }} />
                 </div>
               </div>
             </div>
@@ -241,6 +257,49 @@ export default function Dashboard() {
               <p className="text-sm">Log meals to track your daily nutrition →</p>
             </div>
           )}
+        </Link>
+
+        {/* GPS Activity & Territory Engine Card */}
+        <Link to="/activity" className="block bg-[var(--color-surface-container)] rounded-2xl p-5 hover:bg-[var(--color-surface-container-high)] transition-colors border border-white/[0.04] group">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>directions_run</span>
+              </div>
+              <div>
+                <h3 className="font-headline font-bold text-base">GPS & Territory</h3>
+                <p className="text-[11px] text-on-surface-variant font-medium">Lvl {territoryStats.level} · {territoryStats.levelName}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold">
+              <span className="material-symbols-outlined text-sm">shield</span>
+              <span>{territoryStats.totalAreaKm2.toFixed(2)} km²</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/[0.04] my-2 text-center">
+            <div>
+              <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-wider">Activities</p>
+              <p className="font-headline font-black text-base">{activities.length}</p>
+            </div>
+            <div>
+              <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-wider">Distance</p>
+              <p className="font-headline font-black text-base">
+                {(activities.reduce((acc, a) => acc + (a.distanceMeters || 0), 0) / 1000).toFixed(1)} <span className="text-[10px] font-normal text-on-surface-variant">km</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-wider">XP Earned</p>
+              <p className="font-headline font-black text-base text-primary">+{territoryStats.xp}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-2 pt-1">
+            <span className="text-xs text-on-surface-variant flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs text-primary">explore</span> Explore & capture nearby zones
+            </span>
+            <span className="text-primary text-xs font-bold group-hover:translate-x-0.5 transition-transform">Start GPS →</span>
+          </div>
         </Link>
 
         {/* Streak & Recovery — real data */}

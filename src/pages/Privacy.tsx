@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Privacy() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const sections = [
     {
@@ -103,7 +106,7 @@ export default function Privacy() {
           </div>
           <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
         </button>
-        <button onClick={() => { if (confirm('This will permanently delete all your data. Are you sure?')) showToast('Data deletion process started.', 'info'); }} className="w-full flex items-center justify-between p-5 bg-[var(--color-surface-container)] rounded-2xl border border-white/5 hover:bg-white/5 transition-colors active:scale-[0.98]">
+        <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center justify-between p-5 bg-[var(--color-surface-container)] rounded-2xl border border-white/5 hover:bg-white/5 transition-colors active:scale-[0.98]">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[#FF4D4D]">delete_forever</span>
             <span className="font-headline font-bold text-sm text-[#FF4D4D]">Delete All My Data</span>
@@ -111,6 +114,16 @@ export default function Privacy() {
           <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
         </button>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onConfirm={() => { setShowDeleteConfirm(false); showToast('Data deletion process started.', 'info'); }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Delete All Data?"
+        message="This will permanently delete all your fitness data, meal logs, and workout history. This action cannot be undone."
+        confirmLabel="Delete Everything"
+        variant="danger"
+      />
     </main>
   );
 }

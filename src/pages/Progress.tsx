@@ -2,6 +2,7 @@ import { useFitnessContext } from '../context/FitnessContext';
 import { useGamification } from '../context/GamificationContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useState, useMemo } from 'react';
+import MuscleHeatmap from '../components/MuscleHeatmap';
 
 const EXERCISES = ['Bench Press','Squat','Deadlift','OHP','Barbell Row','Lat Pulldown','Leg Press','Dumbbell Curl'];
 const BODY_LABELS = [
@@ -13,7 +14,7 @@ export default function Progress() {
   const { profile, activities, heatmapData, weightHistory, mealLogs, strengthHistory, logStrength, bodyMeasurementHistory, logBodyMeasurement } = useFitnessContext();
   const { xp, level, levelTitle, xpProgress, achievements, weeklyMissions, streak, longestStreak } = useGamification();
   const { weightUnit } = usePreferences();
-  const [activeTab, setActiveTab] = useState<'overview' | 'strength' | 'body' | 'achievements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'muscles' | 'strength' | 'body' | 'achievements'>('overview');
 
   // Modals
   const [showStrengthModal, setShowStrengthModal] = useState(false);
@@ -170,17 +171,25 @@ export default function Progress() {
 
       {/* Tab Switcher */}
       <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] pb-1">
-        {(['overview', 'strength', 'body', 'achievements'] as const).map(tab => (
+        {(
+          [
+            { id: 'overview', label: 'Overview' },
+            { id: 'muscles', label: 'Muscle Map' },
+            { id: 'strength', label: 'Strength' },
+            { id: 'body', label: 'Body Metrics' },
+            { id: 'achievements', label: 'Badges' },
+          ] as const
+        ).map(tab => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl font-semibold text-xs capitalize transition-colors whitespace-nowrap ${
-              activeTab === tab
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors whitespace-nowrap ${
+              activeTab === tab.id
                 ? 'bg-primary text-black'
                 : 'bg-[var(--color-surface-container)] text-on-surface-variant hover:text-white'
             }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -280,6 +289,35 @@ export default function Progress() {
             <div className="flex items-center justify-end gap-2 mt-4"><span className="text-[9px] text-on-surface-variant font-bold uppercase">Less</span>{[5, 30, 60, 100].map(o => <div key={o} className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(111,251,133,${o/100})` }}></div>)}<span className="text-[9px] text-on-surface-variant font-bold uppercase">More</span></div>
           </div>
 
+          {/* Anatomical Muscle Training Map Overview Card */}
+          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 sm:p-8 border border-white/5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-headline font-bold text-xl flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-2xl">accessibility_new</span>
+                  Anatomical Muscle Training Map
+                </h3>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Biomechanical stimulus, recovery status & volume landmarks across 30+ muscles.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('muscles')}
+                className="text-xs text-primary font-bold hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+              >
+                Deep Analysis <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
+            </div>
+
+            <MuscleHeatmap
+              interactive={true}
+              showControls={true}
+              showLegend={true}
+              showTimeframeSelector={true}
+              showSymmetryCard={false}
+            />
+          </div>
+
           {/* Weekly Missions */}
           <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
             <div className="flex justify-between items-center mb-6">
@@ -306,6 +344,38 @@ export default function Progress() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'muscles' && (
+        <div className="space-y-6">
+          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 sm:p-8 border border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-white/5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono uppercase tracking-widest text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 font-bold">
+                    30+ Anatomical Regions
+                  </span>
+                  <span className="text-xs text-on-surface-variant font-mono">Real Session Data</span>
+                </div>
+                <h2 className="font-headline font-black text-2xl mt-1.5 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-2xl">accessibility_new</span>
+                  Advanced Muscle Training Map
+                </h2>
+                <p className="text-xs text-on-surface-variant mt-1 leading-relaxed max-w-2xl">
+                  Interactive biomechanical mapping of primary movers, synergists, hypertrophy volume landmarks (MEV/MAV/MRV), and physiological recovery decay curves.
+                </p>
+              </div>
+            </div>
+
+            <MuscleHeatmap
+              interactive={true}
+              showControls={true}
+              showLegend={true}
+              showTimeframeSelector={true}
+              showSymmetryCard={true}
+            />
           </div>
         </div>
       )}

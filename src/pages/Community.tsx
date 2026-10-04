@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '../context/ToastContext';
 
 const MOCK_POSTS = [
-  { id: '1', user: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop', time: '2h ago', text: 'Just crushed a new deadlift PR — 315 lbs! 🔥 The progressive overload program is working.', likes: 34, comments: 8, type: 'Workout PR', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=400&fit=crop' },
-  { id: '2', user: 'Maya Chen', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop', time: '4h ago', text: 'Week 8 check-in: Down 12 lbs and feeling stronger than ever. Consistency over intensity, always.', likes: 89, comments: 24, type: 'Transformation' },
-  { id: '3', user: 'Jordan Kim', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', time: '6h ago', text: 'Who wants to join a 30-day plank challenge? Starting Monday! 💪', likes: 56, comments: 19, type: 'Challenge' },
-  { id: '4', user: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', time: '1d ago', text: 'My high-protein Indian meal prep for the week: Paneer tikka, chicken keema, dal makhani, and roti. All under 2400 cal/day 🍛', likes: 112, comments: 31, type: 'Nutrition', image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop' },
+  { id: '1', user: 'Alex Rivera', initials: 'AR', gradient: 'from-[#FF7A00] to-[#FF4D4D]', time: '2h ago', text: 'Just crushed a new deadlift PR — 315 lbs! 🔥 The progressive overload program is working.', likes: 34, comments: 8, type: 'Workout PR' },
+  { id: '2', user: 'Maya Chen', initials: 'MC', gradient: 'from-[#6FFB85] to-[#00b4d8]', time: '4h ago', text: 'Week 8 check-in: Down 12 lbs and feeling stronger than ever. Consistency over intensity, always.', likes: 89, comments: 24, type: 'Transformation' },
+  { id: '3', user: 'Jordan Kim', initials: 'JK', gradient: 'from-[#fab0ff] to-[#FF4D4D]', time: '6h ago', text: 'Who wants to join a 30-day plank challenge? Starting Monday! 💪', likes: 56, comments: 19, type: 'Challenge' },
+  { id: '4', user: 'Priya Sharma', initials: 'PS', gradient: 'from-[#60A5FA] to-[#6FFB85]', time: '1d ago', text: 'My high-protein Indian meal prep for the week: Paneer tikka, chicken keema, dal makhani, and roti. All under 2400 cal/day 🍛', likes: 112, comments: 31, type: 'Nutrition' },
 ];
 
 const CHALLENGES = [
@@ -17,6 +17,42 @@ const CHALLENGES = [
 export default function Community() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'friends'>('feed');
+
+  // Local state for interactive like/comment counts
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>(
+    () => Object.fromEntries(MOCK_POSTS.map(p => [p.id, p.likes]))
+  );
+  const [commentCounts] = useState<Record<string, number>>(
+    () => Object.fromEntries(MOCK_POSTS.map(p => [p.id, p.comments]))
+  );
+
+  const handleLike = useCallback((postId: string) => {
+    setLikedPosts(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+        setLikeCounts(c => ({ ...c, [postId]: (c[postId] || 1) - 1 }));
+      } else {
+        next.add(postId);
+        setLikeCounts(c => ({ ...c, [postId]: (c[postId] || 0) + 1 }));
+      }
+      return next;
+    });
+  }, []);
+
+  const handleComment = useCallback((postId: string) => {
+    showToast('Comments opening soon!', 'info');
+    void postId; // acknowledge use
+  }, [showToast]);
+
+  const handleShare = useCallback(() => {
+    if (navigator.share) {
+      navigator.share({ title: 'MyFitAI', text: 'Check out this post on MyFitAI!' }).catch(() => {});
+    } else {
+      showToast('Link copied to clipboard!', 'success');
+    }
+  }, [showToast]);
 
   return (
     <main className="max-w-2xl mx-auto px-6 pt-8 pb-32 space-y-8">
@@ -37,7 +73,7 @@ export default function Community() {
           <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary"><span className="material-symbols-outlined text-lg">edit</span></div>
             <p className="text-on-surface-variant text-sm flex-1">Share your progress...</p>
-            <button onClick={() => showToast('Post creation is disabled in your plan.', 'info')} className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold uppercase tracking-widest border border-primary/20">Post</button>
+            <button onClick={() => showToast('Post creation coming in Pro!', 'info')} className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold uppercase tracking-widest border border-primary/20">Post</button>
           </div>
 
           {/* Feed */}
@@ -45,7 +81,10 @@ export default function Community() {
             <div key={post.id} className="bg-[var(--color-surface-container)] rounded-[2rem] overflow-hidden border border-white/5">
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <img src={post.avatar} alt="" className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                  {/* Local gradient avatar instead of external Unsplash URL */}
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${post.gradient} flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/10`}>
+                    {post.initials}
+                  </div>
                   <div className="flex-1">
                     <p className="font-headline font-bold text-sm">{post.user}</p>
                     <p className="text-[10px] text-on-surface-variant">{post.time}</p>
@@ -54,19 +93,22 @@ export default function Community() {
                 </div>
                 <p className="text-sm leading-relaxed text-white/90">{post.text}</p>
               </div>
-              {post.image && (
-                <div className="w-full h-48 overflow-hidden">
-                  <img src={post.image} alt="" className="w-full h-full object-cover" />
-                </div>
-              )}
               <div className="px-5 py-3 flex items-center gap-6 border-t border-white/5">
-                <button className="flex items-center gap-1.5 text-on-surface-variant hover:text-[#FF4D4D] transition-colors text-xs font-bold">
-                  <span className="material-symbols-outlined text-base">favorite</span> {post.likes}
+                <button
+                  onClick={() => handleLike(post.id)}
+                  className={`flex items-center gap-1.5 transition-colors text-xs font-bold ${
+                    likedPosts.has(post.id) ? 'text-[#FF4D4D]' : 'text-on-surface-variant hover:text-[#FF4D4D]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base" style={likedPosts.has(post.id) ? { fontVariationSettings: "'FILL' 1" } : {}}>favorite</span> {likeCounts[post.id] || 0}
                 </button>
-                <button className="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors text-xs font-bold">
-                  <span className="material-symbols-outlined text-base">chat_bubble</span> {post.comments}
+                <button
+                  onClick={() => handleComment(post.id)}
+                  className="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors text-xs font-bold"
+                >
+                  <span className="material-symbols-outlined text-base">chat_bubble</span> {commentCounts[post.id] || 0}
                 </button>
-                <button className="flex items-center gap-1.5 text-on-surface-variant hover:text-secondary transition-colors text-xs font-bold ml-auto">
+                <button onClick={handleShare} className="flex items-center gap-1.5 text-on-surface-variant hover:text-secondary transition-colors text-xs font-bold ml-auto">
                   <span className="material-symbols-outlined text-base">share</span>
                 </button>
               </div>
@@ -105,11 +147,13 @@ export default function Community() {
             <span className="material-symbols-outlined text-on-surface-variant">search</span>
             <input className="bg-transparent outline-none text-sm text-white placeholder:text-white/30 flex-1" placeholder="Search friends..." />
           </div>
-          {['Alex Rivera', 'Maya Chen', 'Jordan Kim', 'Priya Sharma'].map((friend, i) => (
+          {MOCK_POSTS.map((post, i) => (
             <div key={i} className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 flex items-center gap-4">
-              <img src={MOCK_POSTS[i].avatar} alt="" className="w-12 h-12 rounded-full object-cover border border-white/10" />
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${post.gradient} flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/10`}>
+                {post.initials}
+              </div>
               <div className="flex-1">
-                <p className="font-headline font-bold text-sm">{friend}</p>
+                <p className="font-headline font-bold text-sm">{post.user}</p>
                 <p className="text-[10px] text-on-surface-variant">14 day streak • Level 8</p>
               </div>
               <button className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">

@@ -10,6 +10,13 @@ export interface CloudData {
   preferences?: any;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number = 2500): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout of ${ms}ms exceeded`)), ms)),
+  ]);
+}
+
 /**
  * Fetches the user's entire cloud profile.
  */
@@ -19,12 +26,12 @@ export async function getCloudProfile(): Promise<CloudData | null> {
 
   try {
     const userDocRef = doc(db, 'users', user.uid);
-    const snap = await getDoc(userDocRef);
-    if (snap.exists()) {
+    const snap = await withTimeout(getDoc(userDocRef), 2500);
+    if (snap && snap.exists()) {
       return snap.data() as CloudData;
     }
   } catch (err) {
-    console.error('Failed to get cloud profile:', err);
+    console.warn('Cloud profile fetch skipped or timed out:', err);
   }
   return null;
 }
@@ -39,9 +46,9 @@ export async function syncToCloud(section: keyof CloudData, data: any) {
   try {
     const userDocRef = doc(db, 'users', user.uid);
     // Use setDoc with merge: true to avoid overwriting other sections
-    await setDoc(userDocRef, { [section]: data }, { merge: true });
+    await withTimeout(setDoc(userDocRef, { [section]: data }, { merge: true }), 2500);
   } catch (err) {
-    console.error(`Failed to sync ${section} to cloud:`, err);
+    console.warn(`Cloud sync for ${section} skipped or timed out:`, err);
   }
 }
 

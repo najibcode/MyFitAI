@@ -6,8 +6,13 @@
 
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-const GEMINI_API_KEY = 'AIzaSyDe0DqZ_begUzzxefh5OJq7WKl_U3eaVgA';
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+// Read API key from environment — never hardcode secrets in source.
+// For maximum production security, proxy calls through a Firebase Cloud Function.
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string;
+if (!GEMINI_API_KEY) {
+  console.error('[gemini] VITE_GEMINI_API_KEY is not set. AI features will fail.');
+}
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
 
 export interface GeminiMessage {
   role: 'user' | 'model';
@@ -29,6 +34,21 @@ export interface UserContext {
     sleep: number;
     duration: number;
   };
+  activityStats?: {
+    recentActivities?: Array<{
+      type: string;
+      distanceKm: number;
+      durationMin: number;
+      pace: string;
+      date: string;
+      elevationGainM?: number;
+    }>;
+    weeklyDistanceKm?: number;
+    weeklyActivityCount?: number;
+    territoryAreaKm2?: number;
+    territoryLevel?: number;
+    territoryTitle?: string;
+  };
 }
 
 const SYSTEM_PROMPT = `You are MyFitAI Coach — a world-class personal fitness and nutrition coach built into a mobile fitness app. You are friendly, knowledgeable, motivating, and concise.
@@ -46,6 +66,7 @@ RULES:
 
 EXPERTISE AREAS:
 - Workout programming (strength, hypertrophy, cardio, HIIT)
+- GPS, Running, Cycling, Hiking & Territory (pacing, splits, weekly mileage, running recovery)
 - Nutrition & macros (meal planning, calorie counting, supplements)
 - Recovery (sleep, stretching, deloading)
 - Form & technique tips
@@ -71,6 +92,23 @@ function buildSystemContext(userContext: UserContext): string {
     ctx += `- Water: ${s.water}L\n`;
     ctx += `- Sleep: ${s.sleep} hrs\n`;
     ctx += `- Workout duration: ${s.duration} min\n`;
+  }
+
+  if (userContext.activityStats) {
+    const act = userContext.activityStats;
+    ctx += `\nOUTDOOR & GPS ACTIVITIES:\n`;
+    if (act.weeklyDistanceKm !== undefined) {
+      ctx += `- Weekly Volume: ${act.weeklyDistanceKm.toFixed(1)} km across ${act.weeklyActivityCount || 0} activities\n`;
+    }
+    if (act.territoryAreaKm2 !== undefined) {
+      ctx += `- Territory Engine: Level ${act.territoryLevel || 1} (${act.territoryTitle || 'Explorer'}), ${act.territoryAreaKm2.toFixed(2)} km² controlled\n`;
+    }
+    if (act.recentActivities && act.recentActivities.length > 0) {
+      ctx += `- Recent Activities:\n`;
+      act.recentActivities.slice(0, 5).forEach(a => {
+        ctx += `  • ${a.type}: ${a.distanceKm.toFixed(2)} km in ${a.durationMin}m (pace: ${a.pace}/km) on ${a.date}\n`;
+      });
+    }
   }
   
   return ctx;
@@ -114,7 +152,14 @@ export async function sendToGemini(
 
   try {
     const chat = model.startChat({ history });
-    const result = await chat.sendMessage(userMessage);
+    // 15s timeout to prevent indefinite hang on flaky mobile networks
+    const timeoutMs = 15_000;
+    const result = await Promise.race([
+      chat.sendMessage(userMessage),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini request timed out after 15s')), timeoutMs)
+      ),
+    ]);
     return result.response.text();
   } catch (error) {
     console.error('Gemini request failed:', error);
@@ -143,7 +188,13 @@ export async function quickPrompt(
   });
 
   try {
-    const result = await model.generateContent(prompt);
+    const timeoutMs = 15_000;
+    const result = await Promise.race([
+      model.generateContent(prompt),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini request timed out after 15s')), timeoutMs)
+      ),
+    ]);
     return result.response.text();
   } catch (error) {
     console.error('Gemini request failed:', error);

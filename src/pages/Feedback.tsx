@@ -1,12 +1,40 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 export default function Feedback() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [rating, setRating] = useState(0);
   const [category, setCategory] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Write feedback to Firestore instead of silently discarding it
+  const handleSubmit = async () => {
+    if (!rating || !message.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, 'feedback'), {
+        uid: user?.uid || 'anonymous',
+        rating,
+        category: category || 'General',
+        message: message.trim(),
+        createdAt: serverTimestamp(),
+        userAgent: navigator.userAgent,
+      });
+      setSubmitted(true);
+    } catch {
+      showToast('Failed to submit feedback. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -100,12 +128,21 @@ export default function Feedback() {
 
       {/* Submit */}
       <button
-        onClick={() => setSubmitted(true)}
-        disabled={!rating || !message.trim()}
+        onClick={handleSubmit}
+        disabled={!rating || !message.trim() || submitting}
         className="w-full bg-gradient-to-r from-primary to-[#CC5F00] text-black font-headline font-black py-5 rounded-2xl text-sm uppercase tracking-widest shadow-[0_12px_40px_rgba(255,122,0,0.3)] active:scale-[0.97] transition-all disabled:opacity-30 disabled:shadow-none flex items-center justify-center gap-2"
       >
-        <span className="material-symbols-outlined text-lg">send</span>
-        Submit Feedback
+        {submitting ? (
+          <>
+            <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+            Submitting...
+          </>
+        ) : (
+          <>
+            <span className="material-symbols-outlined text-lg">send</span>
+            Submit Feedback
+          </>
+        )}
       </button>
     </main>
   );

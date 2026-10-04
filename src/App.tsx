@@ -1,12 +1,7 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ProfileSettings from './pages/ProfileSettings';
-import WorkoutPlanner from './pages/WorkoutPlanner';
-import HealthHub from './pages/HealthHub';
-import NutritionPlanner from './pages/NutritionPlanner';
-import Reports from './pages/Reports';
-import Progress from './pages/Progress';
 import Settings from './pages/Settings';
 import Community from './pages/Community';
 import Onboarding from './pages/Onboarding';
@@ -33,6 +28,91 @@ import { WorkoutBuilderProvider } from './context/WorkoutBuilderContext';
 import { PreferencesProvider } from './context/PreferencesContext';
 import WeightCheckIn from './components/WeightCheckIn';
 import { ToastProvider } from './context/ToastContext';
+import { NutritionProvider } from './context/NutritionContext';
+import { ActivityProvider } from './context/ActivityContext';
+
+// ── Lazy-loaded heavy modules (code-split for faster initial load) ──
+// These pages import large data bundles (indianDishes: 81KB, nutritionFoods: 15KB,
+// exerciseLibrary: 15KB). Lazy loading prevents them from blocking initial paint.
+const WorkoutPlanner = lazy(() => import('./pages/WorkoutPlanner'));
+const NutritionPlanner = lazy(() => import('./pages/NutritionPlanner'));
+const ActivityHub = lazy(() => import('./pages/ActivityHub'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Progress = lazy(() => import('./pages/Progress'));
+const HealthHub = lazy(() => import('./pages/HealthHub'));
+const ExerciseLibrary = lazy(() => import('./pages/ExerciseLibrary'));
+const CustomExerciseCreator = lazy(() => import('./pages/CustomExerciseCreator'));
+const ExerciseDetail = lazy(() => import('./pages/ExerciseDetail'));
+const TemplateEditor = lazy(() => import('./pages/TemplateEditor'));
+const WeeklyPlanner = lazy(() => import('./pages/WeeklyPlanner'));
+
+// ── Route-level loading fallback ──
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">Loading…</p>
+      </div>
+    </div>
+  );
+}
+
+// ── 404 Not Found page ──
+function NotFoundPage() {
+  return (
+    <main className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
+      <div className="w-24 h-24 rounded-[2rem] bg-primary/10 flex items-center justify-center mb-6">
+        <span className="material-symbols-outlined text-primary text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>explore_off</span>
+      </div>
+      <h1 className="font-headline font-black text-5xl tracking-tighter mb-2">404</h1>
+      <p className="text-on-surface-variant text-sm leading-relaxed max-w-xs mb-8">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+      <Link
+        to="/"
+        className="px-8 py-4 bg-primary text-black rounded-2xl font-headline font-bold text-sm uppercase tracking-widest active:scale-95 transition-all shadow-[0_8px_24px_rgba(255,122,0,0.3)]"
+      >
+        Back to Dashboard
+      </Link>
+    </main>
+  );
+}
+
+// ── Dynamic page title updater ──
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Dashboard',
+  '/workout': 'Workout Planner',
+  '/activity': 'Activity & Territory',
+  '/nutrition': 'Nutrition',
+  '/health': 'Health Hub',
+  '/profile': 'Profile',
+  '/reports': 'Reports & Analytics',
+  '/progress': 'Progress',
+  '/settings': 'Settings',
+  '/community': 'Community',
+  '/subscription': 'Pro Upgrade',
+  '/help': 'Help Center',
+  '/privacy': 'Privacy & Security',
+  '/feedback': 'Feedback',
+  '/ai-coach': 'AI Coach',
+  '/goals': 'Goals Editor',
+  '/workout/active': 'Active Workout',
+  '/workout/history': 'Workout History',
+  '/workout/weekly-planner': 'Weekly Planner',
+  '/workout/templates/new': 'New Template',
+  '/exercises': 'Exercise Library',
+  '/exercises/new': 'Create Exercise',
+};
+
+function PageTitleUpdater() {
+  const location = useLocation();
+  useEffect(() => {
+    const title = PAGE_TITLES[location.pathname] || 'MyFitAI';
+    document.title = `${title} | MyFitAI`;
+  }, [location.pathname]);
+  return null;
+}
 
 function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -41,6 +121,10 @@ function AppContent() {
   const { theme, toggleTheme } = useTheme();
   const { isOnboarded } = useOnboarding();
   const { user } = useAuth();
+
+  // Unread notification count — conditionally render badge
+  // In production this would come from a notifications context/Firestore listener.
+  const unreadCount = 0;
 
   // Simulate initial load for premium feel
   useEffect(() => {
@@ -80,6 +164,7 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+      <PageTitleUpdater />
       <div className="min-h-screen pb-28 relative">
         {/* Header — clean, minimal, no gradient logo */}
         <header className="bg-[var(--color-header-bg)] w-full top-0 sticky z-[100] flex justify-between items-center px-6 py-3.5 backdrop-blur-xl border-b border-white/[0.04]">
@@ -102,7 +187,12 @@ function AppContent() {
               className="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-on-surface/[0.04] transition-colors active:scale-95 relative"
             >
               <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full" />
+              {/* Conditionally render badge only when unread > 0 */}
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-primary rounded-full text-[9px] font-bold text-black flex items-center justify-center px-1">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
             <button 
               onClick={() => setShowLogger(true)}
@@ -118,29 +208,37 @@ function AppContent() {
         <ActivityLogger isOpen={showLogger} onClose={() => setShowLogger(false)} />
         <WeightCheckIn />
 
-
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/workout" element={<WorkoutPlanner />} />
-          <Route path="/nutrition" element={<NutritionPlanner />} />
-          <Route path="/health" element={<HealthHub />} />
-          <Route path="/profile" element={<ProfileSettings />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/subscription" element={<Subscription />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/ai-coach" element={<AICoach />} />
-          <Route path="/goals" element={<GoalsEditor />} />
-          {/* ── Category 1: Workout Builder & Logging ── */}
-          <Route path="/workout/active" element={<ActiveWorkout />} />
-          <Route path="/workout/history" element={<WorkoutHistory />} />
-        </Routes>
-
-
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/workout" element={<WorkoutPlanner />} />
+            <Route path="/activity" element={<ActivityHub />} />
+            <Route path="/nutrition" element={<NutritionPlanner />} />
+            <Route path="/health" element={<HealthHub />} />
+            <Route path="/profile" element={<ProfileSettings />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/progress" element={<Progress />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/subscription" element={<Subscription />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/ai-coach" element={<AICoach />} />
+            <Route path="/goals" element={<GoalsEditor />} />
+            {/* ── Category 1: Workout Builder & Logging ── */}
+            <Route path="/workout/active" element={<ActiveWorkout />} />
+            <Route path="/workout/history" element={<WorkoutHistory />} />
+            <Route path="/workout/weekly-planner" element={<WeeklyPlanner />} />
+            <Route path="/workout/templates/new" element={<TemplateEditor />} />
+            <Route path="/workout/templates/edit/:id" element={<TemplateEditor />} />
+            <Route path="/exercises" element={<ExerciseLibrary />} />
+            <Route path="/exercises/new" element={<CustomExerciseCreator />} />
+            <Route path="/exercises/:id" element={<ExerciseDetail />} />
+            {/* ── Catch-all 404 ── */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
 
         <BottomNavBar />
       </div>
@@ -151,7 +249,13 @@ function AppContent() {
 function UserSpecificProviders({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div key={user?.uid || 'guest'} className="contents">
@@ -160,9 +264,13 @@ function UserSpecificProviders({ children }: { children: React.ReactNode }) {
           <GamificationProvider>
             <PreferencesProvider>
               <WorkoutBuilderProvider>
-                <OnboardingProvider>
-                  {children}
-                </OnboardingProvider>
+                <NutritionProvider>
+                  <ActivityProvider>
+                    <OnboardingProvider>
+                      {children}
+                    </OnboardingProvider>
+                  </ActivityProvider>
+                </NutritionProvider>
               </WorkoutBuilderProvider>
             </PreferencesProvider>
           </GamificationProvider>

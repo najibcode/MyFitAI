@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { syncToCloud } from '../services/cloudSync';
 import { storage } from '../utils/storage';
@@ -251,51 +251,40 @@ export function FitnessProvider({ children }: { children: React.ReactNode }) {
     }
   }, [cloudData]);
 
-  // Helper to sync everything to cloud
-  const syncAll = () => {
-    syncToCloud('fitness', { profile, activities, weightHistory, mealLogs, supplements, groceryItems, strengthHistory, bodyMeasurementHistory });
-  };
+  // ─── Debounced Cloud Sync ───────────────────────────────────
+  // Instead of 8 individual syncAll() calls, we batch all state
+  // changes into a single debounced Firestore write (2s delay).
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync with storage and cloud
-  useEffect(() => {
-    storage.set('kinetic_profile', profile);
-    syncAll();
-  }, [profile]);
+  const debouncedSyncToCloud = useCallback(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncToCloud('fitness', {
+        profile, activities, weightHistory, mealLogs,
+        supplements, groceryItems, strengthHistory, bodyMeasurementHistory,
+      });
+    }, 2000);
+  }, [profile, activities, weightHistory, mealLogs, supplements, groceryItems, strengthHistory, bodyMeasurementHistory]);
 
+  // Cleanup timer on unmount
   useEffect(() => {
-    storage.set('kinetic_activities', activities);
-    syncAll();
-  }, [activities]);
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
+  }, []);
 
-  useEffect(() => {
-    storage.set('kinetic_weight_history', weightHistory);
-    syncAll();
-  }, [weightHistory]);
+  // ─── Local Storage Writes (instant, per-key) ───────────────
+  useEffect(() => { storage.set('kinetic_profile', profile); }, [profile]);
+  useEffect(() => { storage.set('kinetic_activities', activities); }, [activities]);
+  useEffect(() => { storage.set('kinetic_weight_history', weightHistory); }, [weightHistory]);
+  useEffect(() => { storage.set('kinetic_meal_logs', mealLogs); }, [mealLogs]);
+  useEffect(() => { storage.set('kinetic_supplements', supplements); }, [supplements]);
+  useEffect(() => { storage.set('kinetic_grocery_items', groceryItems); }, [groceryItems]);
+  useEffect(() => { storage.set('kinetic_strength_history', strengthHistory); }, [strengthHistory]);
+  useEffect(() => { storage.set('kinetic_body_measurements', bodyMeasurementHistory); }, [bodyMeasurementHistory]);
 
+  // ─── Single Cloud Sync (debounced, all state) ──────────────
   useEffect(() => {
-    storage.set('kinetic_meal_logs', mealLogs);
-    syncAll();
-  }, [mealLogs]);
-
-  useEffect(() => {
-    storage.set('kinetic_supplements', supplements);
-    syncAll();
-  }, [supplements]);
-
-  useEffect(() => {
-    storage.set('kinetic_grocery_items', groceryItems);
-    syncAll();
-  }, [groceryItems]);
-
-  useEffect(() => {
-    storage.set('kinetic_strength_history', strengthHistory);
-    syncAll();
-  }, [strengthHistory]);
-
-  useEffect(() => {
-    storage.set('kinetic_body_measurements', bodyMeasurementHistory);
-    syncAll();
-  }, [bodyMeasurementHistory]);
+    debouncedSyncToCloud();
+  }, [debouncedSyncToCloud]);
 
   // Calculate daily stats based on today's activities + meals
   const getTodayStats = () => {

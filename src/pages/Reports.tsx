@@ -1,10 +1,46 @@
 
 import { useFitnessContext } from '../context/FitnessContext';
 import { useToast } from '../context/ToastContext';
+import { useMemo } from 'react';
 
 export default function Reports() {
-  const { profile, activities } = useFitnessContext();
+  const { profile, activities, dailyStats } = useFitnessContext();
   const { showToast } = useToast();
+
+  // Compute real weekly calorie data from the last 7 days
+  const weeklyData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const result: { day: string; value: number }[] = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toDateString();
+      const dayIdx = (date.getDay() + 6) % 7; // Mon=0 ... Sun=6
+
+      const dayCals = activities
+        .filter(a => new Date(a.timestamp).toDateString() === dateStr)
+        .reduce((sum, a) => sum + (a.caloriesBurned || 0), 0);
+
+      result.push({ day: days[dayIdx], value: dayCals });
+    }
+    return result;
+  }, [activities]);
+
+  const maxVal = Math.max(...weeklyData.map(d => d.value), 1); // min 1 to avoid division by 0
+  const weeklyAvg = Math.round(weeklyData.reduce((s, d) => s + d.value, 0) / 7);
+
+  // Helper to get display unit per activity type
+  const getActivityUnit = (type: string) => {
+    switch (type) {
+      case 'Workout': return 'min';
+      case 'Steps': return 'steps';
+      case 'Water': return 'L';
+      case 'Sleep': return 'hrs';
+      default: return 'units';
+    }
+  };
 
   return (
     <main className="max-w-7xl mx-auto px-6 pt-8 pb-32 space-y-10">
@@ -20,19 +56,20 @@ export default function Reports() {
             <h2 className="font-headline text-2xl font-bold">Weekly Overview</h2>
           </div>
           <p className="text-on-surface-variant text-sm border-l-2 border-primary pl-4">
-            You burned an average of 420 kcal more than last week. Your compliance to the {profile.goal} protocol is at 88%.
+            {weeklyAvg > 0
+              ? `You burned an average of ${weeklyAvg} kcal/day this week. Your compliance to the ${profile.goal} protocol is tracking.`
+              : `No activity logged this week. Start a workout to see your stats here.`}
           </p>
           
           <div className="h-48 flex items-end justify-between gap-2 pt-8">
-            {/* Simple mock bar chart */}
-            {[450, 600, 300, 800, 500, 650, 400].map((val, i) => (
-              <div key={i} className="flex-1 bg-primary/20 rounded-t-lg relative group transition-colors hover:bg-primary/40" style={{ height: `${(val/800)*100}%` }}>
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
+            {weeklyData.map((d, i) => (
+              <div key={i} className={`flex-1 rounded-t-lg relative group transition-colors ${d.value > 0 ? 'bg-primary/20 hover:bg-primary/40' : 'bg-white/[0.04]'}`} style={{ height: `${Math.max(4, (d.value / maxVal) * 100)}%` }}>
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{d.value || '—'}</span>
               </div>
             ))}
           </div>
           <div className="flex justify-between mt-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-1">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            {weeklyData.map((d, i) => <span key={i}>{d.day}</span>)}
           </div>
         </div>
 
@@ -43,20 +80,38 @@ export default function Reports() {
               <h2 className="font-headline text-2xl font-bold">AI Insights</h2>
             </div>
             <ul className="space-y-4">
-              <li className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
-                <span className="material-symbols-outlined text-[#FF716C] mt-0.5">warning</span>
-                <div>
-                  <p className="font-headline font-bold text-sm">Sleep Debt Detected</p>
-                  <p className="text-xs text-on-surface-variant mt-1">Average sleep duration this week is 6.2 hours. Sub-optimal for hypertrophy recovery.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
-                <span className="material-symbols-outlined text-secondary mt-0.5">trending_up</span>
-                <div>
-                  <p className="font-headline font-bold text-sm">Strength Progression</p>
-                  <p className="text-xs text-on-surface-variant mt-1">Bench press volume has increased by 5% week over week.</p>
-                </div>
-              </li>
+              {(() => {
+                const insights: { icon: string; color: string; title: string; text: string }[] = [];
+                // Dynamic sleep insight
+                const avgSleep = dailyStats.sleep;
+                if (avgSleep > 0 && avgSleep < 7) {
+                  insights.push({ icon: 'warning', color: '#FF716C', title: 'Sleep Debt Detected', text: `Your sleep is at ${avgSleep}h today. Sub-optimal for recovery — aim for 7-9 hours.` });
+                } else if (avgSleep >= 7) {
+                  insights.push({ icon: 'check_circle', color: '#6FFB85', title: 'Sleep On Track', text: `${avgSleep}h logged today. Great recovery window for muscle repair.` });
+                }
+                // Dynamic calorie insight
+                const calPct = Math.round((dailyStats.calories / profile.dailyCalorieGoal) * 100);
+                if (calPct > 0) {
+                  insights.push({ icon: calPct >= 80 ? 'trending_up' : 'info', color: calPct >= 80 ? '#6FFB85' : '#FF7A00', title: 'Calorie Compliance', text: `You've burned ${calPct}% of your daily calorie goal (${dailyStats.calories} / ${profile.dailyCalorieGoal} kcal).` });
+                }
+                // Activity volume
+                if (activities.length > 0) {
+                  const workouts = activities.filter(a => a.type === 'Workout').length;
+                  insights.push({ icon: 'fitness_center', color: '#fab0ff', title: 'Activity Volume', text: `${workouts} workout${workouts !== 1 ? 's' : ''} logged across ${activities.length} total activities.` });
+                }
+                if (insights.length === 0) {
+                  insights.push({ icon: 'lightbulb', color: '#FF7A00', title: 'No Data Yet', text: 'Start logging workouts, meals, and sleep to unlock AI-powered insights.' });
+                }
+                return insights.map((ins, idx) => (
+                  <li key={idx} className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <span className="material-symbols-outlined mt-0.5" style={{ color: ins.color }}>{ins.icon}</span>
+                    <div>
+                      <p className="font-headline font-bold text-sm">{ins.title}</p>
+                      <p className="text-xs text-on-surface-variant mt-1">{ins.text}</p>
+                    </div>
+                  </li>
+                ));
+              })()}
             </ul>
           </div>
           
@@ -87,7 +142,7 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-headline font-bold text-lg">{act.value} <span className="text-xs text-on-surface-variant">units</span></p>
+                  <p className="font-headline font-bold text-lg">{act.value} <span className="text-xs text-on-surface-variant">{getActivityUnit(act.type)}</span></p>
                   {act.caloriesBurned && <p className="text-[10px] text-primary font-bold">{act.caloriesBurned} KCAL</p>}
                 </div>
               </div>

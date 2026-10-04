@@ -125,7 +125,7 @@ export default function ProfileSettings() {
             <span className="material-symbols-outlined text-on-surface-variant text-base">chevron_right</span>
           </div>
 
-          <div className="bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl px-5 py-4 flex items-center justify-between cursor-pointer transition-colors">
+          <div onClick={() => navigate('/privacy')} className="bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl px-5 py-4 flex items-center justify-between cursor-pointer transition-colors">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-on-surface-variant text-xl">shield_person</span>
               <div>

@@ -4,8 +4,8 @@ export default function BottomNavBar() {
   const navItems = [
     { to: '/', icon: 'grid_view', label: 'Home' },
     { to: '/workout', icon: 'fitness_center', label: 'Workout' },
+    { to: '/activity', icon: 'directions_run', label: 'Activity' },
     { to: '/nutrition', icon: 'restaurant', label: 'Nutrition' },
-    { to: '/progress', icon: 'analytics', label: 'Progress' },
     { to: '/profile', icon: 'person', label: 'Profile' },
   ];
 

@@ -160,7 +160,15 @@ export default function Onboarding() {
             Get Started
           </button>
 
-          <p className="text-white/20 text-[10px] mt-6 uppercase tracking-widest">Takes 60 seconds</p>
+          <button
+            type="button"
+            onClick={handleFinish}
+            className="w-full mt-3 py-3 text-on-surface-variant hover:text-on-surface text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            Skip for now & explore
+          </button>
+
+          <p className="text-white/20 text-[10px] mt-4 uppercase tracking-widest">Takes 60 seconds</p>
         </div>
       </div>
     );

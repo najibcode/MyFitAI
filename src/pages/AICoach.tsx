@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
+import { useActivity } from '../context/ActivityContext';
 import { sendToGemini, type GeminiMessage, type UserContext } from '../services/gemini';
 
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
+  { label: 'Analyze my running & territory', icon: 'explore', color: '#10B981' },
   { label: 'Optimize my workout', icon: 'fitness_center', color: '#FF7A00' },
   { label: 'Fix my nutrition', icon: 'restaurant', color: '#6FFB85' },
   { label: 'Recovery advice', icon: 'battery_charging_full', color: '#00b4d8' },
@@ -21,11 +23,12 @@ const QUICK_ACTIONS = [
 
 export default function AICoach() {
   const { profile, dailyStats } = useFitnessContext();
+  const { activities, territoryStats } = useActivity();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       sender: 'ai',
-      text: `Hey ${profile.name}! 👋 I'm your AI fitness coach powered by Gemini. I know your stats, your goals, and today's activity. Ask me anything about workouts, nutrition, recovery, or motivation!`,
+      text: `Hey ${profile.name}! 👋 I'm your AI fitness coach powered by Gemini. I know your stats, your goals, workouts, nutrition, and your GPS running & territory conquests. Ask me anything!`,
       timestamp: new Date(),
     },
   ]);
@@ -38,16 +41,37 @@ export default function AICoach() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const getUserContext = (): UserContext => ({
-    name: profile.name,
-    age: profile.age,
-    gender: profile.gender,
-    weight: profile.weight,
-    height: profile.height,
-    goal: profile.goal,
-    dailyCalorieGoal: profile.dailyCalorieGoal,
-    dailyStats,
-  });
+  const getUserContext = (): UserContext => {
+    const oneWeekAgo = Date.now() - 7 * 86400000;
+    const recentWeekly = activities.filter(a => new Date(a.startTime).getTime() >= oneWeekAgo);
+    const weeklyDistanceKm = recentWeekly.reduce((sum, a) => sum + (a.distanceMeters || 0), 0) / 1000;
+
+    return {
+      name: profile.name,
+      age: profile.age,
+      gender: profile.gender,
+      weight: profile.weight,
+      height: profile.height,
+      goal: profile.goal,
+      dailyCalorieGoal: profile.dailyCalorieGoal,
+      dailyStats,
+      activityStats: {
+        weeklyDistanceKm,
+        weeklyActivityCount: recentWeekly.length,
+        territoryAreaKm2: territoryStats.totalAreaKm2,
+        territoryLevel: territoryStats.level,
+        territoryTitle: territoryStats.levelName,
+        recentActivities: activities.slice(0, 5).map(a => ({
+          type: a.type,
+          distanceKm: (a.distanceMeters || 0) / 1000,
+          durationMin: Math.round((a.durationSeconds || 0) / 60),
+          pace: a.averagePaceSecondsPerKm ? `${Math.floor(a.averagePaceSecondsPerKm / 60)}:${(Math.round(a.averagePaceSecondsPerKm % 60)).toString().padStart(2, '0')}` : '0:00',
+          date: new Date(a.startTime).toLocaleDateString(),
+          elevationGainM: a.elevationGainMeters
+        }))
+      }
+    };
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
