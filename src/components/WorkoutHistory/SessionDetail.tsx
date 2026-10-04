@@ -2,8 +2,11 @@
 // MyFitAI — Session Detail (drill-down modal)
 // ─────────────────────────────────────────────────────────────
 
+import { useState } from 'react';
 import type { WorkoutSession } from '../../types/workout';
 import { formatDuration, formatVolume } from '../../types/workout';
+import MuscleHeatmap from '../MuscleHeatmap';
+import ShareableMuscleCardModal from '../share/ShareableMuscleCardModal';
 
 interface SessionDetailProps {
   session: WorkoutSession;
@@ -12,6 +15,7 @@ interface SessionDetailProps {
 }
 
 export default function SessionDetail({ session, onClose, onDelete }: SessionDetailProps) {
+  const [showShareModal, setShowShareModal] = useState(false);
   const date = new Date(session.startedAt);
   const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -63,6 +67,34 @@ export default function SessionDetail({ session, onClose, onDelete }: SessionDet
             </div>
           )}
 
+          {/* Muscle Training Map for this session */}
+          <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/[0.04]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-base">accessibility_new</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface">Targeted Muscles</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShareModal(true)}
+                className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-xs">share</span>
+                Share Card
+              </button>
+            </div>
+            <MuscleHeatmap
+              sessions={[session]}
+              mode="target"
+              initialView="both"
+              showControls={false}
+              showLegend={false}
+              showShareButton={false}
+              interactive={true}
+              className="scale-95 origin-top"
+            />
+          </div>
+
           {/* Exercise breakdown */}
           <div>
             <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-3">Exercises</h4>
@@ -101,6 +133,14 @@ export default function SessionDetail({ session, onClose, onDelete }: SessionDet
           </button>
         </div>
       </div>
+
+      {/* Shareable Muscle Card Modal */}
+      <ShareableMuscleCardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        initialSession={session}
+        initialPeriod="session"
+      />
     </div>
   );
 }
