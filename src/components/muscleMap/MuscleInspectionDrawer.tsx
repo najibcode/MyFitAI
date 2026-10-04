@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ANATOMICAL_MUSCLES,
   type MuscleTrainingMetric,
@@ -23,6 +24,7 @@ export default function MuscleInspectionDrawer({
   metric,
   onClose,
 }: MuscleInspectionDrawerProps) {
+  const navigate = useNavigate();
   if (!muscleId) return null;
 
   const info = ANATOMICAL_MUSCLES[muscleId];
@@ -323,22 +325,42 @@ export default function MuscleInspectionDrawer({
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {recommendedExercises.map(ex => (
-                <div
+                <button
                   key={ex.name}
-                  className="p-2.5 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center gap-2.5 text-xs hover:border-primary/40 transition-colors"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/exercise-library?search=${encodeURIComponent(ex.name)}`);
+                  }}
+                  className="p-2.5 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center gap-2.5 text-xs hover:border-primary/40 text-left transition-colors active:scale-95 group"
                 >
                   <span className="text-lg">{ex.emoji}</span>
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium text-on-surface block truncate">
+                    <span className="font-medium text-on-surface block truncate group-hover:text-primary transition-colors">
                       {ex.name}
                     </span>
                     <span className="text-[10px] text-on-surface-variant capitalize">
                       {ex.equipment}
                     </span>
                   </div>
-                </div>
+                  <span className="material-symbols-outlined text-[16px] text-on-surface-variant group-hover:text-primary transition-colors">
+                    chevron_right
+                  </span>
+                </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate(`/exercise-library?search=${encodeURIComponent(info.commonName)}`);
+              }}
+              className="w-full mt-3 py-2.5 px-4 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 flex items-center justify-center gap-2 text-xs font-semibold active:scale-[0.98] transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">search</span>
+              Browse All {info.commonName} Exercises in Library
+            </button>
           </div>
         </div>
       </div>

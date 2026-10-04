@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import { useActivity } from '../context/ActivityContext';
+import { useNutrition } from '../context/NutritionContext';
 import { sendToGemini, type GeminiMessage, type UserContext } from '../services/gemini';
+import { db } from '../utils/db';
+import { computeMuscleTrainingMetrics } from '../engine/muscleRecoveryEngine';
+import type { WorkoutSession } from '../types/workout';
 
 interface Message {
   id: string;
@@ -12,23 +16,32 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
+  { label: 'Check muscle recovery status', icon: 'vital_signs', color: '#6FFB85' },
+  { label: 'Review today\'s nutrition & macros', icon: 'restaurant', color: '#38BDF8' },
   { label: 'Analyze my running & territory', icon: 'explore', color: '#10B981' },
   { label: 'Optimize my workout', icon: 'fitness_center', color: '#FF7A00' },
-  { label: 'Fix my nutrition', icon: 'restaurant', color: '#6FFB85' },
   { label: 'Recovery advice', icon: 'battery_charging_full', color: '#00b4d8' },
   { label: 'Motivate me', icon: 'psychology', color: '#FF4D4D' },
   { label: 'Form check tips', icon: 'sports_gymnastics', color: '#fab0ff' },
-  { label: 'Build better habits', icon: 'task_alt', color: '#ff9800' },
 ];
 
 export default function AICoach() {
   const { profile, dailyStats } = useFitnessContext();
   const { activities, territoryStats } = useActivity();
+  const { dailySummary, nutritionTarget } = useNutrition();
+  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+
+  useEffect(() => {
+    db.sessions.getAll().then(all => {
+      setSessions(all);
+    }).catch(() => {});
+  }, []);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       sender: 'ai',
-      text: `Hey ${profile.name}! 👋 I'm your AI fitness coach powered by Gemini. I know your stats, your goals, workouts, nutrition, and your GPS running & territory conquests. Ask me anything!`,
+      text: `Hey ${profile.name}! 👋 I'm your AI fitness coach powered by Gemini. I monitor your workouts, 30+ anatomical muscle recovery states, daily macros, and GPS territory activities. Ask me anything!`,
       timestamp: new Date(),
     },
   ]);
@@ -46,6 +59,32 @@ export default function AICoach() {
     const recentWeekly = activities.filter(a => new Date(a.startTime).getTime() >= oneWeekAgo);
     const weeklyDistanceKm = recentWeekly.reduce((sum, a) => sum + (a.distanceMeters || 0), 0) / 1000;
 
+    const muscleMetrics = computeMuscleTrainingMetrics(sessions);
+    const muscleRecoveryStats = Object.values(muscleMetrics)
+      .sort((a, b) => a.recoveryPercentage - b.recoveryPercentage)
+      .slice(0, 8)
+      .map(m => ({
+        muscleName: m.info?.commonName || m.muscleId,
+        recoveryPercentage: m.recoveryPercentage,
+        status: (m.recoveryState === 'fresh'
+          ? 'recovered'
+          : m.recoveryState === 'overreached'
+          ? 'fatigued'
+          : m.recoveryState) as 'recovered' | 'recovering' | 'fatigued',
+        weeklySets: m.effectiveSets,
+      }));
+
+    const nutritionSummary = dailySummary ? {
+      caloriesConsumed: dailySummary.caloriesConsumed,
+      calorieGoal: nutritionTarget?.dailyCalories || profile.dailyCalorieGoal || 2000,
+      proteinGrams: dailySummary.proteinConsumed,
+      proteinGoal: nutritionTarget?.proteinGrams || profile.dailyProteinGoal || 150,
+      carbsGrams: dailySummary.carbsConsumed,
+      carbsGoal: nutritionTarget?.carbsGrams || 200,
+      fatGrams: dailySummary.fatConsumed,
+      fatGoal: nutritionTarget?.fatGrams || 65,
+    } : undefined;
+
     return {
       name: profile.name,
       age: profile.age,
@@ -55,6 +94,8 @@ export default function AICoach() {
       goal: profile.goal,
       dailyCalorieGoal: profile.dailyCalorieGoal,
       dailyStats,
+      muscleRecoveryStats,
+      nutritionSummary,
       activityStats: {
         weeklyDistanceKm,
         weeklyActivityCount: recentWeekly.length,

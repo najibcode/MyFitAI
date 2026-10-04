@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
+import { useNutrition } from '../context/NutritionContext';
+import { useActivity } from '../context/ActivityContext';
 import { sendToGemini, type GeminiMessage, type UserContext } from '../services/gemini';
 
 interface CopilotChatProps {
@@ -24,6 +26,8 @@ const SUGGESTIONS = [
 
 export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
   const { profile, dailyStats } = useFitnessContext();
+  const { dailySummary, nutritionTarget } = useNutrition();
+  const { territoryStats } = useActivity();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -43,16 +47,31 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
 
   if (!isOpen) return null;
 
-  const getUserContext = (): UserContext => ({
-    name: profile.name,
-    age: profile.age,
-    gender: profile.gender,
-    weight: profile.weight,
-    height: profile.height,
-    goal: profile.goal,
-    dailyCalorieGoal: profile.dailyCalorieGoal,
-    dailyStats,
-  });
+  const getUserContext = (): UserContext => {
+    const nutritionSummary = dailySummary ? {
+      caloriesConsumed: dailySummary.caloriesConsumed,
+      calorieGoal: nutritionTarget?.dailyCalories || profile.dailyCalorieGoal || 2000,
+      proteinGrams: dailySummary.proteinConsumed,
+      proteinGoal: nutritionTarget?.proteinGrams || profile.dailyProteinGoal || 150,
+    } : undefined;
+
+    return {
+      name: profile.name,
+      age: profile.age,
+      gender: profile.gender,
+      weight: profile.weight,
+      height: profile.height,
+      goal: profile.goal,
+      dailyCalorieGoal: profile.dailyCalorieGoal,
+      dailyStats,
+      nutritionSummary,
+      activityStats: {
+        territoryAreaKm2: territoryStats.totalAreaKm2,
+        territoryLevel: territoryStats.level,
+        territoryTitle: territoryStats.levelName,
+      },
+    };
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isTyping) return;

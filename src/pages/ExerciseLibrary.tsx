@@ -38,10 +38,13 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const initialQuery = searchParams.get('search') || searchParams.get('q') || '';
+  const initialMuscle = (searchParams.get('muscle') as MuscleGroup) || '';
+
+  const [query, setQuery] = useState(initialQuery);
   const [bodyPartFilter, setBodyPartFilter] = useState<BodyPart | ''>('');
   const [equipmentFilter, setEquipmentFilter] = useState<EquipmentType | ''>('');
-  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | ''>('');
+  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | ''>(initialMuscle);
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<ExerciseType | ''>('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<ExerciseLibraryEntry | null>(null);

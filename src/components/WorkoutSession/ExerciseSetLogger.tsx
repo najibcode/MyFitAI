@@ -11,6 +11,7 @@ import { createDefaultLoggedSet } from '../../types/workout';
 import type { ExerciseType } from '../../types/exercise';
 import type { ProgressionRecommendation } from '../../engine/progression';
 import { generateWarmupSets } from '../../engine/warmupGenerator';
+import { triggerHaptic } from '../../utils/audioFeedback';
 
 interface GhostValue {
   reps: number;
@@ -184,10 +185,11 @@ export default function ExerciseSetLogger({
     }
 
     // Haptic feedback
-    if (navigator.vibrate) navigator.vibrate(50);
+    triggerHaptic('success');
   };
 
   const handleSkip = (setIdx: number) => {
+    triggerHaptic('light');
     const current = sets[setIdx];
     onLogSet(exerciseIdx, setIdx, { ...current, skipped: true, completed: true, timestamp: new Date().toISOString() });
     setSwipedIdx(null);

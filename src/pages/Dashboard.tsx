@@ -4,7 +4,10 @@ import { usePreferences } from '../context/PreferencesContext';
 import { useNutrition } from '../context/NutritionContext';
 import { useActivity } from '../context/ActivityContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { db } from '../utils/db';
+import { computeMuscleTrainingMetrics } from '../engine/muscleRecoveryEngine';
+import type { WorkoutSession } from '../types/workout';
 
 export default function Dashboard() {
   const { profile, dailyStats, weightHistory } = useFitnessContext();
@@ -90,6 +93,56 @@ export default function Dashboard() {
 
   const isTrendingDown = weightHistory.length >= 2 && weightHistory[weightHistory.length - 1].weight < weightHistory[0].weight;
 
+  // Load workout sessions for live muscle readiness computation
+  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  useEffect(() => {
+    db.sessions.getAll().then(setSessions).catch(() => {});
+  }, []);
+
+  const coachBriefing = useMemo(() => {
+    const muscleMetrics = computeMuscleTrainingMetrics(sessions);
+    const metricsArr = Object.values(muscleMetrics);
+    const fatigued = metricsArr.filter(m => m.effectiveSets > 0 && m.recoveryPercentage < 75);
+    const primed = metricsArr.filter(m => m.recoveryPercentage >= 95);
+
+    let muscleSummary = 'Muscles fresh & primed for load';
+    if (fatigued.length > 0) {
+      const topFatigued = [...fatigued].sort((a, b) => a.recoveryPercentage - b.recoveryPercentage)[0];
+      const mName = topFatigued.info?.commonName || topFatigued.muscleId;
+      muscleSummary = `${mName} recovering (${Math.round(topFatigued.recoveryPercentage)}%)`;
+    } else if (sessions.length > 0) {
+      muscleSummary = 'Full recovery achieved';
+    }
+
+    const proteinDiff = proteinGoal - proteinConsumed;
+    let nutritionPacing = `${Math.max(0, Math.round(proteinDiff))}g protein left`;
+    if (proteinDiff <= 0 && proteinConsumed > 0) {
+      nutritionPacing = 'Protein goal reached';
+    }
+
+    let recommendation = primed.length >= 12
+      ? 'Muscles primed for load. Target progressive overload today.'
+      : 'Optimal readiness for resistance training. Target hypertrophy sets today.';
+    let headline = 'Primed for Output';
+    let badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+
+    if (fatigued.length >= 4) {
+      headline = 'Active Recovery Focus';
+      badgeColor = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+      recommendation = 'Multiple muscle groups undergoing adaptive repair. Light cardio or territory capture advised.';
+    } else if (activities.length > 0 && new Date(activities[0].startTime).getTime() > Date.now() - 18 * 3600000) {
+      recommendation = 'Strong cardio foundation logged recently. Balance with hypertrophy sets today.';
+    }
+
+    return {
+      headline,
+      badgeColor,
+      muscleSummary,
+      nutritionPacing,
+      recommendation,
+    };
+  }, [sessions, proteinGoal, proteinConsumed, activities]);
+
   return (
     <>
       <main className="max-w-lg mx-auto px-5 pt-6 space-y-6 pb-4">
@@ -98,6 +151,44 @@ export default function Dashboard() {
         <section>
           <p className="text-on-surface-variant text-sm font-medium">{greeting},</p>
           <h1 className="font-headline font-extrabold text-[28px] tracking-tight mt-0.5">{profile.name}</h1>
+        </section>
+
+        {/* AI Daily Coach Briefing — Executive Biomechanical & Nutritional Synthesis */}
+        <section
+          onClick={() => navigate('/ai-coach')}
+          className="bg-gradient-to-br from-[var(--color-surface-container)] to-[var(--color-surface-container-high)] rounded-2xl p-5 border border-white/[0.06] shadow-lg cursor-pointer hover:border-primary/40 transition-all group"
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                psychology
+              </span>
+              <span className="font-headline font-bold text-sm tracking-wide text-on-surface">Daily Coach Briefing</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${coachBriefing.badgeColor}`}>
+              {coachBriefing.headline}
+            </span>
+          </div>
+
+          <p className="text-xs text-on-surface/90 leading-relaxed mb-3">
+            {coachBriefing.recommendation}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/[0.04] text-[11px]">
+            <div className="flex items-center gap-1.5 text-on-surface-variant truncate">
+              <span className="material-symbols-outlined text-[#6FFB85] text-sm flex-shrink-0">fitness_center</span>
+              <span className="truncate">{coachBriefing.muscleSummary}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-on-surface-variant truncate">
+              <span className="material-symbols-outlined text-[#FF7A00] text-sm flex-shrink-0">restaurant</span>
+              <span className="truncate">{coachBriefing.nutritionPacing}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-3 pt-2 text-[11px] font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
+            <span>Consult AI Coach</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </div>
         </section>
 
         {/* Activity Rings — hero card, single focus */}

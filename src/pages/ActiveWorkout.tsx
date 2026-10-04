@@ -5,7 +5,7 @@
 // on-the-fly exercise additions, reordering, and finish flow.
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useWorkoutBuilder } from '../context/WorkoutBuilderContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -17,6 +17,7 @@ import SessionSummary from '../components/WorkoutSession/SessionSummary';
 import { EXERCISE_LIBRARY } from '../data/exerciseLibrary';
 import type { WorkoutSession, LoggedSet, SessionExercise } from '../types/workout';
 import { createDefaultLoggedSet } from '../types/workout';
+import { playRestChime, playCountdownTick, playSuccessChime } from '../utils/audioFeedback';
 
 export default function ActiveWorkout() {
   const navigate = useNavigate();
@@ -59,38 +60,18 @@ export default function ActiveWorkout() {
   const [completedSession, setCompletedSession] = useState<WorkoutSession | null>(null);
   const [currentExIdx, setCurrentExIdx] = useState(0);
 
-  // Audio tone generator for rest timer completion
-  const playBeep = useCallback((freq = 880, duration = 0.15) => {
-    try {
-      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch {
-      // AudioContext unavailable or blocked by browser policy
-    }
-  }, []);
-
-  // Monitor rest timer completion for beep/vibration
+  // Monitor rest timer completion for harmonic chime and haptics
   const lastRemainingRef = useRef<number | null>(null);
   useEffect(() => {
     if (restTimer) {
       if (restTimer.remaining === 0 && lastRemainingRef.current !== 0) {
-        playBeep(1200, 0.3);
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        playRestChime();
       } else if (restTimer.remaining <= 3 && restTimer.remaining > 0 && restTimer.remaining !== lastRemainingRef.current) {
-        playBeep(600, 0.08);
+        playCountdownTick();
       }
       lastRemainingRef.current = restTimer.remaining;
     }
-  }, [restTimer, playBeep]);
+  }, [restTimer]);
 
   // Start session on mount if not already active
   useEffect(() => {
@@ -105,6 +86,7 @@ export default function ActiveWorkout() {
     setShowEndConfirm(false);
     const session = await endSession();
     if (session) {
+      playSuccessChime();
       setCompletedSession(session);
     }
   };

@@ -2,7 +2,7 @@
 // MyFitAI — Rest Timer (Full-screen countdown overlay)
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useRef } from 'react';
+import { triggerHaptic } from '../../utils/audioFeedback';
 
 interface RestTimerProps {
   remaining: number;
@@ -12,26 +12,6 @@ interface RestTimerProps {
 }
 
 export default function RestTimer({ remaining, total, onSkip, onAddTime }: RestTimerProps) {
-  const audioRef = useRef<AudioContext | null>(null);
-
-  useEffect(() => {
-    if (remaining === 0) {
-      try {
-        if (!audioRef.current) audioRef.current = new AudioContext();
-        const ctx = audioRef.current;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        osc.type = 'sine';
-        gain.gain.value = 0.3;
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.stop(ctx.currentTime + 0.5);
-      } catch { /* silent fallback */ }
-    }
-  }, [remaining]);
 
   const progress = total > 0 ? (total - remaining) / total : 0;
   const r = 110;
@@ -57,12 +37,22 @@ export default function RestTimer({ remaining, total, onSkip, onAddTime }: RestT
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <button onClick={() => onAddTime(30)}
-          className="h-12 px-6 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.06] text-on-surface text-sm font-bold uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform">
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            onAddTime(30);
+          }}
+          className="h-12 px-6 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.06] text-on-surface text-sm font-bold uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform"
+        >
           <span className="material-symbols-outlined text-[18px]">add</span>+30s
         </button>
-        <button onClick={onSkip}
-          className="h-12 px-8 rounded-2xl bg-primary text-on-primary text-sm font-bold uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform shadow-lg">
+        <button
+          onClick={() => {
+            triggerHaptic('medium');
+            onSkip();
+          }}
+          className="h-12 px-8 rounded-2xl bg-primary text-on-primary text-sm font-bold uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform shadow-lg"
+        >
           <span className="material-symbols-outlined text-[18px]">skip_next</span>Skip
         </button>
       </div>
