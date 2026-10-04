@@ -756,8 +756,9 @@ export function calculateTerritoryImpact(params: {
       newAreaKm2 += cell.areaKm2;
     } else {
       // Check 20-hour defense cooldown to prevent continuous repetitive farming
-      const lastDefended = existing.lastDefendedAt ? new Date(existing.lastDefendedAt).getTime() : 0;
-      const hoursSinceDefense = (now.getTime() - lastDefended) / (1000 * 3600);
+      const lastActionTime = existing.lastDefendedAt || existing.lastCapturedAt || existing.firstCapturedAt;
+      const lastTimestamp = lastActionTime ? new Date(lastActionTime).getTime() : now.getTime();
+      const hoursSinceDefense = (now.getTime() - lastTimestamp) / (1000 * 3600);
 
       if (hoursSinceDefense >= 20) {
         defendedCells.push({

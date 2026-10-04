@@ -424,6 +424,7 @@ export default function ActivityHub() {
           {/* Full Interactive MapView */}
           <div className="rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl">
             <MapView
+              mode="territory"
               territoryCells={territoryCells}
               height={380}
               interactive={true}

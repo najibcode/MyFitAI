@@ -32,6 +32,7 @@ import {
 } from '../engine/activityCalculations';
 import { GPSTracker, type TrackingState } from '../services/activity/gpsTracker';
 import { territoryEngine, type TerritoryProcessingResult } from '../services/activity/territoryEngine';
+import { activitySyncService } from '../services/activity/ActivitySyncService';
 import { db } from '../utils/db';
 import { storage } from '../utils/storage';
 import { useAuth } from './AuthContext';
@@ -104,6 +105,41 @@ const ActivityContext = createContext<ActivityContextType | undefined>(undefined
 
 const PREFERENCES_STORAGE_KEY = 'myfitai_activity_preferences';
 
+export function generateIntelligentActivityTitle(
+  type: ActivityType,
+  distanceMeters: number,
+  startTime: Date | number | string,
+  unitSystem: 'metric' | 'imperial'
+): string {
+  const date = new Date(startTime);
+  const hours = date.getHours();
+  let timeOfDay = 'Morning';
+
+  if (hours >= 4 && hours < 9) timeOfDay = 'Morning';
+  else if (hours >= 9 && hours < 12) timeOfDay = 'Midday';
+  else if (hours >= 12 && hours < 14) timeOfDay = 'Lunch';
+  else if (hours >= 14 && hours < 17) timeOfDay = 'Afternoon';
+  else if (hours >= 17 && hours < 20) timeOfDay = 'Sunset';
+  else if (hours >= 20 && hours < 23) timeOfDay = 'Evening';
+  else timeOfDay = 'Night';
+
+  let sportName = type.charAt(0) + type.slice(1).toLowerCase();
+  if (type === 'CYCLING') sportName = 'Ride';
+  else if (type === 'RUN') sportName = 'Run';
+  else if (type === 'WALK') sportName = 'Walk';
+  else if (type === 'HIKING') sportName = 'Hike';
+  else if (type === 'SWIMMING') sportName = 'Swim';
+  else if (type === 'INDOOR_CYCLING') sportName = 'Spin';
+  else if (type === 'TREADMILL') sportName = 'Treadmill';
+  else if (type === 'ROWING') sportName = 'Row';
+
+  if (distanceMeters > 50) {
+    const formattedDist = formatDistance(distanceMeters, unitSystem);
+    return `${timeOfDay} ${sportName} • ${formattedDist}`;
+  }
+  return `${timeOfDay} ${sportName}`;
+}
+
 export function ActivityProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { profile, logActivity: logFitnessActivity } = useFitnessContext();
@@ -149,7 +185,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      territoryEngine.flushSyncQueue();
+      activitySyncService.processQueue().catch(() => {});
     };
     const handleOffline = () => setIsOnline(false);
 
@@ -398,14 +434,18 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
         ? Math.round(((metrics.distanceMeters / 1000) / (activeSession.durationSeconds / 3600)) * 10) / 10
         : 0;
 
-    const typeTitle = activeSession.type.charAt(0) + activeSession.type.slice(1).toLowerCase();
-    const formattedDist = formatDistance(metrics.distanceMeters, preferences.unitSystem);
+    const title = generateIntelligentActivityTitle(
+      activeSession.type,
+      metrics.distanceMeters,
+      activeSession.startTime,
+      preferences.unitSystem
+    );
 
     const newActivity: Activity = {
       id: activeSession.activityId,
       userId: user?.uid || 'guest',
       type: activeSession.type,
-      title: `${typeTitle} • ${formattedDist}`,
+      title,
       startTime: new Date(activeSession.startTime).toISOString(),
       endTime: nowISO,
       durationSeconds: activeSession.durationSeconds,
@@ -457,8 +497,8 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       // Non-fatal
     }
 
-    // 4. Single cost-efficient cloud sync
-    territoryEngine.syncActivityToFirestore(newActivity, {
+    // 4. Local-first storage + queue single cost-efficient cloud sync with polyline compression
+    await activitySyncService.finalizeAndQueueActivity(newActivity, {
       ...territoryStats,
       totalAreaKm2: territoryResult.totalAreaKm2,
       xp: territoryResult.totalXP,
@@ -521,7 +561,14 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       id: `act_manual_${Date.now()}`,
       userId: user?.uid || 'guest',
       type: data.type,
-      title: data.title || `${data.type} (Manual)`,
+      title:
+        data.title ||
+        generateIntelligentActivityTitle(
+          data.type,
+          data.distanceMeters,
+          now,
+          preferences.unitSystem
+        ),
       startTime: `${dateStr}T10:00:00.000Z`,
       endTime: `${dateStr}T10:30:00.000Z`,
       durationSeconds: data.durationSeconds,
@@ -570,7 +617,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   };
 
   const syncPending = async (): Promise<number> => {
-    const count = await territoryEngine.flushSyncQueue();
+    const count = await activitySyncService.processQueue();
     const queue = await db.activity.syncQueue.getAll();
     setPendingSyncCount(queue.length);
     return count;

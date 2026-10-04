@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Real-Time GPS Tracking Service
-// Manages device location tracking with adaptive battery-aware
-// sampling, auto-pause detection, GPS quality classification,
-// and background buffering to IndexedDB for crash resilience.
+// Manages device location tracking using LocationService (Capacitor
+// native GPS on Android with browser fallback), auto-pause detection,
+// corner angle preservation, and IndexedDB crash recovery buffering.
 // ─────────────────────────────────────────────────────────────
 
 import type { ActivityPoint, ActivityType, GPSQuality } from '../../types/activity';
-import { calculateHaversineDistance } from '../../engine/activityCalculations';
+import { LocationService } from '../location/LocationService';
 import { db } from '../../utils/db';
 
 export type TrackingState = 'IDLE' | 'TRACKING' | 'PAUSED' | 'AUTO_PAUSED';
@@ -22,15 +22,11 @@ export interface GPSTrackerOptions {
 }
 
 export class GPSTracker {
-  private watchId: number | null = null;
+  private locationService: LocationService | null = null;
   private state: TrackingState = 'IDLE';
   private options: GPSTrackerOptions;
   private points: ActivityPoint[] = [];
-  private lastRecordedPoint: ActivityPoint | null = null;
-  private lastSampleTimestamp = 0;
-  private autoPauseTimer: ReturnType<typeof setTimeout> | null = null;
   private bufferSaveTimer: ReturnType<typeof setInterval> | null = null;
-  private isStationarySince = 0;
 
   constructor(options: GPSTrackerOptions) {
     this.options = {
@@ -48,14 +44,9 @@ export class GPSTracker {
   }
 
   /**
-   * Starts tracking GPS position.
+   * Starts tracking GPS position via native Capacitor or web LocationService.
    */
   public async start(): Promise<boolean> {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      this.options.onError?.('Geolocation is not supported on this device.');
-      return false;
-    }
-
     this.state = 'TRACKING';
     this.options.onStateChange?.(this.state);
     this.options.onGPSQuality?.('SEARCHING');
@@ -65,23 +56,39 @@ export class GPSTracker {
       this.saveBufferToIndexedDB();
     }, 15000);
 
-    const geoOptions: PositionOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 2000,
-    };
+    this.locationService = new LocationService({
+      activityType: this.options.activityType,
+      autoPauseEnabled: this.options.autoPauseEnabled,
+      onPoint: pt => {
+        if (this.state === 'PAUSED') return;
+        this.points.push(pt);
+        this.options.onPoint?.(pt, this.points.length);
+      },
+      onGPSQuality: q => {
+        this.options.onGPSQuality?.(q);
+      },
+      onAutoPauseChange: isPaused => {
+        if (this.state === 'PAUSED') return;
+        this.state = isPaused ? 'AUTO_PAUSED' : 'TRACKING';
+        this.options.onStateChange?.(this.state);
+      },
+      onError: err => {
+        this.options.onError?.(err);
+      },
+    });
 
-    try {
-      this.watchId = navigator.geolocation.watchPosition(
-        position => this.handlePositionUpdate(position),
-        error => this.handlePositionError(error),
-        geoOptions
-      );
-      return true;
-    } catch (err: unknown) {
-      this.options.onError?.(err instanceof Error ? err.message : 'Failed to start GPS tracking.');
+    const success = await this.locationService.startTracking();
+    if (!success) {
+      this.state = 'IDLE';
+      this.options.onStateChange?.(this.state);
+      if (this.bufferSaveTimer) {
+        clearInterval(this.bufferSaveTimer);
+        this.bufferSaveTimer = null;
+      }
       return false;
     }
+
+    return true;
   }
 
   /**
@@ -101,7 +108,6 @@ export class GPSTracker {
   public resume(): void {
     if (this.state === 'PAUSED' || this.state === 'AUTO_PAUSED') {
       this.state = 'TRACKING';
-      this.isStationarySince = 0;
       this.options.onStateChange?.(this.state);
     }
   }
@@ -110,14 +116,9 @@ export class GPSTracker {
    * Stops tracking and cleans up listeners and timers.
    */
   public stop(): ActivityPoint[] {
-    if (this.watchId !== null && typeof navigator !== 'undefined') {
-      navigator.geolocation.clearWatch(this.watchId);
-      this.watchId = null;
-    }
-
-    if (this.autoPauseTimer) {
-      clearInterval(this.autoPauseTimer);
-      this.autoPauseTimer = null;
+    if (this.locationService) {
+      this.locationService.stopTracking();
+      this.locationService = null;
     }
 
     if (this.bufferSaveTimer) {
@@ -130,118 +131,6 @@ export class GPSTracker {
     this.saveBufferToIndexedDB();
 
     return [...this.points];
-  }
-
-  /**
-   * Ingests a new GPS position and decides whether to sample based on movement & battery limits.
-   */
-  private handlePositionUpdate(pos: GeolocationPosition): void {
-    if (this.state === 'PAUSED') return;
-
-    const { latitude, longitude, altitude, accuracy, speed, heading } = pos.coords;
-    const timestamp = pos.timestamp || Date.now();
-
-    // 1. Evaluate GPS Quality
-    let quality: GPSQuality = 'EXCELLENT';
-    if (!accuracy || accuracy > 30) quality = 'WEAK';
-    else if (accuracy > 15) quality = 'GOOD';
-    this.options.onGPSQuality?.(quality);
-
-    // Skip points with unusable accuracy (> 35m)
-    if (accuracy && accuracy > 35) return;
-
-    const currentSpeedMs = speed !== null && speed !== undefined && speed >= 0 ? speed : 0;
-
-    // 2. Auto-Pause Detection
-    if (this.options.autoPauseEnabled) {
-      if (currentSpeedMs < 0.4) {
-        if (!this.isStationarySince) {
-          this.isStationarySince = timestamp;
-        } else if (timestamp - this.isStationarySince > 10000 && this.state === 'TRACKING') {
-          // Stationary for > 10 seconds -> trigger auto-pause
-          this.state = 'AUTO_PAUSED';
-          this.options.onStateChange?.(this.state);
-        }
-      } else {
-        // User has resumed moving
-        this.isStationarySince = 0;
-        if (this.state === 'AUTO_PAUSED') {
-          this.state = 'TRACKING';
-          this.options.onStateChange?.(this.state);
-        }
-      }
-    }
-
-    if (this.state === 'AUTO_PAUSED') return;
-
-    // 3. Adaptive Sampling
-    const shouldSample = this.shouldSamplePoint(latitude, longitude, timestamp);
-    if (!shouldSample) return;
-
-    const point: ActivityPoint = {
-      latitude,
-      longitude,
-      timestamp,
-      altitude: altitude !== null ? Math.round(altitude * 10) / 10 : undefined,
-      accuracy: accuracy !== null ? Math.round(accuracy) : undefined,
-      speed: currentSpeedMs,
-      heading: heading !== null && heading !== undefined ? Math.round(heading) : undefined,
-    };
-
-    this.points.push(point);
-    this.lastRecordedPoint = point;
-    this.lastSampleTimestamp = timestamp;
-
-    this.options.onPoint?.(point, this.points.length);
-  }
-
-  /**
-   * Decides whether to record the current coordinate based on activity type, distance and interval.
-   */
-  private shouldSamplePoint(lat: number, lon: number, timestamp: number): boolean {
-    if (!this.lastRecordedPoint) return true;
-
-    const elapsedMs = timestamp - this.lastSampleTimestamp;
-    const dist = calculateHaversineDistance(
-      this.lastRecordedPoint.latitude,
-      this.lastRecordedPoint.longitude,
-      lat,
-      lon
-    );
-
-    // Adaptive constraints based on activity type
-    switch (this.options.activityType) {
-      case 'CYCLING':
-        // 3s interval or 12m moved
-        return elapsedMs >= 3000 || dist >= 12;
-      case 'RUN':
-        // 5s interval or 8m moved
-        return elapsedMs >= 5000 || dist >= 8;
-      case 'WALK':
-      case 'HIKING':
-        // 6s interval or 6m moved
-        return elapsedMs >= 6000 || dist >= 6;
-      default:
-        return elapsedMs >= 5000 || dist >= 8;
-    }
-  }
-
-  private handlePositionError(error: GeolocationPositionError): void {
-    let msg = 'GPS signal lost.';
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        msg = 'Location permission was denied. Please allow location access to record GPS routes.';
-        break;
-      case error.POSITION_UNAVAILABLE:
-        msg = 'GPS signal currently unavailable. Searching for satellite fix...';
-        this.options.onGPSQuality?.('SEARCHING');
-        break;
-      case error.TIMEOUT:
-        msg = 'GPS fix timed out. Ensure location services are enabled.';
-        this.options.onGPSQuality?.('WEAK');
-        break;
-    }
-    this.options.onError?.(msg);
   }
 
   /**
@@ -282,8 +171,6 @@ export class GPSTracker {
       const saved = await db.activity.rawRoutes.get(this.options.activityId);
       if (saved && Array.isArray(saved.points) && saved.points.length > 0) {
         this.points = [...saved.points];
-        this.lastRecordedPoint = this.points[this.points.length - 1];
-        this.lastSampleTimestamp = this.lastRecordedPoint.timestamp;
         return this.points.length;
       }
     } catch {

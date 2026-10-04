@@ -15,6 +15,7 @@ import {
   formatActivitiesToCSV,
 } from '../../engine/activityCalculations';
 import MapView from './MapView';
+import ElevationProfile from './ElevationProfile';
 import { useActivity } from '../../context/ActivityContext';
 
 interface ActivityDetailModalProps {
@@ -109,17 +110,30 @@ export default function ActivityDetailModal({
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-          {/* Interactive Route Map */}
-          {activity.route && activity.route.points.length > 0 && (
-            <div className="rounded-2xl overflow-hidden border border-white/[0.06]">
-              <MapView
-                routePoints={activity.route.simplifiedPoints || activity.route.points}
-                territoryCells={territoryCells}
-                height={220}
-                interactive={true}
-                followUser={false}
-                showTerritory={true}
+          {/* Interactive Route Map or Indoor Fallback */}
+          {activity.route && activity.route.points && activity.route.points.length > 0 ? (
+            <>
+              <div className="rounded-2xl overflow-hidden border border-white/[0.06] shadow-lg">
+                <MapView
+                  mode="details"
+                  routePoints={activity.route.simplifiedPoints || activity.route.points}
+                  territoryCells={territoryCells}
+                  height={240}
+                  interactive={true}
+                  followUser={false}
+                  showTerritory={true}
+                  replayEnabled={true}
+                />
+              </div>
+              <ElevationProfile
+                points={activity.route.simplifiedPoints || activity.route.points}
+                unitSystem={preferences.unitSystem}
               />
+            </>
+          ) : (
+            <div className="p-5 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.06] text-center text-xs text-white/50 flex flex-col items-center justify-center gap-1.5 py-6">
+              <span className="material-symbols-outlined text-2xl text-white/30">location_off</span>
+              <span>No GPS route for this activity</span>
             </div>
           )}
 
