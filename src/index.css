@@ -2,25 +2,42 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 @theme {
-  --color-primary: #FF7A00;
-  --color-primary-container: #CC5F00;
-  --color-on-primary: #0E0E10;
-  --color-secondary: #6FFB85;
-  --color-on-secondary: #004818;
-  --color-tertiary: #FAB0FF;
-  --color-error: #FF4D4D;
-  --color-on-surface: #FFFFFF;
-  --color-on-surface-variant: #9E9E9E;
+  --color-background: #080808;
+  --color-surface: #151517;
+  --color-surface-elevated: #1E1E20;
+  --color-surface-container: #151517;
+  --color-surface-container-low: #0D0D0E;
+  --color-surface-container-high: #1E1E20;
+  --color-surface-container-highest: #28282B;
+  --color-border: #2A2A2D;
   --color-outline: #2A2A2D;
   --color-outline-variant: #3A3A3D;
-  --color-background: #0A0A0A;
-  --color-surface: #161618;
-  --color-surface-container-low: #121214;
-  --color-surface-container: #1C1C1F;
-  --color-surface-container-high: #232326;
-  --color-surface-container-highest: #2A2A2D;
-  --color-header-bg: rgba(10, 10, 10, 0.92);
-  --color-nav-bg: rgba(22, 22, 24, 0.82);
+  
+  /* Brand Green (Progress / Readiness / Success) */
+  --color-primary: #30D158;
+  --color-primary-container: #1E7E36;
+  --color-primary-highlight: #5EEB78;
+  --color-on-primary: #000000;
+  --color-secondary: #30D158;
+  --color-on-secondary: #000000;
+  
+  /* Semantic Action Colors */
+  --color-action: #FF8A00; /* Workout Action Orange */
+  --color-action-orange: #FF8A00;
+  --color-activity: #4F9CF9; /* Activity Blue */
+  --color-activity-blue: #4F9CF9;
+  --color-nutrition: #F5C542; /* Nutrition Yellow */
+  --color-nutrition-yellow: #F5C542;
+  --color-coach: #A78BFA; /* AI Purple */
+  --color-coach-purple: #A78BFA;
+  --color-error: #FF453A;
+  
+  /* Text and Surfaces */
+  --color-on-surface: #F5F5F5;
+  --color-on-surface-variant: #A1A1A6;
+  --color-muted: #6B6B70;
+  --color-header-bg: rgba(8, 8, 8, 0.92);
+  --color-nav-bg: rgba(21, 21, 23, 0.95);
   
   --font-headline: "Plus Jakarta Sans", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -29,34 +46,87 @@
 
 /* Light Theme Override */
 :root[data-theme="light"] {
-  --color-background: #F5F5F7;
+  --color-background: #F6F6F8;
   --color-surface: #FFFFFF;
-  --color-surface-container-low: #F9F9FB;
+  --color-surface-elevated: #F0F0F3;
+  --color-surface-container-low: #F8F8FA;
   --color-surface-container: #FFFFFF;
-  --color-surface-container-high: #F5F5F7;
-  --color-surface-container-highest: #EBEBED;
-  --color-on-surface: #1A1A1A;
-  --color-on-surface-variant: #6B6B6B;
-  --color-outline: #D5D5D8;
-  --color-outline-variant: #E5E5E8;
-  --color-primary: #E06800;
-  --color-primary-container: #FF7A00;
+  --color-surface-container-high: #F2F2F5;
+  --color-surface-container-highest: #E5E5E8;
+  --color-border: #E2E2E6;
+  --color-outline: #D1D1D6;
+  --color-outline-variant: #E2E2E6;
+  
+  --color-primary: #248A3D;
+  --color-primary-container: #30D158;
+  --color-primary-highlight: #2DC256;
   --color-on-primary: #FFFFFF;
-  --color-secondary: #00A844;
+  --color-secondary: #248A3D;
   --color-on-secondary: #FFFFFF;
-  --color-tertiary: #9B59B6;
-  --color-error: #E53935;
-  --color-header-bg: rgba(255, 255, 255, 0.88);
-  --color-nav-bg: rgba(255, 255, 255, 0.82);
+  
+  --color-action: #E06800;
+  --color-action-orange: #E06800;
+  --color-activity: #2563EB;
+  --color-activity-blue: #2563EB;
+  --color-nutrition: #D97706;
+  --color-nutrition-yellow: #D97706;
+  --color-coach: #7C3AED;
+  --color-coach-purple: #7C3AED;
+  --color-error: #DC2626;
+  
+  --color-on-surface: #151517;
+  --color-on-surface-variant: #636366;
+  --color-muted: #8E8E93;
+  --color-header-bg: rgba(246, 246, 248, 0.92);
+  --color-nav-bg: rgba(255, 255, 255, 0.95);
+}
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 }
 
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-background text-on-surface font-body selection:bg-primary selection:text-black;
-    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overscroll-behavior-y: contain;
+    overflow-x: clip;
+    overflow-y: visible;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-x: clip;
   }
   
   /* Light mode overrides for common patterns */
@@ -244,11 +314,7 @@
     background: rgba(0, 0, 0, 0.15);
   }
 
-  /* Material Symbols Configuration */
-  .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-  
+
   /* Hide scrollbar utility */
   .hide-scrollbar::-webkit-scrollbar,
   [scrollbar-width\:none]::-webkit-scrollbar {
@@ -442,19 +508,26 @@
     animation: heroCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 4px;
+  /* Global native mobile scrollbar suppression — keeps touch scroll smooth without visible desktop scrollbar */
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
-  ::-webkit-scrollbar-track {
-    background: transparent;
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
   }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 100px;
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 
   /* Pull to refresh visual */
@@ -469,10 +542,18 @@
     }
   }
 
-  /* iOS safe area support */
-  @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    .pb-safe {
-      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-    }
+  /* Mobile Safe Area and Touch Target utilities */
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+  }
+  .safe-bottom-pad {
+    padding-bottom: calc(5.25rem + max(env(safe-area-inset-bottom, 0px), 0.5rem));
+  }
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
