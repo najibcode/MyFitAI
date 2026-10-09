@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- Deep Obsidian Matte Background -->
+  <rect width="1080" height="1920" fill="#080808" />
+
+  <defs>
+    <!-- Athletic Electric Green Gradient -->
+    <linearGradient id="splash-primary-grad" x1="100" y1="420" x2="420" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22C55E" />
+      <stop offset="50%" stop-color="#30D158" />
+      <stop offset="100%" stop-color="#5EEB78" />
+    </linearGradient>
+
+    <!-- Frosted Silver-White Precision Gradient -->
+    <linearGradient id="splash-silver-grad" x1="160" y1="110" x2="420" y2="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#A1A1A6" />
+    </linearGradient>
+
+    <!-- Center Ambient Glow -->
+    <radialGradient id="splash-center-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#30D158" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#080808" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="splash-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#30D158" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Ambient background glow behind mark -->
+  <circle cx="540" cy="900" r="420" fill="url(#splash-center-glow)" />
+
+  <!-- Centered MyFitAI Brand Mark -->
+  <g transform="translate(380, 740) scale(0.625)">
+    <!-- Primary Surge Blade -->
+    <path
+      d="M102 398 L215 114 C221 98 239 98 245 114 L316 246 L245 286 L194 195 L123 398 Z"
+      fill="url(#splash-primary-grad)"
+      filter="url(#splash-glow)"
+    />
+
+    <!-- Interlocking Apex Crest Blade -->
+    <path
+      d="M245 114 C251 98 269 98 275 114 L408 398 L337 398 L296 307 L347 195 L275 246 Z"
+      fill="url(#splash-silver-grad)"
+    />
+
+    <!-- Center Biometric Core Spark -->
+    <polygon
+      points="260,184 290,245 260,306 230,245"
+      fill="#30D158"
+    />
+  </g>
+
+  <!-- Clean Athletic Typography -->
+  <text
+    x="540"
+    y="1120"
+    text-anchor="middle"
+    font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
+    font-weight="900"
+    font-size="44"
+    letter-spacing="2"
+    fill="#F5F5F5"
+  >MYFIT<tspan fill="#30D158">AI</tspan></text>
+
+  <text
+    x="540"
+    y="1165"
+    text-anchor="middle"
+    font-family="'Inter', -apple-system, sans-serif"
+    font-weight="700"
+    font-size="16"
+    letter-spacing="8"
+    fill="#6B6B70"
+  >ATHLETE OS</text>
+</svg>

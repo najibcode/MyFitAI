@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Android Adaptive Icon Foreground Layer (Transparent Background) -->
+  <!-- Centered strictly within the 66% safe zone (72dp of 108dp) -->
+  <defs>
+    <linearGradient id="adaptive-primary-grad" x1="160" y1="360" x2="360" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22C55E" />
+      <stop offset="50%" stop-color="#30D158" />
+      <stop offset="100%" stop-color="#5EEB78" />
+    </linearGradient>
+
+    <linearGradient id="adaptive-silver-grad" x1="200" y1="160" x2="360" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#A1A1A6" />
+    </linearGradient>
+
+    <filter id="adaptive-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#30D158" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Scale and translate mark into safe zone center -->
+  <g transform="translate(40, 36) scale(0.84)">
+    <!-- Primary Surge Blade (Ascending Power Vector) -->
+    <path
+      d="M102 398 L215 114 C221 98 239 98 245 114 L316 246 L245 286 L194 195 L123 398 Z"
+      fill="url(#adaptive-primary-grad)"
+      filter="url(#adaptive-glow)"
+    />
+
+    <!-- Interlocking Apex Crest Blade (Precision Counter Vector) -->
+    <path
+      d="M245 114 C251 98 269 98 275 114 L408 398 L337 398 L296 307 L347 195 L275 246 Z"
+      fill="url(#adaptive-silver-grad)"
+    />
+
+    <!-- Center Biometric Core Spark -->
+    <polygon
+      points="260,184 290,245 260,306 230,245"
+      fill="#30D158"
+    />
+  </g>
+</svg>
