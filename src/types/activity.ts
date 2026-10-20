@@ -115,6 +115,7 @@ export interface Activity {
   elevationGainMeters: number;
   elevationLossMeters: number;
   calories: number;
+  steps?: number;
   route?: ActivityRoute;
   splits?: ActivitySplit[];
   laps?: ActivityLap[];

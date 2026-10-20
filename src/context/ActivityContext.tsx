@@ -37,6 +37,10 @@ import { db } from '../utils/db';
 import { storage } from '../utils/storage';
 import { useAuth } from './AuthContext';
 import { useFitnessContext } from './FitnessContext';
+import {
+  activityTrackingService,
+  type ActivityEngineState,
+} from '../services/activity/ActivityTrackingService';
 
 export interface ActiveSessionState {
   activityId: string;
@@ -51,6 +55,7 @@ export interface ActiveSessionState {
   elevationGainMeters: number;
   elevationLossMeters: number;
   calories: number;
+  steps?: number;
   points: ActivityPoint[];
   currentLocation: ActivityPoint | null;
   gpsQuality: GPSQuality;
@@ -67,6 +72,13 @@ interface ActivityContextType {
   stopAndSaveActivity: () => Promise<{ activity: Activity; territoryResult: TerritoryProcessingResult } | null>;
   cancelTracking: () => Promise<void>;
   markLap: () => void;
+
+  // Native Real-Time Step Counter & Activity Engine
+  dailyActivityState: ActivityEngineState;
+  startStepTracking: () => Promise<boolean>;
+  stopStepTracking: () => Promise<boolean>;
+  requestStepPermission: () => Promise<boolean>;
+  setStepGoal: (goal: number) => void;
 
   // History & Manual Logging
   activities: Activity[];
@@ -163,6 +175,25 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   const [personalRecords, setPersonalRecords] = useState<ActivityPersonalRecord[]>([]);
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  // Native Step Counter & Daily Activity Engine
+  const [dailyActivityState, setDailyActivityState] = useState<ActivityEngineState>(() =>
+    activityTrackingService.getState()
+  );
+
+  useEffect(() => {
+    activityTrackingService.initialize(
+      user?.uid,
+      profile?.dailyStepGoal || 10000,
+      profile?.height || 175
+    );
+    const unsubscribe = activityTrackingService.subscribe(state => {
+      setDailyActivityState(state);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.uid, profile?.dailyStepGoal, profile?.height]);
 
   const [preferences, setPreferences] = useState<ActivityPreference>(() => {
     const saved = storage.get(PREFERENCES_STORAGE_KEY);
@@ -299,6 +330,10 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 
     gpsTrackerRef.current = tracker;
 
+    if (type === 'WALK' || type === 'RUN' || type === 'HIKING') {
+      activityTrackingService.startSessionStepTracking();
+    }
+
     setActiveSession({
       activityId,
       type,
@@ -312,6 +347,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       elevationGainMeters: 0,
       elevationLossMeters: 0,
       calories: 0,
+      steps: 0,
       points: [],
       currentLocation: null,
       gpsQuality: 'SEARCHING',
@@ -319,9 +355,10 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       laps: [],
     });
 
-    // Start 1-second UI duration ticker
+    // Start 1-second UI duration & session step ticker
     if (tickerTimerRef.current) clearInterval(tickerTimerRef.current);
     tickerTimerRef.current = setInterval(() => {
+      const currentSessionSteps = activityTrackingService.getState().sessionSteps;
       setActiveSession(prev => {
         if (!prev) return null;
         if (prev.state === 'TRACKING') {
@@ -329,11 +366,13 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
             ...prev,
             durationSeconds: prev.durationSeconds + 1,
             movingDurationSeconds: prev.movingDurationSeconds + 1,
+            steps: currentSessionSteps,
           };
         } else if (prev.state === 'AUTO_PAUSED' || prev.state === 'PAUSED') {
           return {
             ...prev,
             durationSeconds: prev.durationSeconds + 1,
+            steps: currentSessionSteps,
           };
         }
         return prev;
@@ -441,6 +480,8 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       preferences.unitSystem
     );
 
+    const sessionSteps = activityTrackingService.stopSessionStepTracking();
+
     const newActivity: Activity = {
       id: activeSession.activityId,
       userId: user?.uid || 'guest',
@@ -457,6 +498,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
       elevationGainMeters: metrics.elevationGainMeters,
       elevationLossMeters: metrics.elevationLossMeters,
       calories: finalCalories,
+      steps: sessionSteps || activeSession.steps || 0,
       route: {
         points: processedPoints,
         distanceMeters: metrics.distanceMeters,
@@ -513,6 +555,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
   };
 
   const cancelTracking = async () => {
+    activityTrackingService.stopSessionStepTracking();
     if (tickerTimerRef.current) {
       clearInterval(tickerTimerRef.current);
       tickerTimerRef.current = null;
@@ -649,6 +692,11 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
         isOnline,
         pendingSyncCount,
         syncPending,
+        dailyActivityState,
+        startStepTracking: () => activityTrackingService.startTracking(),
+        stopStepTracking: () => activityTrackingService.stopTracking(),
+        requestStepPermission: () => activityTrackingService.requestPermission(),
+        setStepGoal: (goal: number) => activityTrackingService.setStepGoal(goal),
       }}
     >
       {children}
