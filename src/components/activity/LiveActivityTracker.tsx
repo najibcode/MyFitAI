@@ -13,7 +13,9 @@ import {
   formatPace,
   formatSpeed,
 } from '../../engine/activityCalculations';
+import { PauseCircle, Flag, Play, Pause, Square, AlertTriangle } from 'lucide-react';
 import MapView from './MapView';
+import { RollingCounter } from '../motion/RollingCounter';
 import type { TerritoryProcessingResult } from '../../services/activity/territoryEngine';
 import type { Activity } from '../../types/activity';
 
@@ -98,7 +100,7 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
       {/* Auto-Pause Warning Banner */}
       {isAutoPaused && (
         <div className="bg-[#FBBF24]/15 border-b border-[#FBBF24]/30 px-4 py-2 text-center text-[#FBBF24] text-xs font-bold flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">pause_circle</span>
+          <PauseCircle className="w-4 h-4" />
           AUTO PAUSED — Movement stopped
         </div>
       )}
@@ -110,10 +112,10 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
           <span className="text-on-surface-variant text-xs font-bold uppercase tracking-widest block mb-1">
             Distance
           </span>
-          <h1 className="font-headline font-black text-5xl tracking-tight text-on-surface leading-none">
+          <h1 className="font-headline font-black text-5xl tracking-tight text-on-surface leading-none tabular-nums">
             {formattedDist}
           </h1>
-          <p className="font-headline font-bold text-2xl text-on-surface-variant mt-2 font-mono">
+          <p className="font-headline font-bold text-2xl text-on-surface-variant mt-2 font-mono tabular-nums">
             {formattedDur}
           </p>
         </div>
@@ -122,25 +124,33 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
         <div className="grid grid-cols-4 gap-2">
           <div className="bg-[var(--color-surface-container)] rounded-xl p-3 text-center border border-white/[0.04]">
             <span className="text-[10px] text-on-surface-variant font-medium block">Pace</span>
-            <span className="font-headline font-bold text-sm text-on-surface">
+            <span className="font-headline font-bold text-sm text-on-surface font-mono">
               {formattedPace}
             </span>
           </div>
           <div className="bg-[var(--color-surface-container)] rounded-xl p-3 text-center border border-white/[0.04]">
-            <span className="text-[10px] text-on-surface-variant font-medium block">Speed</span>
-            <span className="font-headline font-bold text-sm text-on-surface">
-              {formattedSpeed}
+            <span className="text-[10px] text-on-surface-variant font-medium block">
+              {activeSession.type === 'WALK' || activeSession.type === 'RUN' || activeSession.type === 'HIKING'
+                ? 'Steps'
+                : 'Speed'}
+            </span>
+            <span className="font-headline font-bold text-sm text-emerald-400 font-mono">
+              {activeSession.type === 'WALK' || activeSession.type === 'RUN' || activeSession.type === 'HIKING' ? (
+                <RollingCounter value={activeSession.steps || 0} />
+              ) : (
+                formattedSpeed
+              )}
             </span>
           </div>
           <div className="bg-[var(--color-surface-container)] rounded-xl p-3 text-center border border-white/[0.04]">
             <span className="text-[10px] text-on-surface-variant font-medium block">Elevation</span>
-            <span className="font-headline font-bold text-sm text-[#6FFB85]">
+            <span className="font-headline font-bold text-sm text-[#30D158] font-mono">
               +{activeSession.elevationGainMeters} m
             </span>
           </div>
           <div className="bg-[var(--color-surface-container)] rounded-xl p-3 text-center border border-white/[0.04]">
             <span className="text-[10px] text-on-surface-variant font-medium block">Est. Cal</span>
-            <span className="font-headline font-bold text-sm text-[#FF7A00]">
+            <span className="font-headline font-bold text-sm text-[#FF8A00] font-mono">
               {activeSession.calories}
             </span>
           </div>
@@ -169,9 +179,9 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
               {activeSession.laps.map(lap => (
                 <div key={lap.lapIndex} className="flex justify-between text-xs py-0.5">
                   <span className="text-on-surface font-semibold">Lap {lap.lapIndex}</span>
-                  <span className="text-on-surface-variant">{formatDistance(lap.distanceMeters, preferences.unitSystem)}</span>
+                  <span className="text-on-surface-variant font-mono">{formatDistance(lap.distanceMeters, preferences.unitSystem)}</span>
                   <span className="text-on-surface-variant font-mono">{formatDuration(lap.durationSeconds)}</span>
-                  <span className="text-primary font-medium">{formatPace(lap.paceSecondsPerKm, preferences.unitSystem)}</span>
+                  <span className="text-primary font-mono font-medium">{formatPace(lap.paceSecondsPerKm, preferences.unitSystem)}</span>
                 </div>
               ))}
             </div>
@@ -189,8 +199,8 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
             className="w-14 h-14 rounded-full bg-[var(--color-surface-container-high)] border border-white/[0.08] text-on-surface flex flex-col items-center justify-center active:scale-95 transition-all disabled:opacity-30 shadow-md"
             title="Mark Lap"
           >
-            <span className="material-symbols-outlined text-[18px]">flag</span>
-            <span className="text-[8px] font-bold uppercase">Lap</span>
+            <Flag className="w-4 h-4 text-[#A1A1A6]" />
+            <span className="text-[8px] font-bold uppercase mt-0.5 text-on-surface-variant">Lap</span>
           </button>
 
           {/* Pause / Resume Main Toggle */}
@@ -199,19 +209,15 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
               onClick={resumeTracking}
               className="flex-1 h-14 rounded-2xl bg-primary text-black font-headline font-black text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-primary/20"
             >
-              <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                play_arrow
-              </span>
+              <Play className="w-5 h-5 fill-black" />
               RESUME
             </button>
           ) : (
             <button
               onClick={pauseTracking}
-              className="flex-1 h-14 rounded-2xl bg-[#FBBF24] text-black font-headline font-black text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#FBBF24]/20"
+              className="flex-1 h-14 rounded-2xl bg-[#FF8A00] text-black font-headline font-black text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#FF8A00]/20"
             >
-              <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                pause
-              </span>
+              <Pause className="w-5 h-5 fill-black" />
               PAUSE
             </button>
           )}
@@ -220,13 +226,11 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
           <button
             onClick={handleFinish}
             disabled={isFinishing || activeSession.points.length === 0}
-            className="w-14 h-14 rounded-full bg-[#FF4D4D] text-white flex flex-col items-center justify-center active:scale-95 transition-all disabled:opacity-30 shadow-md shadow-red-500/20"
+            className="w-14 h-14 rounded-full bg-[#FF453A] text-white flex flex-col items-center justify-center active:scale-95 transition-all disabled:opacity-30 shadow-md shadow-red-500/20"
             title="Finish Activity"
           >
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              stop
-            </span>
-            <span className="text-[8px] font-bold uppercase">Finish</span>
+            <Square className="w-4 h-4 fill-white" />
+            <span className="text-[8px] font-bold uppercase mt-0.5">Finish</span>
           </button>
         </div>
       </div>
@@ -235,7 +239,7 @@ export default function LiveActivityTracker({ onFinishComplete }: LiveActivityTr
       {showConfirmCancel && (
         <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[var(--color-surface-container)] rounded-2xl max-w-xs w-full p-5 border border-white/[0.08] text-center space-y-3">
-            <span className="material-symbols-outlined text-red-400 text-3xl">warning</span>
+            <AlertTriangle className="w-8 h-8 text-[#FF453A] mx-auto" />
             <h3 className="font-headline font-bold text-lg text-on-surface">Discard Activity?</h3>
             <p className="text-on-surface-variant text-xs">
               Are you sure you want to discard this active session? Recorded GPS points will be deleted.

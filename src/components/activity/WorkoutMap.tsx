@@ -12,6 +12,19 @@ import { MapService } from '../../services/map/MapService';
 import type { MapTheme, ViewportBounds } from '../../services/map/MapConfig';
 import { defaultMapProvider } from '../../services/map/OpenFreeMapProvider';
 import { formatDuration, formatDistance, formatPace } from '../../engine/activityCalculations';
+import {
+  AlertTriangle,
+  Flag,
+  Crosshair,
+  Sun,
+  Moon,
+  Layers,
+  Minimize2,
+  Maximize2,
+  Play,
+  Pause,
+  RotateCcw,
+} from 'lucide-react';
 
 export type MapMode =
   | 'live'
@@ -242,10 +255,10 @@ export default function WorkoutMap({
     <div
       className={`relative w-full overflow-hidden transition-all duration-300 ${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-0 bg-black h-screen w-screen'
+          ? 'fixed inset-0 z-50 rounded-none bg-black h-full w-full'
           : `rounded-2xl border border-white/[0.08] bg-[#0E0F12] ${className}`
       }`}
-      style={{ height: isFullscreen ? '100vh' : height }}
+      style={{ height: isFullscreen ? '100dvh' : height }}
     >
       {/* 1. MapLibre GL Canvas Container */}
       <div ref={containerRef} className="w-full h-full" />
@@ -262,7 +275,7 @@ export default function WorkoutMap({
 
       {mapError && (
         <div className="absolute inset-0 bg-[#0E0F12]/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 p-4 text-center z-20">
-          <span className="material-symbols-outlined text-amber-400 text-3xl">map_error</span>
+          <AlertTriangle className="text-amber-400 w-8 h-8" />
           <span className="text-xs text-white/80">{mapError}</span>
           <span className="text-[11px] text-white/40">Tracking continues uninterrupted via GPS.</span>
         </div>
@@ -291,7 +304,7 @@ export default function WorkoutMap({
 
         {territoryCells.length > 0 && showTerritoryLayers && (
           <div className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1.5 shadow-lg">
-            <span className="material-symbols-outlined text-[12px] text-secondary">flag</span>
+            <Flag className="w-3 h-3 text-[#30D158]" />
             <span className="text-[10px] font-bold text-white/90">
               {territoryCells.length} Territories
             </span>
@@ -331,7 +344,7 @@ export default function WorkoutMap({
             title="Recenter Camera"
             aria-label="Recenter map on current location"
           >
-            <span className="material-symbols-outlined text-[18px]">my_location</span>
+            <Crosshair className="w-4 h-4" />
           </button>
           <button
             type="button"
@@ -340,9 +353,11 @@ export default function WorkoutMap({
             title={`Switch to ${currentTheme === 'dark' ? 'Light' : 'Dark'} map`}
             aria-label="Toggle map theme"
           >
-            <span className="material-symbols-outlined text-[17px]">
-              {currentTheme === 'dark' ? 'light_mode' : 'dark_mode'}
-            </span>
+            {currentTheme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-300" />
+            ) : (
+              <Moon className="w-4 h-4 text-white" />
+            )}
           </button>
           {territoryCells.length > 0 && (
             <button
@@ -356,7 +371,7 @@ export default function WorkoutMap({
               title="Toggle Territory Layer"
               aria-label="Toggle territory layer"
             >
-              <span className="material-symbols-outlined text-[17px]">layers</span>
+              <Layers className="w-4 h-4" />
             </button>
           )}
           <button
@@ -366,9 +381,11 @@ export default function WorkoutMap({
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
             aria-label="Toggle fullscreen map"
           >
-            <span className="material-symbols-outlined text-[17px]">
-              {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
-            </span>
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
           </button>
         </div>
       )}
@@ -413,9 +430,11 @@ export default function WorkoutMap({
                   className="w-9 h-9 rounded-xl bg-primary text-black font-bold flex items-center justify-center active:scale-95 shadow-lg"
                   aria-label={isReplaying ? 'Pause route replay' : 'Play route replay'}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {isReplaying ? 'pause' : 'play_arrow'}
-                  </span>
+                  {isReplaying ? (
+                    <Pause className="w-4 h-4 fill-black" />
+                  ) : (
+                    <Play className="w-4 h-4 fill-black" />
+                  )}
                 </button>
                 <button
                   type="button"
@@ -424,7 +443,7 @@ export default function WorkoutMap({
                   title="Restart Replay"
                   aria-label="Restart route replay"
                 >
-                  <span className="material-symbols-outlined text-[16px]">replay</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-xs font-bold text-white/90">Route Replay</span>
               </div>

@@ -7,6 +7,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import type { ActivityPoint } from '../../types/activity';
 import { calculateHaversineDistance } from '../../engine/activityCalculations';
+import { Mountain } from 'lucide-react';
 
 interface ElevationProfileProps {
   points: ActivityPoint[];
@@ -179,9 +180,7 @@ export default function ElevationProfile({
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface">
-          <span className="material-symbols-outlined text-[#6FFB85] text-[16px]">
-            terrain
-          </span>
+          <Mountain className="w-4 h-4 text-[#30D158]" />
           <span>Elevation Profile</span>
         </div>
         <div className="flex items-center gap-3 text-[11px] font-mono text-on-surface-variant">
