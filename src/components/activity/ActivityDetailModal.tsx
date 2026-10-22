@@ -17,6 +17,17 @@ import {
 import MapView from './MapView';
 import ElevationProfile from './ElevationProfile';
 import { useActivity } from '../../context/ActivityContext';
+import {
+  X,
+  MapPinOff,
+  Trophy,
+  Shield,
+  Zap,
+  Download,
+  FileSpreadsheet,
+  Trash2,
+  AlertTriangle,
+} from 'lucide-react';
 
 interface ActivityDetailModalProps {
   activity: Activity | null;
@@ -104,7 +115,7 @@ export default function ActivityDetailModal({
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/[0.06] text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -132,7 +143,7 @@ export default function ActivityDetailModal({
             </>
           ) : (
             <div className="p-5 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.06] text-center text-xs text-white/50 flex flex-col items-center justify-center gap-1.5 py-6">
-              <span className="material-symbols-outlined text-2xl text-white/30">location_off</span>
+              <MapPinOff className="w-6 h-6 text-white/30" />
               <span>No GPS route for this activity</span>
             </div>
           )}
@@ -140,12 +151,7 @@ export default function ActivityDetailModal({
           {/* Personal Records Banner if unlocked */}
           {activity.personalRecords && activity.personalRecords.length > 0 && (
             <div className="bg-gradient-to-r from-amber-500/20 via-primary/10 to-transparent p-3 rounded-2xl border border-amber-500/30 flex items-center gap-3">
-              <span
-                className="material-symbols-outlined text-amber-400 text-2xl"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                military_tech
-              </span>
+              <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
               <div>
                 <span className="font-headline font-bold text-xs text-amber-300 block">
                   New Personal Record!
@@ -202,7 +208,7 @@ export default function ActivityDetailModal({
           {(activity.territoryCapturedKm2 || activity.xpEarned) && (
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-primary/10 rounded-2xl p-3 border border-primary/20 flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-2xl">domain</span>
+                <Shield className="w-6 h-6 text-primary shrink-0" />
                 <div>
                   <span className="text-[10px] text-primary/80 font-bold uppercase block">
                     Territory Captured
@@ -213,7 +219,7 @@ export default function ActivityDetailModal({
                 </div>
               </div>
               <div className="bg-[#A78BFA]/10 rounded-2xl p-3 border border-[#A78BFA]/20 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#A78BFA] text-2xl">bolt</span>
+                <Zap className="w-6 h-6 text-[#A78BFA] shrink-0" />
                 <div>
                   <span className="text-[10px] text-[#A78BFA]/80 font-bold uppercase block">
                     XP Earned
@@ -351,14 +357,14 @@ export default function ActivityDetailModal({
                   onClick={handleDownloadGPX}
                   className="flex-1 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/[0.06] transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <Download className="w-3.5 h-3.5" />
                   Export GPX
                 </button>
                 <button
                   onClick={handleDownloadCSV}
                   className="flex-1 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/[0.06] transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[16px]">table_chart</span>
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
                   Export CSV
                 </button>
               </div>
@@ -370,9 +376,9 @@ export default function ActivityDetailModal({
         <div className="p-4 bg-[var(--color-surface-container)] border-t border-white/[0.04] flex items-center justify-between">
           <button
             onClick={() => setShowConfirmDelete(true)}
-            className="text-red-400 hover:text-red-300 text-xs font-semibold flex items-center gap-1 transition-colors"
+            className="text-red-400 hover:text-red-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">delete</span>
+            <Trash2 className="w-3.5 h-3.5" />
             Delete Activity
           </button>
 
@@ -388,7 +394,7 @@ export default function ActivityDetailModal({
         {showConfirmDelete && (
           <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-[var(--color-surface-container)] rounded-2xl max-w-xs w-full p-5 border border-white/[0.08] text-center space-y-3">
-              <span className="material-symbols-outlined text-red-400 text-3xl">warning</span>
+              <AlertTriangle className="w-8 h-8 text-[#FF453A] mx-auto" />
               <h3 className="font-headline font-bold text-lg text-on-surface">Delete Activity?</h3>
               <p className="text-on-surface-variant text-xs">
                 This will permanently delete this activity and its route from your history.

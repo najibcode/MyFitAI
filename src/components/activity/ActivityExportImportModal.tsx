@@ -13,6 +13,7 @@ import {
   calculatePaceSecondsPerKm,
 } from '../../engine/activityCalculations';
 import { db } from '../../utils/db';
+import { Archive, X, Cloud, Download, FileSpreadsheet, Upload } from 'lucide-react';
 
 interface ActivityExportImportModalProps {
   isOpen: boolean;
@@ -134,14 +135,14 @@ export default function ActivityExportImportModal({
       <div className="bg-[var(--color-surface-container)] rounded-3xl max-w-sm w-full p-5 border border-white/[0.08] shadow-2xl space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-xl">folder_zip</span>
+            <Archive className="text-primary w-5 h-5" />
             <h3 className="font-headline font-bold text-lg text-on-surface">Data Sovereignty</h3>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/[0.06] text-on-surface-variant hover:text-on-surface flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-white/[0.06] text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -155,7 +156,7 @@ export default function ActivityExportImportModal({
             <div className="flex items-center gap-1.5 font-semibold text-on-surface">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  isOnline ? 'bg-[#6FFB85]' : 'bg-[#FBBF24]'
+                  isOnline ? 'bg-[#30D158]' : 'bg-[#FBBF24]'
                 }`}
               />
               {isOnline ? 'Online' : 'Offline'}
@@ -182,7 +183,7 @@ export default function ActivityExportImportModal({
             className="w-full py-3 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] text-left flex items-center justify-between text-xs font-semibold text-on-surface transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-primary text-lg">backup</span>
+              <Cloud className="text-primary w-5 h-5 shrink-0" />
               <div>
                 <span>Complete JSON Backup</span>
                 <span className="text-[10px] text-on-surface-variant block font-normal">
@@ -190,7 +191,7 @@ export default function ActivityExportImportModal({
                 </span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">download</span>
+            <Download className="w-4 h-4 text-on-surface-variant shrink-0" />
           </button>
 
           <button
@@ -198,7 +199,7 @@ export default function ActivityExportImportModal({
             className="w-full py-3 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] text-left flex items-center justify-between text-xs font-semibold text-on-surface transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-[#6FFB85] text-lg">table_chart</span>
+              <FileSpreadsheet className="text-[#30D158] w-5 h-5 shrink-0" />
               <div>
                 <span>Activities CSV Spreadsheet</span>
                 <span className="text-[10px] text-on-surface-variant block font-normal">
@@ -206,7 +207,7 @@ export default function ActivityExportImportModal({
                 </span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">download</span>
+            <Download className="w-4 h-4 text-on-surface-variant shrink-0" />
           </button>
         </div>
 
@@ -224,7 +225,7 @@ export default function ActivityExportImportModal({
             disabled={isImporting}
             className="w-full py-3 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-dashed border-white/[0.12] text-center flex flex-col items-center justify-center text-xs font-semibold text-on-surface transition-colors"
           >
-            <span className="material-symbols-outlined text-primary text-2xl mb-1">upload_file</span>
+            <Upload className="text-primary w-6 h-6 mb-1" />
             <span>{isImporting ? 'Importing GPX...' : 'Import GPX Route File'}</span>
             <span className="text-[10px] text-on-surface-variant font-normal mt-0.5">
               Select a .gpx file from your device
