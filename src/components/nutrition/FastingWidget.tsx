@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
+import { Timer, CheckCircle2, SlidersHorizontal, Flame } from 'lucide-react';
 import type { FastingProtocol, FastingSession } from '../../types/nutrition';
 
 interface FastingWidgetProps {
@@ -66,24 +67,25 @@ export default function FastingWidget({
   const currentProto = PROTOCOLS.find(p => p.protocol === selectedProtocol) || PROTOCOLS[0];
 
   return (
-    <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 space-y-4">
+    <div className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            timer
-          </span>
-          <h3 className="font-headline font-bold text-base text-on-surface">Intermittent Fasting</h3>
+          <div className="w-8 h-8 rounded-lg bg-[#30D158]/10 border border-[#30D158]/20 flex items-center justify-center text-[#30D158]">
+            <Timer className="w-4 h-4" />
+          </div>
+          <h3 className="font-bold text-sm text-[#F5F5F5]">Intermittent Fasting</h3>
         </div>
 
         {activeFast ? (
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20">
             Fasting Active
           </span>
         ) : (
           <button
             onClick={() => setShowConfig(!showConfig)}
-            className="text-xs text-primary font-semibold hover:underline"
+            className="text-xs text-[#30D158] font-semibold hover:underline flex items-center gap-1"
           >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
             {showConfig ? 'Hide Settings' : 'Protocol Options'}
           </button>
         )}
@@ -94,24 +96,24 @@ export default function FastingWidget({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] uppercase font-bold text-on-surface-variant">Elapsed Fast Time</p>
-              <p className="font-headline font-black text-2xl text-on-surface mt-0.5">
+              <p className="text-[10px] uppercase font-bold text-[#A1A1A6]">Elapsed Fast Time</p>
+              <p className="font-mono tabular-nums font-black text-2xl text-[#F5F5F5] mt-0.5">
                 {formatHoursMinutes(elapsedMs)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase font-bold text-on-surface-variant">Target Window ({activeFast.protocol})</p>
-              <p className="text-xs text-primary font-semibold mt-0.5">
-                {remainingMs > 0 ? `${formatHoursMinutes(remainingMs)} remaining` : 'Target Completed! 🎉'}
+              <p className="text-[10px] uppercase font-bold text-[#A1A1A6]">Target Window ({activeFast.protocol})</p>
+              <p className="text-xs text-[#30D158] font-semibold mt-0.5 font-mono tabular-nums">
+                {remainingMs > 0 ? `${formatHoursMinutes(remainingMs)} remaining` : 'Target Completed'}
               </p>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-white/[0.04] h-2.5 rounded-full overflow-hidden">
+          <div className="w-full bg-[#1E1E20] h-2 rounded-full overflow-hidden border border-[#2A2A2D]">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
-                progressPercent >= 100 ? 'bg-emerald-400' : 'bg-primary'
+                progressPercent >= 100 ? 'bg-[#30D158]' : 'bg-[#FF8A00]'
               }`}
               style={{ width: `${progressPercent}%` }}
             />
@@ -120,13 +122,14 @@ export default function FastingWidget({
           <div className="flex gap-2">
             <button
               onClick={onFinishFast}
-              className="flex-1 py-2.5 px-3 bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide rounded-xl shadow-md active:scale-95 transition-all"
+              className="flex-1 min-h-[44px] py-2.5 px-3 bg-[#30D158] text-black font-bold text-xs uppercase tracking-wide rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
+              <CheckCircle2 className="w-4 h-4" />
               End Fast & Eat
             </button>
             <button
               onClick={onCancelFast}
-              className="py-2.5 px-4 bg-white/5 hover:bg-white/10 text-on-surface-variant text-xs font-bold rounded-xl active:scale-95 transition-all"
+              className="min-h-[44px] py-2.5 px-4 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#A1A1A6] hover:text-[#F5F5F5] border border-[#2A2A2D] text-xs font-bold rounded-xl active:scale-95 transition-all"
             >
               Cancel
             </button>
@@ -135,7 +138,7 @@ export default function FastingWidget({
       ) : (
         /* Inactive Fasting State */
         <div className="space-y-3">
-          <p className="text-xs text-on-surface-variant leading-relaxed">
+          <p className="text-xs text-[#A1A1A6] leading-relaxed">
             Fast during rest and eat during designated nourishment windows. Supports cellular repair and digestive rest.
           </p>
 
@@ -147,25 +150,26 @@ export default function FastingWidget({
                   onClick={() => setSelectedProtocol(p.protocol)}
                   className={`p-2.5 rounded-xl border text-left transition-all ${
                     selectedProtocol === p.protocol
-                      ? 'bg-primary/10 border-primary text-on-surface'
-                      : 'bg-white/[0.02] border-white/5 text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-[#30D158]/10 border-[#30D158] text-[#F5F5F5]'
+                      : 'bg-[#1E1E20] border-[#2A2A2D] text-[#A1A1A6] hover:text-[#F5F5F5]'
                   }`}
                 >
-                  <span className="font-bold text-xs block text-on-surface">{p.label}</span>
-                  <span className="text-[10px] text-on-surface-variant block mt-0.5">{p.desc}</span>
+                  <span className="font-bold text-xs block text-[#F5F5F5]">{p.label}</span>
+                  <span className="text-[10px] text-[#A1A1A6] block mt-0.5">{p.desc}</span>
                 </button>
               ))}
             </div>
           )}
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-semibold text-on-surface">
-              Selected: <strong className="text-primary">{currentProto.label}</strong>
+            <span className="text-xs font-semibold text-[#F5F5F5]">
+              Selected: <strong className="text-[#30D158]">{currentProto.label}</strong>
             </span>
             <button
               onClick={() => onStartFast(currentProto.protocol, currentProto.hours)}
-              className="py-2 px-4 bg-primary text-black font-headline font-bold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-primary/20 active:scale-95 transition-all"
+              className="min-h-[44px] py-2 px-4 bg-[#FF8A00] text-black font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
             >
+              <Flame className="w-4 h-4" />
               Start Fast
             </button>
           </div>
@@ -173,7 +177,7 @@ export default function FastingWidget({
       )}
 
       {/* Safety notice */}
-      <p className="text-[10px] text-on-surface-variant/70 italic text-center pt-1 border-t border-white/[0.03]">
+      <p className="text-[10px] text-[#A1A1A6]/70 italic text-center pt-2 border-t border-[#2A2A2D]">
         Safety note: Fasting is optional. Stay hydrated with water or electrolyte infusions. Stop if feeling unwell.
       </p>
     </div>

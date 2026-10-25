@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
+import { PlusCircle, X, Loader2 } from 'lucide-react';
 import type { FoodItem, ServingUnit } from '../../types/nutrition';
 
 interface CustomFoodModalProps {
@@ -57,7 +58,6 @@ export default function CustomFoodModal({
         name: name.trim(),
         brand: brand.trim() || undefined,
         category: category.trim() || 'Custom',
-        emoji: '🍴',
         barcode: barcode.trim() || undefined,
         source: 'custom',
         sourceAttribution: 'User Created',
@@ -91,23 +91,23 @@ export default function CustomFoodModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-[#151517] w-full max-w-lg rounded-2xl overflow-hidden border border-[#2A2A2D] shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+        <div className="p-4 border-b border-[#2A2A2D] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-              <span className="material-symbols-outlined text-[20px]">add_task</span>
+            <div className="w-8 h-8 rounded-lg bg-[#A78BFA]/10 border border-[#A78BFA]/20 flex items-center justify-center text-[#A78BFA]">
+              <PlusCircle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-headline font-bold text-base text-on-surface">Create Custom Food</h3>
-              <p className="text-[11px] text-on-surface-variant">Add a food with your custom nutrition label</p>
+              <h3 className="font-bold text-sm text-[#F5F5F5]">Create Custom Food</h3>
+              <p className="text-[11px] text-[#A1A1A6]">Add a food with your custom nutrition label</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+            className="w-8 h-8 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -115,7 +115,7 @@ export default function CustomFoodModal({
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Food Name *
               </label>
               <input
@@ -124,12 +124,12 @@ export default function CustomFoodModal({
                 placeholder="e.g. Grandma's Roti, Whey Shake"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3.5 py-2.5 text-sm text-[#F5F5F5] placeholder-[#A1A1A6]/50 outline-none focus:border-[#30D158]"
               />
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Brand (Optional)
               </label>
               <input
@@ -137,12 +137,12 @@ export default function CustomFoodModal({
                 placeholder="e.g. Amul, Optimum Nutrition"
                 value={brand}
                 onChange={e => setBrand(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A1A1A6]/50 outline-none focus:border-[#30D158]"
               />
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Barcode (Optional)
               </label>
               <input
@@ -150,12 +150,12 @@ export default function CustomFoodModal({
                 placeholder="e.g. 890123456789"
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:border-primary font-mono"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A1A1A6]/50 outline-none focus:border-[#30D158] font-mono tabular-nums"
               />
             </div>
 
             <div className="col-span-2">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Category
               </label>
               <input
@@ -163,14 +163,14 @@ export default function CustomFoodModal({
                 placeholder="e.g. Protein, Dairy, Grains, Snacks"
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A1A1A6]/50 outline-none focus:border-[#30D158]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Serving Size Amount
               </label>
               <input
@@ -179,18 +179,18 @@ export default function CustomFoodModal({
                 placeholder="100"
                 value={servingSize}
                 onChange={e => setServingSize(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2 text-sm font-mono tabular-nums text-[#F5F5F5] outline-none focus:border-[#30D158]"
               />
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block mb-1">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block mb-1">
                 Unit
               </label>
               <select
                 value={servingUnit}
                 onChange={e => setServingUnit(e.target.value as ServingUnit)}
-                className="w-full bg-[var(--color-surface-container-high)] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-sm text-[#F5F5F5] outline-none focus:border-[#30D158]"
               >
                 <option value="g">grams (g)</option>
                 <option value="ml">milliliters (ml)</option>
@@ -205,13 +205,13 @@ export default function CustomFoodModal({
           </div>
 
           {/* Macros per serving */}
-          <div className="bg-[var(--color-surface-container-high)] p-4 rounded-2xl border border-white/5 space-y-3">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-primary block">
+          <div className="bg-[#1E1E20] p-4 rounded-xl border border-[#2A2A2D] space-y-3">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#30D158] block">
               Nutrition Facts (For {servingSize || '100'}{servingUnit})
             </span>
 
             <div>
-              <label className="text-[10px] uppercase font-bold text-on-surface-variant block mb-1">Calories (kcal) *</label>
+              <label className="text-[10px] uppercase font-bold text-[#A1A1A6] block mb-1">Calories (kcal) *</label>
               <input
                 type="number"
                 required
@@ -219,13 +219,13 @@ export default function CustomFoodModal({
                 placeholder="0"
                 value={calories}
                 onChange={e => setCalories(e.target.value)}
-                className="w-full bg-[var(--color-surface-container)] border border-primary/30 rounded-xl px-3 py-2 font-bold text-lg text-on-surface outline-none focus:border-primary"
+                className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-3 py-2 font-mono tabular-nums font-bold text-lg text-[#F5F5F5] outline-none focus:border-[#30D158]"
               />
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[9px] uppercase font-bold text-amber-400 block mb-1">Protein (g)</label>
+                <label className="text-[9px] uppercase font-bold text-[#F5C542] block mb-1">Protein (g)</label>
                 <input
                   type="number"
                   min="0"
@@ -233,11 +233,11 @@ export default function CustomFoodModal({
                   placeholder="0"
                   value={protein}
                   onChange={e => setProtein(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl px-2 py-1.5 text-center text-sm font-bold text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-2 py-1.5 text-center text-sm font-mono tabular-nums font-bold text-[#F5F5F5] outline-none focus:border-[#F5C542]"
                 />
               </div>
               <div>
-                <label className="text-[9px] uppercase font-bold text-sky-400 block mb-1">Carbs (g)</label>
+                <label className="text-[9px] uppercase font-bold text-[#4F9CF9] block mb-1">Carbs (g)</label>
                 <input
                   type="number"
                   min="0"
@@ -245,11 +245,11 @@ export default function CustomFoodModal({
                   placeholder="0"
                   value={carbs}
                   onChange={e => setCarbs(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl px-2 py-1.5 text-center text-sm font-bold text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-2 py-1.5 text-center text-sm font-mono tabular-nums font-bold text-[#F5F5F5] outline-none focus:border-[#4F9CF9]"
                 />
               </div>
               <div>
-                <label className="text-[9px] uppercase font-bold text-rose-400 block mb-1">Fat (g)</label>
+                <label className="text-[9px] uppercase font-bold text-[#FF453A] block mb-1">Fat (g)</label>
                 <input
                   type="number"
                   min="0"
@@ -257,14 +257,14 @@ export default function CustomFoodModal({
                   placeholder="0"
                   value={fat}
                   onChange={e => setFat(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl px-2 py-1.5 text-center text-sm font-bold text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-2 py-1.5 text-center text-sm font-mono tabular-nums font-bold text-[#F5F5F5] outline-none focus:border-[#FF453A]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <div>
-                <label className="text-[9px] uppercase font-bold text-emerald-400 block mb-1">Fiber (g)</label>
+                <label className="text-[9px] uppercase font-bold text-[#30D158] block mb-1">Fiber (g)</label>
                 <input
                   type="number"
                   min="0"
@@ -272,18 +272,18 @@ export default function CustomFoodModal({
                   placeholder="0"
                   value={fiber}
                   onChange={e => setFiber(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl px-2 py-1.5 text-center text-sm text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-2 py-1.5 text-center text-sm font-mono tabular-nums text-[#F5F5F5] outline-none focus:border-[#30D158]"
                 />
               </div>
               <div>
-                <label className="text-[9px] uppercase font-bold text-on-surface-variant block mb-1">Sodium (mg)</label>
+                <label className="text-[9px] uppercase font-bold text-[#A1A1A6] block mb-1">Sodium (mg)</label>
                 <input
                   type="number"
                   min="0"
                   placeholder="0"
                   value={sodium}
                   onChange={e => setSodium(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl px-2 py-1.5 text-center text-sm text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl px-2 py-1.5 text-center text-sm font-mono tabular-nums text-[#F5F5F5] outline-none focus:border-[#30D158]"
                 />
               </div>
             </div>
@@ -293,15 +293,16 @@ export default function CustomFoodModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 text-on-surface font-headline font-bold text-xs uppercase tracking-wider"
+              className="flex-1 min-h-[44px] py-3 px-4 rounded-xl bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] text-[#A1A1A6] hover:text-[#F5F5F5] font-bold text-xs uppercase tracking-wider transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || !name.trim() || !calories}
-              className="flex-[2] py-3 px-4 rounded-2xl bg-primary hover:bg-primary/90 text-black font-headline font-bold text-xs uppercase tracking-wider shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="flex-[2] min-h-[44px] py-3 px-4 rounded-xl bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all shadow-sm"
             >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Save Custom Food
             </button>
           </div>
