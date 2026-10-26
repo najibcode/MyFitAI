@@ -4,6 +4,7 @@
 // Medicine (IOM) Dietary Reference Intakes (DRI) standards.
 // ─────────────────────────────────────────────────────────────
 
+import { Activity, X } from 'lucide-react';
 import type { FoodNutrients } from '../../types/nutrition';
 import { IOM_MICRONUTRIENT_STANDARDS } from '../../engine/nutritionCalculations';
 
@@ -22,29 +23,29 @@ export default function MicronutrientsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-3xl h-[85vh] max-h-[720px] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
+      <div className="bg-[#151517] w-full max-w-lg rounded-2xl h-[85vh] max-h-[720px] flex flex-col overflow-hidden border border-[#2A2A2D] shadow-2xl">
         {/* Header */}
-        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+        <div className="p-4 border-b border-[#2A2A2D] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <span className="material-symbols-outlined text-[20px]">biotech</span>
+            <div className="w-8 h-8 rounded-lg bg-[#30D158]/10 border border-[#30D158]/20 flex items-center justify-center text-[#30D158]">
+              <Activity className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-headline font-bold text-base text-on-surface">Micronutrients & Minerals</h3>
-              <p className="text-[11px] text-on-surface-variant">Referenced to Institute of Medicine (IOM) DRI</p>
+              <h3 className="font-bold text-sm text-[#F5F5F5]">Micronutrients & Minerals</h3>
+              <p className="text-[11px] text-[#A1A1A6]">Referenced to Institute of Medicine (IOM) DRI</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+            className="w-8 h-8 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Scrollable list */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          <div className="p-3 bg-white/[0.02] rounded-2xl border border-white/5 text-xs text-on-surface-variant">
+          <div className="p-3 bg-[#1E1E20] rounded-xl border border-[#2A2A2D] text-xs text-[#A1A1A6]">
             <p>
               Daily values reflect general adult population reference intakes. Saturated fat, sodium, and sugar show upper recommended limits.
             </p>
@@ -62,48 +63,48 @@ export default function MicronutrientsModal({
             return (
               <div
                 key={m.key}
-                className="bg-[var(--color-surface-container-high)] p-4 rounded-2xl border border-white/5 space-y-2"
+                className="bg-[#1E1E20] p-4 rounded-xl border border-[#2A2A2D] space-y-2"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-headline font-bold text-sm text-on-surface block">{m.name}</span>
-                    <span className="text-[11px] text-on-surface-variant">{m.description}</span>
+                    <span className="font-bold text-sm text-[#F5F5F5] block">{m.name}</span>
+                    <span className="text-[11px] text-[#A1A1A6]">{m.description}</span>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
-                    <span className="font-headline font-black text-base text-on-surface">
-                      {consumed} <span className="text-xs text-on-surface-variant font-normal">{m.unit}</span>
+                    <span className="font-mono tabular-nums font-bold text-sm text-[#F5F5F5]">
+                      {consumed} <span className="text-xs text-[#A1A1A6] font-normal">{m.unit}</span>
                     </span>
-                    <span className="text-[10px] text-on-surface-variant block">
+                    <span className="text-[10px] text-[#A1A1A6] block font-mono tabular-nums">
                       Target: {m.dailyValueLabel}
                     </span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#151517] h-2 rounded-full overflow-hidden border border-[#2A2A2D]">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
                       isExceeded
-                        ? 'bg-rose-400'
+                        ? 'bg-[#FF453A]'
                         : isLimit
-                        ? 'bg-amber-400'
+                        ? 'bg-[#F5C542]'
                         : pct >= 100
-                        ? 'bg-emerald-400'
-                        : 'bg-primary'
+                        ? 'bg-[#30D158]'
+                        : 'bg-[#FF8A00]'
                     }`}
                     style={{ width: `${Math.min(100, pct)}%` }}
                   />
                 </div>
 
-                <div className="flex justify-between text-[10px] text-on-surface-variant font-medium">
+                <div className="flex justify-between text-[10px] text-[#A1A1A6] font-mono tabular-nums">
                   <span>{pct}% of daily reference</span>
-                  <span className={isExceeded ? 'text-rose-400 font-bold' : pct >= 100 ? 'text-emerald-400 font-bold' : ''}>
+                  <span className={isExceeded ? 'text-[#FF453A] font-bold' : pct >= 100 ? 'text-[#30D158] font-bold' : ''}>
                     {isLimit
                       ? isExceeded
                         ? 'Over limit'
                         : 'Within limit'
                       : pct >= 100
-                      ? 'Target met ✓'
+                      ? 'Target met'
                       : `${Math.max(0, target - consumed)} ${m.unit} remaining`}
                   </span>
                 </div>
@@ -113,10 +114,10 @@ export default function MicronutrientsModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-[var(--color-surface-container)] border-t border-white/5 text-center">
+        <div className="p-3 bg-[#151517] border-t border-[#2A2A2D] text-center">
           <button
             onClick={onClose}
-            className="w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 text-on-surface font-headline font-bold text-xs uppercase tracking-wide rounded-xl"
+            className="w-full min-h-[44px] py-2.5 px-4 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-bold text-xs uppercase tracking-wide rounded-xl border border-[#2A2A2D] transition-colors"
           >
             Close
           </button>
