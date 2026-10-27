@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
+import { ArrowUpDown, X, FileCode, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { exportNutritionDataJSON, exportNutritionLogsCSV, importNutritionData } from '../../services/nutrition/dataExportImport';
 
 interface NutritionExportImportModalProps {
@@ -83,34 +84,34 @@ export default function NutritionExportImportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-3xl h-[85vh] max-h-[680px] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
+      <div className="bg-[#151517] w-full max-w-lg rounded-2xl h-[85vh] max-h-[680px] flex flex-col overflow-hidden border border-[#2A2A2D] shadow-2xl">
         {/* Header */}
-        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+        <div className="p-4 border-b border-[#2A2A2D] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined text-[20px]">import_export</span>
+            <div className="w-8 h-8 rounded-lg bg-[#30D158]/10 border border-[#30D158]/20 flex items-center justify-center text-[#30D158]">
+              <ArrowUpDown className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-headline font-bold text-base text-on-surface">Data Import & Export</h3>
-              <p className="text-[11px] text-on-surface-variant">Backup, transfer, or restore your nutrition diary</p>
+              <h3 className="font-bold text-sm text-[#F5F5F5]">Data Import & Export</h3>
+              <p className="text-[11px] text-[#A1A1A6]">Backup, transfer, or restore your nutrition diary</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+            className="w-8 h-8 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {message && (
             <div
-              className={`p-3 rounded-2xl text-xs font-semibold ${
+              className={`p-3 rounded-xl text-xs font-semibold ${
                 message.type === 'success'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  ? 'bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20'
+                  : 'bg-[#FF453A]/10 text-[#FF453A] border border-[#FF453A]/20'
               }`}
             >
               {message.text}
@@ -118,37 +119,37 @@ export default function NutritionExportImportModal({
           )}
 
           {/* Export Section */}
-          <div className="bg-[var(--color-surface-container-high)] p-4 rounded-2xl border border-white/5 space-y-3">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-primary block">Export Data</span>
-            <p className="text-xs text-on-surface-variant">
+          <div className="bg-[#1E1E20] p-4 rounded-xl border border-[#2A2A2D] space-y-3">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#30D158] block">Export Data</span>
+            <p className="text-xs text-[#A1A1A6]">
               Download your full food diary, recipes, water history, and weight trends.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleExportJSON}
                 disabled={isProcessing}
-                className="py-2.5 px-3 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide rounded-xl border border-white/10 flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="min-h-[44px] py-2.5 px-3 bg-[#151517] hover:bg-[#2A2A2D] text-[#F5F5F5] font-bold text-xs uppercase tracking-wide rounded-xl border border-[#2A2A2D] flex items-center justify-center gap-2 transition-all active:scale-95"
               >
-                <span className="material-symbols-outlined text-[18px]">data_object</span>
+                <FileCode className="w-4 h-4 text-[#4F9CF9]" />
                 Full Backup (JSON)
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={isProcessing}
-                className="py-2.5 px-3 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs uppercase tracking-wide rounded-xl border border-white/10 flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="min-h-[44px] py-2.5 px-3 bg-[#151517] hover:bg-[#2A2A2D] text-[#F5F5F5] font-bold text-xs uppercase tracking-wide rounded-xl border border-[#2A2A2D] flex items-center justify-center gap-2 transition-all active:scale-95"
               >
-                <span className="material-symbols-outlined text-[18px]">table_view</span>
+                <FileSpreadsheet className="w-4 h-4 text-[#30D158]" />
                 Spreadsheet (CSV)
               </button>
             </div>
           </div>
 
           {/* Import Section */}
-          <div className="bg-[var(--color-surface-container-high)] p-4 rounded-2xl border border-white/5 space-y-3">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block">
+          <div className="bg-[#1E1E20] p-4 rounded-xl border border-[#2A2A2D] space-y-3">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1A6] block">
               Restore from Backup
             </span>
-            <p className="text-xs text-on-surface-variant">
+            <p className="text-xs text-[#A1A1A6]">
               Paste previously exported MyFitAI JSON backup data below to restore your records.
             </p>
 
@@ -157,17 +158,17 @@ export default function NutritionExportImportModal({
               placeholder="Paste JSON backup payload here..."
               value={importText}
               onChange={e => setImportText(e.target.value)}
-              className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-xl p-3 text-xs text-on-surface outline-none font-mono focus:border-primary"
+              className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl p-3 text-xs text-[#F5F5F5] placeholder-[#A1A1A6]/40 outline-none font-mono tabular-nums focus:border-[#30D158]"
             />
 
-            <div className="flex items-center gap-4 text-xs text-on-surface-variant">
+            <div className="flex items-center gap-4 text-xs text-[#A1A1A6]">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="radio"
                   name="importMode"
                   checked={importMode === 'merge'}
                   onChange={() => setImportMode('merge')}
-                  className="accent-primary"
+                  className="accent-[#30D158]"
                 />
                 Merge (Keep Existing)
               </label>
@@ -177,7 +178,7 @@ export default function NutritionExportImportModal({
                   name="importMode"
                   checked={importMode === 'replace'}
                   onChange={() => setImportMode('replace')}
-                  className="accent-primary"
+                  className="accent-[#30D158]"
                 />
                 Replace All Data
               </label>
@@ -186,18 +187,19 @@ export default function NutritionExportImportModal({
             <button
               onClick={handleImport}
               disabled={isProcessing || !importText.trim()}
-              className="w-full py-2.5 px-4 bg-primary text-black font-bold text-xs uppercase tracking-wide rounded-xl shadow-md disabled:opacity-50 active:scale-95 transition-all"
+              className="w-full min-h-[44px] py-2.5 px-4 bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black font-bold text-xs uppercase tracking-wide rounded-xl shadow-sm disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Restore Nutrition Data
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-[var(--color-surface-container)] border-t border-white/5 text-center">
+        <div className="p-3 bg-[#151517] border-t border-[#2A2A2D] text-center">
           <button
             onClick={onClose}
-            className="w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 text-on-surface font-headline font-bold text-xs uppercase tracking-wide rounded-xl"
+            className="w-full min-h-[44px] py-2.5 px-4 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-bold text-xs uppercase tracking-wide rounded-xl border border-[#2A2A2D] transition-colors"
           >
             Close
           </button>

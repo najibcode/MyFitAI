@@ -32,6 +32,33 @@ import FastingWidget from '../components/nutrition/FastingWidget';
 import NutritionAnalyticsView from '../components/nutrition/NutritionAnalyticsView';
 import NutritionAttributionModal from '../components/nutrition/NutritionAttributionModal';
 import NutritionExportImportModal from '../components/nutrition/NutritionExportImportModal';
+import {
+  Utensils,
+  Calendar,
+  UtensilsCrossed,
+  TrendingUp,
+  Pill,
+  Search,
+  ScanBarcode,
+  Zap,
+  Sparkles,
+  Flame,
+  Plus,
+  Trash2,
+  Copy,
+  BookmarkPlus,
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  RotateCcw,
+  Info,
+  Download,
+  ShoppingCart,
+  CheckCircle2,
+  Circle,
+  CheckSquare,
+  Square,
+} from 'lucide-react';
 
 type MainTab = 'diary' | 'kitchen' | 'analytics' | 'supplements';
 
@@ -182,99 +209,103 @@ export default function NutritionPlanner() {
   };
 
   return (
-    <main className="pt-4 pb-36 px-4 max-w-lg mx-auto space-y-5 min-h-screen">
+    <main className="w-full max-w-2xl mx-auto px-3.5 sm:px-4 pt-3 sm:pt-4 pb-36 space-y-4 sm:space-y-5 min-h-screen min-w-0 box-border">
       {/* ── Top Bar & Status Header ── */}
-      <section className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            restaurant
-          </span>
-          <h1 className="font-headline font-black text-2xl tracking-tight text-on-surface">Nutrition Engine</h1>
+      <section className="flex flex-wrap items-center justify-between gap-2.5 pt-1 w-full max-w-full">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#F5C542] shrink-0">
+            <Utensils className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-headline font-black text-lg sm:text-xl tracking-tight uppercase text-[#F5F5F5] truncate">Fuel & Nutrition</h1>
+            <p className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider truncate">Metabolic & Dietary Engine</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {/* Offline/Online Badge */}
           <span
-            className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+            className={`flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-1 rounded-lg border ${
               isOnline
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
+                : 'bg-[#FF8A00]/10 text-[#FF8A00] border-[#FF8A00]/20'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            {isOnline ? 'Cloud' : 'Offline'}
+            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-[#30D158]' : 'bg-[#FF8A00]'}`} />
+            <span className="hidden xs:inline">{isOnline ? 'Cloud' : 'Offline'}</span>
           </span>
 
           {/* Quick Actions Dropdown / Icon Buttons */}
           <button
             onClick={() => setIsAIOpen(true)}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-amber-500 text-black flex items-center justify-center font-bold text-xs shadow-md active:scale-95 transition-all"
+            className="h-8 px-2.5 rounded-lg bg-[#A78BFA]/10 hover:bg-[#A78BFA]/20 border border-[#A78BFA]/30 text-[#A78BFA] flex items-center gap-1 font-mono font-bold text-xs active:scale-95 transition-all shrink-0"
             title="AI Nutrition Coach"
           >
-            AI
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-[10px] uppercase">Coach</span>
           </button>
           <button
             onClick={() => setIsExportImportOpen(true)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+            className="w-8 h-8 rounded-lg bg-[#151517] hover:bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors shrink-0"
             title="Import/Export Backup"
           >
-            <span className="material-symbols-outlined text-[18px]">import_export</span>
+            <Download className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsSourcesOpen(true)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+            className="w-8 h-8 rounded-lg bg-[#151517] hover:bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors shrink-0"
             title="Data Sources & Attribution"
           >
-            <span className="material-symbols-outlined text-[18px]">info</span>
+            <Info className="w-4 h-4" />
           </button>
         </div>
       </section>
 
       {/* ── Main Tab Navigation Bar ── */}
-      <section className="flex bg-[var(--color-surface-container)] p-1 rounded-2xl border border-white/5 text-xs font-bold">
+      <section className="flex bg-[#151517] p-1 rounded-xl border border-[#2A2A2D] text-xs font-mono font-bold">
         <button
           onClick={() => setActiveTab('diary')}
-          className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'diary'
-              ? 'bg-primary text-black shadow-md shadow-primary/20'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-[#30D158] text-black font-black'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F5]'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">edit_calendar</span>
-          Diary
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Diary</span>
         </button>
         <button
           onClick={() => setActiveTab('kitchen')}
-          className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'kitchen'
-              ? 'bg-primary text-black shadow-md shadow-primary/20'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-[#30D158] text-black font-black'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F5]'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">skillet</span>
-          Recipes
+          <UtensilsCrossed className="w-3.5 h-3.5" />
+          <span>Recipes</span>
         </button>
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'analytics'
-              ? 'bg-primary text-black shadow-md shadow-primary/20'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-[#30D158] text-black font-black'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F5]'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">analytics</span>
-          Trends
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>Trends</span>
         </button>
         <button
           onClick={() => setActiveTab('supplements')}
-          className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'supplements'
-              ? 'bg-primary text-black shadow-md shadow-primary/20'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-[#30D158] text-black font-black'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F5]'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">medication</span>
-          Supps
+          <Pill className="w-3.5 h-3.5" />
+          <span>Supps</span>
         </button>
       </section>
 
@@ -282,103 +313,92 @@ export default function NutritionPlanner() {
           TAB 1: DIARY
          ═════════════════════════════════════════════════════════ */}
       {activeTab === 'diary' && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-4">
           {/* Date Selector Banner */}
-          <div className="bg-[var(--color-surface-container)] rounded-2xl p-2.5 px-4 flex items-center justify-between border border-white/5">
+          <div className="bg-[#151517] rounded-xl p-2.5 px-4 flex items-center justify-between border border-[#2A2A2D]">
             <button
               onClick={goToPreviousDay}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+              className="w-8 h-8 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              <ChevronLeft className="w-4 h-4" />
             </button>
 
             <button
               onClick={goToToday}
               className="text-center group"
             >
-              <span className="font-headline font-black text-sm text-on-surface block group-hover:text-primary transition-colors">
+              <span className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight block group-hover:text-[#30D158] transition-colors">
                 {formattedDate}
               </span>
-              <span className="text-[10px] text-on-surface-variant">{selectedDate}</span>
+              <span className="text-[10px] font-mono text-[#A1A1A6]">{selectedDate}</span>
             </button>
 
             <button
               onClick={goToNextDay}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+              className="w-8 h-8 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Quick Logging Action Bar */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => openSearchForMeal('Lunch')}
-              className="p-3 bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl border border-white/5 text-center flex flex-col items-center gap-1 active:scale-95 transition-all"
+              className="flex-1 h-11 px-3.5 rounded-xl bg-[#151517] hover:bg-[#1E1E20] border border-[#2A2A2D] text-left text-xs font-mono text-[#A1A1A6] flex items-center gap-2 transition-colors active:scale-[0.99]"
             >
-              <span className="material-symbols-outlined text-primary text-xl">search</span>
-              <span className="text-[10px] font-bold text-on-surface">Search</span>
+              <Search className="w-4 h-4 text-[#A1A1A6]" />
+              <span className="truncate">Search food, brand, or dish...</span>
             </button>
             <button
               onClick={() => setIsBarcodeOpen(true)}
-              className="p-3 bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl border border-white/5 text-center flex flex-col items-center gap-1 active:scale-95 transition-all"
+              className="h-11 px-3.5 rounded-xl bg-[#151517] hover:bg-[#1E1E20] border border-[#2A2A2D] text-[#4F9CF9] text-xs font-mono font-bold flex items-center gap-1.5 transition-colors active:scale-95"
+              title="Barcode Scanner"
             >
-              <span className="material-symbols-outlined text-sky-400 text-xl">barcode_scanner</span>
-              <span className="text-[10px] font-bold text-on-surface">Barcode</span>
+              <ScanBarcode className="w-4 h-4" />
+              <span className="hidden sm:inline">Barcode</span>
             </button>
             <button
               onClick={() => setIsQuickAddOpen(true)}
-              className="p-3 bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl border border-white/5 text-center flex flex-col items-center gap-1 active:scale-95 transition-all"
+              className="h-11 px-3.5 rounded-xl bg-[#151517] hover:bg-[#1E1E20] border border-[#2A2A2D] text-[#FF8A00] text-xs font-mono font-bold flex items-center gap-1.5 transition-colors active:scale-95"
+              title="Quick Add"
             >
-              <span className="material-symbols-outlined text-amber-400 text-xl">bolt</span>
-              <span className="text-[10px] font-bold text-on-surface">Quick Add</span>
-            </button>
-            <button
-              onClick={() => setIsAIOpen(true)}
-              className="p-3 bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl border border-white/5 text-center flex flex-col items-center gap-1 active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-emerald-400 text-xl">auto_awesome</span>
-              <span className="text-[10px] font-bold text-on-surface">AI Coach</span>
+              <Zap className="w-4 h-4" />
+              <span className="hidden sm:inline">Quick Add</span>
             </button>
           </div>
 
           {/* Calorie & Energy Hero Card */}
-          <section className="bg-[var(--color-surface-container)] rounded-3xl p-6 relative overflow-hidden border border-white/5 shadow-xl">
-            <div className="absolute -top-24 -right-24 w-60 h-60 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
-
-            <div className="flex items-start justify-between relative z-10 mb-4">
+          <section className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
-                  Calories Remaining
-                </p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <h2 className="font-headline font-black text-5xl text-primary tracking-tight">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#A1A1A6] font-bold block mb-1">
+                  TODAY'S ENERGY BALANCE
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <h2 className="font-headline font-black text-4xl sm:text-5xl text-[#F5F5F5] tracking-tight tabular-nums">
                     {dailySummary.caloriesRemaining}
                   </h2>
-                  <span className="text-xs font-semibold text-on-surface-variant">
-                    / {dailySummary.calorieBudget} kcal
+                  <span className="text-xs font-mono text-[#A1A1A6] uppercase">
+                    / {dailySummary.calorieBudget} kcal remaining
                   </span>
                 </div>
               </div>
 
               {/* Logging streak chip */}
-              <div className="text-right">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">
-                  <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    local_fire_department
-                  </span>
-                  {loggingStreak} Day Streak
-                </span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] text-xs font-mono font-bold text-[#F5C542]">
+                <Flame className="w-3.5 h-3.5 text-[#FF8A00]" />
+                <span>{loggingStreak}D STREAK</span>
               </div>
             </div>
 
             {/* Calorie progress bar */}
-            <div className="w-full bg-black/20 h-3 rounded-full overflow-hidden mb-3 relative z-10">
+            <div className="w-full bg-[#1E1E20] h-2.5 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   dailySummary.caloriesConsumed > dailySummary.calorieBudget
-                    ? 'bg-rose-400'
-                    : 'bg-primary'
+                    ? 'bg-[#FF453A]'
+                    : 'bg-[#F5C542]'
                 }`}
                 style={{
                   width: `${Math.min(100, (dailySummary.caloriesConsumed / (dailySummary.calorieBudget || 1)) * 100)}%`,
@@ -387,11 +407,11 @@ export default function NutritionPlanner() {
             </div>
 
             {/* Calorie Breakdown Row */}
-            <div className="flex items-center justify-between text-xs text-on-surface-variant relative z-10 pt-1">
-              <span>Consumed: <strong className="text-on-surface">{dailySummary.caloriesConsumed} kcal</strong></span>
-              <span>Target: <strong className="text-on-surface">{nutritionTarget.dailyCalories} kcal</strong></span>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-mono text-[#A1A1A6] pt-0.5">
+              <span>CONSUMED: <strong className="text-[#F5F5F5]">{dailySummary.caloriesConsumed} kcal</strong></span>
+              <span>BUDGET: <strong className="text-[#F5F5F5]">{nutritionTarget.dailyCalories} kcal</strong></span>
               {dailyStats.calories > 0 && (
-                <span className="text-emerald-400">
+                <span className="text-[#30D158]">
                   +{dailyStats.calories} burned
                 </span>
               )}
@@ -399,14 +419,14 @@ export default function NutritionPlanner() {
 
             {/* Exercise calorie adjustment toggle */}
             {dailyStats.calories > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs relative z-10">
-                <span className="text-on-surface-variant">Include exercise burn in budget:</span>
+              <div className="pt-3 border-t border-[#2A2A2D] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                <span className="text-[#A1A1A6]">Adjust budget with exercise expenditure:</span>
                 <button
                   onClick={toggleIncludeExerciseCalories}
-                  className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase transition-all ${
+                  className={`px-2.5 py-1 rounded-md font-bold text-[10px] uppercase transition-all ${
                     nutritionTarget.includeExerciseInBudget
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-white/5 text-on-surface-variant'
+                      ? 'bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30'
+                      : 'bg-[#1E1E20] text-[#A1A1A6] border border-[#2A2A2D]'
                   }`}
                 >
                   {nutritionTarget.includeExerciseInBudget ? 'Enabled' : 'Disabled'}
@@ -415,64 +435,72 @@ export default function NutritionPlanner() {
             )}
           </section>
 
-          {/* Macro Progress Cards */}
-          <section className="grid grid-cols-4 gap-2">
+          {/* Clean Horizontal Macro Progress Indicators */}
+          <section className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-4">
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#A1A1A6] font-bold block">
+              DAILY MACRONUTRIENT TARGETS
+            </span>
+
             {/* Protein */}
-            <div className="bg-[var(--color-surface-container)] p-3 rounded-2xl border border-white/5 text-center">
-              <span className="text-[10px] uppercase font-bold text-amber-400 block mb-1">Protein</span>
-              <span className="font-headline font-black text-lg text-on-surface block leading-none">
-                {dailySummary.proteinConsumed}g
-              </span>
-              <span className="text-[10px] text-on-surface-variant block mt-1">/ {nutritionTarget.proteinGrams}g</span>
-              <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mt-2">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-bold text-[#F5F5F5] uppercase tracking-wider">PROTEIN</span>
+                <span className="font-mono text-[#A1A1A6] tabular-nums">
+                  <strong className="text-[#F5F5F5]">{dailySummary.proteinConsumed}</strong> / {nutritionTarget.proteinGrams}g
+                </span>
+              </div>
+              <div className="w-full bg-[#1E1E20] h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-amber-400 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (dailySummary.proteinConsumed / nutritionTarget.proteinGrams) * 100)}%` }}
+                  className="h-full bg-[#30D158] rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (dailySummary.proteinConsumed / (nutritionTarget.proteinGrams || 1)) * 100)}%` }}
                 />
               </div>
             </div>
 
             {/* Carbs */}
-            <div className="bg-[var(--color-surface-container)] p-3 rounded-2xl border border-white/5 text-center">
-              <span className="text-[10px] uppercase font-bold text-sky-400 block mb-1">Carbs</span>
-              <span className="font-headline font-black text-lg text-on-surface block leading-none">
-                {dailySummary.carbsConsumed}g
-              </span>
-              <span className="text-[10px] text-on-surface-variant block mt-1">/ {nutritionTarget.carbsGrams}g</span>
-              <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mt-2">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-bold text-[#F5F5F5] uppercase tracking-wider">CARBOHYDRATES</span>
+                <span className="font-mono text-[#A1A1A6] tabular-nums">
+                  <strong className="text-[#F5F5F5]">{dailySummary.carbsConsumed}</strong> / {nutritionTarget.carbsGrams}g
+                </span>
+              </div>
+              <div className="w-full bg-[#1E1E20] h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-sky-400 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (dailySummary.carbsConsumed / nutritionTarget.carbsGrams) * 100)}%` }}
+                  className="h-full bg-[#4F9CF9] rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (dailySummary.carbsConsumed / (nutritionTarget.carbsGrams || 1)) * 100)}%` }}
                 />
               </div>
             </div>
 
             {/* Fat */}
-            <div className="bg-[var(--color-surface-container)] p-3 rounded-2xl border border-white/5 text-center">
-              <span className="text-[10px] uppercase font-bold text-rose-400 block mb-1">Fat</span>
-              <span className="font-headline font-black text-lg text-on-surface block leading-none">
-                {dailySummary.fatConsumed}g
-              </span>
-              <span className="text-[10px] text-on-surface-variant block mt-1">/ {nutritionTarget.fatGrams}g</span>
-              <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mt-2">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-bold text-[#F5F5F5] uppercase tracking-wider">FATS</span>
+                <span className="font-mono text-[#A1A1A6] tabular-nums">
+                  <strong className="text-[#F5F5F5]">{dailySummary.fatConsumed}</strong> / {nutritionTarget.fatGrams}g
+                </span>
+              </div>
+              <div className="w-full bg-[#1E1E20] h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-rose-400 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (dailySummary.fatConsumed / nutritionTarget.fatGrams) * 100)}%` }}
+                  className="h-full bg-[#F5C542] rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (dailySummary.fatConsumed / (nutritionTarget.fatGrams || 1)) * 100)}%` }}
                 />
               </div>
             </div>
 
             {/* Fiber */}
-            <div className="bg-[var(--color-surface-container)] p-3 rounded-2xl border border-white/5 text-center">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 block mb-1">Fiber</span>
-              <span className="font-headline font-black text-lg text-on-surface block leading-none">
-                {dailySummary.fiberConsumed}g
-              </span>
-              <span className="text-[10px] text-on-surface-variant block mt-1">/ {nutritionTarget.fiberGrams}g</span>
-              <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden mt-2">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-bold text-[#F5F5F5] uppercase tracking-wider">FIBER</span>
+                <span className="font-mono text-[#A1A1A6] tabular-nums">
+                  <strong className="text-[#F5F5F5]">{dailySummary.fiberConsumed}</strong> / {nutritionTarget.fiberGrams}g
+                </span>
+              </div>
+              <div className="w-full bg-[#1E1E20] h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-emerald-400 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (dailySummary.fiberConsumed / nutritionTarget.fiberGrams) * 100)}%` }}
+                  className="h-full bg-[#A78BFA] rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (dailySummary.fiberConsumed / (nutritionTarget.fiberGrams || 1)) * 100)}%` }}
                 />
               </div>
             </div>
@@ -481,13 +509,13 @@ export default function NutritionPlanner() {
           {/* Micronutrient Drawer Trigger */}
           <button
             onClick={() => setIsMicrosOpen(true)}
-            className="w-full py-2.5 px-4 bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] rounded-2xl border border-white/5 flex items-center justify-between text-xs font-semibold text-on-surface transition-colors"
+            className="w-full py-3 px-4 bg-[#151517] hover:bg-[#1E1E20] rounded-xl border border-[#2A2A2D] flex items-center justify-between text-xs font-mono font-semibold text-[#F5F5F5] transition-colors"
           >
             <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-emerald-400 text-[18px]">biotech</span>
-              View Micronutrients (IOM Reference Comparison)
+              <Sparkles className="w-4 h-4 text-[#30D158]" />
+              <span>View Micronutrients (IOM Reference Comparison)</span>
             </span>
-            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">chevron_right</span>
+            <ChevronRight className="w-4 h-4 text-[#A1A1A6]" />
           </button>
 
           {/* ── Meal Diary Sections ── */}
@@ -500,35 +528,35 @@ export default function NutritionPlanner() {
               return (
                 <div
                   key={meal}
-                  className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5 space-y-3"
+                  className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] space-y-3"
                 >
                   {/* Meal Header */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-headline font-bold text-base text-on-surface flex items-center gap-2">
-                        {meal}
-                        <span className="text-xs font-normal text-on-surface-variant">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight flex items-baseline gap-1.5 flex-wrap">
+                        <span>{meal}</span>
+                        <span className="text-[11px] sm:text-xs font-mono font-normal text-[#A1A1A6]">
                           ({totalMealCals} / {mealTarget} kcal)
                         </span>
                       </h3>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {items.length > 0 && (
                         <button
                           onClick={() => setTemplatePromptMeal(meal)}
-                          className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+                          className="w-8 h-8 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] shrink-0"
                           title="Save as Meal Template"
                         >
-                          <span className="material-symbols-outlined text-[16px]">bookmark_add</span>
+                          <BookmarkPlus className="w-4 h-4" />
                         </button>
                       )}
                       <button
                         onClick={() => openSearchForMeal(meal)}
-                        className="px-2.5 py-1 rounded-xl bg-primary text-black font-bold text-xs uppercase tracking-wide flex items-center gap-1 active:scale-95 transition-all"
+                        className="h-8 px-2.5 sm:px-3 rounded-lg bg-[#FF8A00] hover:bg-[#FFA033] text-black font-mono font-black text-xs uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all shadow-sm shrink-0 whitespace-nowrap min-h-[32px]"
                       >
-                        <span className="material-symbols-outlined text-[14px]">add</span>
-                        Add
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Add Food</span>
                       </button>
                     </div>
                   </div>
@@ -537,47 +565,47 @@ export default function NutritionPlanner() {
                   {items.length === 0 ? (
                     <div
                       onClick={() => openSearchForMeal(meal)}
-                      className="py-3 px-4 rounded-xl border border-dashed border-white/10 text-center cursor-pointer hover:bg-white/[0.02] text-xs text-on-surface-variant flex items-center justify-center gap-2"
+                      className="py-3.5 px-4 rounded-xl border border-dashed border-[#2A2A2D] hover:border-[#FF8A00]/40 text-center cursor-pointer text-xs font-mono text-[#A1A1A6] hover:text-[#F5F5F5] flex items-center justify-center gap-2 transition-colors min-h-[44px]"
                     >
-                      <span className="material-symbols-outlined text-[16px] opacity-40">add_circle</span>
-                      Tap to log {meal.toLowerCase()} foods
+                      <Plus className="w-4 h-4 text-[#FF8A00]" />
+                      <span>Log {meal.toLowerCase()} foods</span>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
                       {items.map(entry => (
                         <div
                           key={entry.id}
-                          className="bg-[var(--color-surface-container-high)] p-2.5 px-3 rounded-xl border border-white/5 flex items-center justify-between gap-3 group"
+                          className="bg-[#1E1E20] p-3 rounded-xl border border-[#2A2A2D] flex items-center justify-between gap-3 group"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-xs text-on-surface truncate">
+                            <p className="font-bold text-xs text-[#F5F5F5] uppercase tracking-tight truncate">
                               {entry.foodName}
                             </p>
-                            <p className="text-[10px] text-on-surface-variant">
+                            <p className="text-[10px] font-mono text-[#A1A1A6] mt-0.5 truncate">
                               {entry.quantity} {entry.servingUnit} ({entry.gramEquivalent}g) •{' '}
-                              <span className="text-amber-400">{entry.nutrients.protein}g P</span> •{' '}
-                              <span className="text-sky-400">{entry.nutrients.carbohydrates}g C</span> •{' '}
-                              <span className="text-rose-400">{entry.nutrients.fat}g F</span>
+                              <span className="text-[#30D158]">{entry.nutrients.protein}g P</span> •{' '}
+                              <span className="text-[#4F9CF9]">{entry.nutrients.carbohydrates}g C</span> •{' '}
+                              <span className="text-[#F5C542]">{entry.nutrients.fat}g F</span>
                             </p>
                           </div>
 
-                          <div className="text-right flex-shrink-0 flex items-center gap-2">
-                            <span className="font-headline font-bold text-xs text-on-surface">
+                          <div className="text-right flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
+                            <span className="font-mono font-bold text-xs text-[#F5F5F5]">
                               {entry.nutrients.calories} kcal
                             </span>
                             <button
                               onClick={() => duplicateEntry(entry.id)}
-                              className="text-on-surface-variant/60 hover:text-on-surface"
+                              className="w-7 h-7 rounded-lg bg-[#151517] hover:bg-[#2A2A2D] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
                               title="Duplicate"
                             >
-                              <span className="material-symbols-outlined text-[15px]">content_copy</span>
+                              <Copy className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => deleteEntry(entry.id)}
-                              className="text-rose-400/80 hover:text-rose-400"
+                              className="w-7 h-7 rounded-lg bg-[#151517] hover:bg-[#FF453A]/20 border border-[#2A2A2D] flex items-center justify-center text-[#FF453A]/80 hover:text-[#FF453A] transition-colors"
                               title="Delete"
                             >
-                              <span className="material-symbols-outlined text-[15px]">delete</span>
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -590,63 +618,65 @@ export default function NutritionPlanner() {
           </section>
 
           {/* Hydration / Water Tracker */}
-          <section className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 space-y-3">
+          <section className="bg-[#151517] rounded-2xl p-4 sm:p-5 border border-[#2A2A2D] space-y-3 w-full max-w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-sky-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  water_drop
-                </span>
-                <h3 className="font-headline font-bold text-base text-on-surface">Hydration Tracker</h3>
+                <Droplets className="w-5 h-5 text-[#4F9CF9]" />
+                <h3 className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight">Hydration Tracker</h3>
               </div>
-              <span className="font-headline font-black text-lg text-on-surface">
-                {(waterConsumedMl / 1000).toFixed(2)} <span className="text-xs text-on-surface-variant font-normal">/ {nutritionTarget.waterLiters}L</span>
+              <span className="font-mono font-black text-base text-[#F5F5F5]">
+                {(waterConsumedMl / 1000).toFixed(2)} <span className="text-xs text-[#A1A1A6] font-normal">/ {nutritionTarget.waterLiters}L</span>
               </span>
             </div>
 
             {/* Water progress bar */}
-            <div className="w-full bg-black/20 h-2.5 rounded-full overflow-hidden">
+            <div className="w-full bg-[#1E1E20] h-2.5 rounded-full overflow-hidden">
               <div
-                className="bg-sky-400 h-full rounded-full transition-all duration-300"
+                className="bg-[#4F9CF9] h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, (waterConsumedMl / (nutritionTarget.waterLiters * 1000)) * 100)}%` }}
               />
             </div>
 
-            {/* Quick Add buttons */}
-            <div className="flex items-center gap-2">
+            {/* Quick Add buttons — responsive 2x2 grid on mobile, 4 columns on sm+ screens */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
               <button
                 onClick={() => handleAddWater(250)}
-                className="flex-1 py-2 px-2 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                className="py-2.5 px-3 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-mono font-bold text-xs rounded-xl border border-[#2A2A2D] active:scale-95 transition-all text-center min-h-[44px] flex items-center justify-center"
               >
                 +250ml
               </button>
               <button
                 onClick={() => handleAddWater(500)}
-                className="flex-1 py-2 px-2 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                className="py-2.5 px-3 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-mono font-bold text-xs rounded-xl border border-[#2A2A2D] active:scale-95 transition-all text-center min-h-[44px] flex items-center justify-center"
               >
                 +500ml
               </button>
               <button
                 onClick={() => handleAddWater(750)}
-                className="flex-1 py-2 px-2 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                className="py-2.5 px-3 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-mono font-bold text-xs rounded-xl border border-[#2A2A2D] active:scale-95 transition-all text-center min-h-[44px] flex items-center justify-center"
               >
                 +750ml
               </button>
               <button
                 onClick={() => handleAddWater(1000)}
-                className="flex-1 py-2 px-2 bg-white/5 hover:bg-white/10 text-on-surface font-bold text-xs rounded-xl border border-white/5 active:scale-95 transition-all"
+                className="py-2.5 px-3 bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-mono font-bold text-xs rounded-xl border border-[#2A2A2D] active:scale-95 transition-all text-center min-h-[44px] flex items-center justify-center"
               >
                 +1 Liter
               </button>
-              {waterLogsForDate.length > 0 && (
+            </div>
+
+            {waterLogsForDate.length > 0 && (
+              <div className="flex justify-end pt-1">
                 <button
                   onClick={() => undoWater(selectedDate)}
-                  className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+                  className="h-9 px-3 rounded-xl bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] flex items-center gap-1.5 text-xs font-mono text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
                   title="Undo Last Entry"
                 >
-                  <span className="material-symbols-outlined text-[16px]">undo</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Undo Last Log</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </section>
 
           {/* Intermittent Fasting Widget */}
@@ -663,53 +693,53 @@ export default function NutritionPlanner() {
           TAB 2: RECIPES & INDIAN KITCHEN
          ═════════════════════════════════════════════════════════ */}
       {activeTab === 'kitchen' && (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-headline font-bold text-lg text-on-surface">Recipes & Indian Kitchen</h2>
-              <p className="text-xs text-on-surface-variant">Custom recipes & ICMR-NIN verified dishes</p>
+              <h2 className="font-headline font-black text-lg uppercase text-[#F5F5F5]">Recipes & Kitchen</h2>
+              <p className="text-xs font-mono text-[#A1A1A6]">Custom recipes & ICMR-NIN verified database</p>
             </div>
             <button
               onClick={() => setIsRecipeBuilderOpen(true)}
-              className="py-2 px-3 rounded-xl bg-primary text-black font-bold text-xs uppercase tracking-wide flex items-center gap-1 shadow-md active:scale-95 transition-all"
+              className="h-9 px-3.5 rounded-xl bg-[#30D158] hover:bg-[#5EEB78] text-black font-mono font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              New Recipe
+              <Plus className="w-4 h-4" />
+              <span>New Recipe</span>
             </button>
           </div>
 
           {/* My Saved Recipes List */}
           {recipes.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-primary block">
-                My Custom Recipes ({recipes.length})
+              <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-[#30D158] block">
+                SAVED RECIPES ({recipes.length})
               </span>
               <div className="grid grid-cols-1 gap-2">
                 {recipes.map(recipe => (
                   <div
                     key={recipe.id}
-                    className="bg-[var(--color-surface-container)] p-4 rounded-2xl border border-white/5 flex items-center justify-between"
+                    className="bg-[#151517] p-4 rounded-xl border border-[#2A2A2D] flex items-center justify-between"
                   >
                     <div>
-                      <h4 className="font-bold text-sm text-on-surface">{recipe.name}</h4>
-                      <p className="text-xs text-on-surface-variant">
-                        {recipe.servings} servings • {recipe.perServingNutrients.calories} kcal/serving •{' '}
-                        <span className="text-amber-400">{recipe.perServingNutrients.protein}g P</span>
+                      <h4 className="font-bold text-sm text-[#F5F5F5] uppercase tracking-tight">{recipe.name}</h4>
+                      <p className="text-xs font-mono text-[#A1A1A6]">
+                        {recipe.servings} servings • {recipe.perServingNutrients.calories} kcal/serv •{' '}
+                        <span className="text-[#30D158]">{recipe.perServingNutrients.protein}g P</span>
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => logRecipeToMeal(recipe.id, 'Lunch', 1, selectedDate)}
-                        className="py-1.5 px-3 bg-primary text-black text-xs font-bold rounded-xl active:scale-95 transition-all"
+                        className="h-8 px-3 bg-[#FF8A00] hover:bg-[#FFA033] text-black font-mono font-black text-xs uppercase tracking-wider rounded-lg active:scale-95 transition-all"
                       >
-                        Log 1 Serving
+                        Log
                       </button>
                       <button
                         onClick={() => deleteRecipe(recipe.id)}
-                        className="text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg"
+                        className="w-8 h-8 rounded-lg bg-[#1E1E20] hover:bg-[#FF453A]/20 border border-[#2A2A2D] flex items-center justify-center text-[#FF453A]/80 hover:text-[#FF453A] transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -720,19 +750,19 @@ export default function NutritionPlanner() {
 
           {/* Indian Dish Reference Explorer */}
           <div className="space-y-3 pt-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant block">
-              Authentic Indian Kitchen (IFCT Referenced)
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-[#A1A1A6] block">
+              AUTHENTIC INDIAN KITCHEN (IFCT 2017 STANDARDS)
             </span>
 
             {/* Search Bar for Indian dishes */}
-            <div className="bg-[var(--color-surface-container)] border border-white/10 rounded-2xl px-3.5 py-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-on-surface-variant text-[18px]">search</span>
+            <div className="bg-[#151517] border border-[#2A2A2D] rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+              <Search className="w-4 h-4 text-[#A1A1A6]" />
               <input
                 type="text"
                 placeholder="Search Indian dishes (dal, biryani, paneer, dosa...)"
                 value={kitchenSearch}
                 onChange={e => setKitchenSearch(e.target.value)}
-                className="w-full bg-transparent text-xs text-on-surface outline-none"
+                className="w-full bg-transparent text-xs font-mono text-[#F5F5F5] outline-none"
               />
             </div>
 
@@ -744,13 +774,13 @@ export default function NutritionPlanner() {
               ).map(dish => (
                 <div
                   key={dish.id}
-                  className="bg-[var(--color-surface-container)] p-3.5 rounded-2xl border border-white/5 flex items-center gap-3.5"
+                  className="bg-[#151517] p-3 rounded-xl border border-[#2A2A2D] flex items-center gap-3.5"
                 >
-                  <img src={dish.image} alt={dish.name} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                  <img src={dish.image} alt={dish.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[9px] uppercase font-bold text-amber-400 block">{dish.category}</span>
-                    <h4 className="font-headline font-bold text-sm text-on-surface truncate">{dish.name}</h4>
-                    <p className="text-[11px] text-on-surface-variant">
+                    <span className="text-[9px] font-mono uppercase font-bold text-[#F5C542] block">{dish.category}</span>
+                    <h4 className="font-headline font-bold text-sm text-[#F5F5F5] uppercase tracking-tight truncate">{dish.name}</h4>
+                    <p className="text-[11px] font-mono text-[#A1A1A6]">
                       {dish.calories} kcal • {dish.protein}g P • {dish.carbs}g C • {dish.fat}g F
                     </p>
                   </div>
@@ -779,7 +809,7 @@ export default function NutritionPlanner() {
                       );
                       showToast(`${dish.name} logged!`, 'success');
                     }}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-primary hover:text-black font-bold text-xs rounded-xl border border-white/10 transition-colors flex-shrink-0"
+                    className="h-8 px-3 bg-[#FF8A00] hover:bg-[#FFA033] text-black font-mono font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex-shrink-0"
                   >
                     Log
                   </button>
@@ -794,7 +824,7 @@ export default function NutritionPlanner() {
           TAB 3: ANALYTICS & TRENDS
          ═════════════════════════════════════════════════════════ */}
       {activeTab === 'analytics' && (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-4">
           <NutritionAnalyticsView
             entries={entriesForDate}
             weightLogs={weightLogs}
@@ -813,36 +843,36 @@ export default function NutritionPlanner() {
           TAB 4: SUPPLEMENTS & GROCERY
          ═════════════════════════════════════════════════════════ */}
       {activeTab === 'supplements' && (
-        <div className="space-y-5 animate-fade-in">
+        <div className="space-y-5">
           {/* Supplements Checklist */}
-          <section className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 space-y-3">
+          <section className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-xl">pill</span>
-                <h3 className="font-headline font-bold text-base text-on-surface">Daily Supplements</h3>
+                <Pill className="w-5 h-5 text-[#30D158]" />
+                <h3 className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight">Daily Supplements</h3>
               </div>
               <button
                 onClick={() => setShowAddSup(!showAddSup)}
-                className="text-xs text-primary font-bold hover:underline"
+                className="text-xs font-mono text-[#30D158] font-bold hover:underline"
               >
                 {showAddSup ? 'Cancel' : '+ Add'}
               </button>
             </div>
 
             {showAddSup && (
-              <div className="p-3 bg-[var(--color-surface-container-high)] rounded-xl border border-white/10 space-y-2">
+              <div className="p-3 bg-[#1E1E20] rounded-xl border border-[#2A2A2D] space-y-2">
                 <input
                   type="text"
                   placeholder="Supplement name (e.g. Creatine 5g)"
                   value={newSupName}
                   onChange={e => setNewSupName(e.target.value)}
-                  className="w-full bg-transparent text-xs text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-lg px-3 py-2 text-xs font-mono text-[#F5F5F5] outline-none focus:border-[#30D158]/50"
                 />
                 <div className="flex gap-2">
                   <select
                     value={newSupTime}
                     onChange={e => setNewSupTime(e.target.value)}
-                    className="flex-1 bg-[var(--color-surface-container)] border border-white/10 rounded-lg px-2 py-1 text-xs text-on-surface outline-none"
+                    className="flex-1 bg-[#151517] border border-[#2A2A2D] rounded-lg px-2 py-1.5 text-xs font-mono text-[#F5F5F5] outline-none"
                   >
                     <option value="Morning">Morning</option>
                     <option value="Post-Workout">Post-Workout</option>
@@ -860,7 +890,7 @@ export default function NutritionPlanner() {
                         showToast('Supplement added!', 'success');
                       }
                     }}
-                    className="px-3 py-1 bg-primary text-black font-bold text-xs rounded-lg"
+                    className="h-8 px-4 bg-[#30D158] hover:bg-[#5EEB78] text-black font-mono font-bold text-xs uppercase tracking-wider rounded-lg"
                   >
                     Save
                   </button>
@@ -872,31 +902,28 @@ export default function NutritionPlanner() {
               {supplements.map(sup => (
                 <div
                   key={sup.id}
-                  className="p-3 rounded-xl bg-[var(--color-surface-container-high)] border border-white/5 flex items-center justify-between transition-all"
+                  className="p-3 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-between transition-all"
                 >
                   <div
                     onClick={() => toggleSupplement(sup.id)}
                     className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                   >
-                    <span
-                      className={`material-symbols-outlined text-[20px] ${
-                        sup.done ? 'text-emerald-400' : 'text-on-surface-variant'
-                      }`}
-                      style={{ fontVariationSettings: sup.done ? "'FILL' 1" : "'FILL' 0" }}
-                    >
-                      {sup.done ? 'check_circle' : 'radio_button_unchecked'}
-                    </span>
-                    <span className={`text-xs font-semibold truncate ${sup.done ? 'line-through text-on-surface-variant' : 'text-on-surface'}`}>
+                    {sup.done ? (
+                      <CheckCircle2 className="w-5 h-5 text-[#30D158]" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-[#A1A1A6]" />
+                    )}
+                    <span className={`text-xs font-mono truncate ${sup.done ? 'line-through text-[#A1A1A6]' : 'text-[#F5F5F5] font-bold'}`}>
                       {sup.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-on-surface-variant">{sup.time}</span>
+                    <span className="text-[10px] font-mono text-[#A1A1A6] uppercase">{sup.time}</span>
                     <button
                       onClick={() => removeSupplement(sup.id)}
-                      className="text-on-surface-variant/40 hover:text-rose-400 p-1"
+                      className="w-7 h-7 rounded-lg bg-[#151517] hover:bg-[#FF453A]/20 border border-[#2A2A2D] flex items-center justify-center text-[#FF453A]/80 hover:text-[#FF453A] transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[15px]">delete</span>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -905,50 +932,53 @@ export default function NutritionPlanner() {
           </section>
 
           {/* Smart Grocery Checklist */}
-          <section className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 space-y-3">
+          <section className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-400 text-xl">shopping_cart</span>
-                <h3 className="font-headline font-bold text-base text-on-surface">Grocery List</h3>
+                <ShoppingCart className="w-5 h-5 text-[#30D158]" />
+                <h3 className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight">Grocery List</h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={clearCheckedGroceries}
-                  className="text-xs text-on-surface-variant hover:text-on-surface"
+                  className="h-8 px-2.5 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] text-xs font-mono text-[#A1A1A6] hover:text-[#F5F5F5] flex items-center gap-1"
                   title="Clear checked items"
                 >
-                  <span className="material-symbols-outlined text-[16px]">playlist_remove</span>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Clear</span>
                 </button>
                 <button
                   onClick={shareGroceryList}
-                  className="text-xs text-on-surface-variant hover:text-on-surface"
+                  className="h-8 px-2.5 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] border border-[#2A2A2D] text-xs font-mono text-[#A1A1A6] hover:text-[#F5F5F5] flex items-center gap-1"
                   title="Copy list"
                 >
-                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Copy</span>
                 </button>
                 <button
                   onClick={() => setShowAddGrocery(!showAddGrocery)}
-                  className="text-xs text-primary font-bold hover:underline"
+                  className="h-8 px-3 rounded-lg bg-[#30D158] hover:bg-[#5EEB78] text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-1"
                 >
-                  {showAddGrocery ? 'Cancel' : '+ Add'}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{showAddGrocery ? 'Cancel' : 'Add'}</span>
                 </button>
               </div>
             </div>
 
             {showAddGrocery && (
-              <div className="p-3 bg-[var(--color-surface-container-high)] rounded-xl border border-white/10 space-y-2">
+              <div className="p-3 bg-[#1E1E20] rounded-xl border border-[#2A2A2D] space-y-2">
                 <input
                   type="text"
                   placeholder="Item name (e.g. Greek Yogurt)"
                   value={newGroceryName}
                   onChange={e => setNewGroceryName(e.target.value)}
-                  className="w-full bg-transparent text-xs text-on-surface outline-none"
+                  className="w-full bg-[#151517] border border-[#2A2A2D] rounded-lg px-3 py-2 text-xs font-mono text-[#F5F5F5] outline-none focus:border-[#30D158]/50"
                 />
                 <div className="flex gap-2">
                   <select
                     value={newGroceryCat}
                     onChange={e => setNewGroceryCat(e.target.value)}
-                    className="flex-1 bg-[var(--color-surface-container)] border border-white/10 rounded-lg px-2 py-1 text-xs text-on-surface outline-none"
+                    className="flex-1 bg-[#151517] border border-[#2A2A2D] rounded-lg px-2 py-1.5 text-xs font-mono text-[#F5F5F5] outline-none"
                   >
                     <option value="Proteins">Proteins</option>
                     <option value="Carbs">Carbs</option>
@@ -965,7 +995,7 @@ export default function NutritionPlanner() {
                         showToast('Item added!', 'success');
                       }
                     }}
-                    className="px-3 py-1 bg-primary text-black font-bold text-xs rounded-lg"
+                    className="h-8 px-4 bg-[#30D158] hover:bg-[#5EEB78] text-black font-mono font-bold text-xs uppercase tracking-wider rounded-lg"
                   >
                     Save
                   </button>
@@ -977,33 +1007,30 @@ export default function NutritionPlanner() {
               {groceryItems.map(item => (
                 <div
                   key={item.id}
-                  className="p-2.5 px-3 rounded-xl bg-[var(--color-surface-container-high)] border border-white/5 flex items-center justify-between transition-all"
+                  className="p-2.5 px-3 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-between transition-all"
                 >
                   <div
                     onClick={() => toggleGroceryItem(item.id)}
                     className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"
                   >
-                    <span
-                      className={`material-symbols-outlined text-[18px] ${
-                        item.checked ? 'text-emerald-400' : 'text-on-surface-variant'
-                      }`}
-                      style={{ fontVariationSettings: item.checked ? "'FILL' 1" : "'FILL' 0" }}
-                    >
-                      {item.checked ? 'check_box' : 'check_box_outline_blank'}
-                    </span>
-                    <span className={`text-xs truncate ${item.checked ? 'line-through text-on-surface-variant' : 'text-on-surface font-medium'}`}>
+                    {item.checked ? (
+                      <CheckSquare className="w-4 h-4 text-[#30D158]" />
+                    ) : (
+                      <Square className="w-4 h-4 text-[#A1A1A6]" />
+                    )}
+                    <span className={`text-xs font-mono truncate ${item.checked ? 'line-through text-[#A1A1A6]' : 'text-[#F5F5F5] font-medium'}`}>
                       {item.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[9px] uppercase font-bold text-on-surface-variant/70 px-1.5 py-0.5 rounded bg-white/[0.02]">
+                    <span className="text-[9px] font-mono uppercase font-bold text-[#A1A1A6] px-1.5 py-0.5 rounded bg-[#151517] border border-[#2A2A2D]">
                       {item.category}
                     </span>
                     <button
                       onClick={() => removeGroceryItem(item.id)}
-                      className="text-on-surface-variant/40 hover:text-rose-400 p-1"
+                      className="w-7 h-7 rounded-lg bg-[#151517] hover:bg-[#FF453A]/20 border border-[#2A2A2D] flex items-center justify-center text-[#FF453A]/80 hover:text-[#FF453A] transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[15px]">delete</span>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
