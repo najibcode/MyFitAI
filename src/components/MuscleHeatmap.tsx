@@ -29,6 +29,7 @@ import AnatomicalBackBody from './muscleMap/AnatomicalBackBody';
 import MuscleInspectionDrawer from './muscleMap/MuscleInspectionDrawer';
 import ShareableMuscleCardModal from './share/ShareableMuscleCardModal';
 import { triggerHaptic } from '../utils/audioFeedback';
+import { Zap, Layers, BatteryCharging, Share2, Scale, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 export type HeatmapMode = 'target' | 'volume' | 'fatigue';
 export type HeatmapView = 'both' | 'front' | 'back';
@@ -203,27 +204,30 @@ export default function MuscleHeatmap({
           )}
 
           {/* Analytical Mode Switcher */}
-          <div className="flex bg-surface-container p-0.5 rounded-xl border border-outline-variant/30">
+          <div className="flex bg-[var(--color-surface)] p-0.5 rounded-xl border border-[var(--color-border)]">
             {(
               [
-                { id: 'target', label: 'Load', iconName: 'bolt' },
-                { id: 'volume', label: 'Volume', iconName: 'layers' },
-                { id: 'fatigue', label: 'Recovery', iconName: 'battery_charging_full' },
+                { id: 'target', label: 'Load', Icon: Zap },
+                { id: 'volume', label: 'Volume', Icon: Layers },
+                { id: 'fatigue', label: 'Recovery', Icon: BatteryCharging },
               ] as const
-            ).map(m => (
-              <button
-                key={m.id}
-                onClick={() => setCurrentMode(m.id)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                  currentMode === m.id
-                    ? 'bg-surface-container-highest text-primary border border-primary/30 shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[13px]">{m.iconName}</span>
-                <span>{m.label}</span>
-              </button>
-            ))}
+            ).map(m => {
+              const ModeIcon = m.Icon;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setCurrentMode(m.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                    currentMode === m.id
+                      ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 shadow-sm'
+                      : 'text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)]'
+                  }`}
+                >
+                  <ModeIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Share Muscle Progress Button */}
@@ -234,10 +238,10 @@ export default function MuscleHeatmap({
                 triggerHaptic('light');
                 setShowShareModal(true);
               }}
-              className="px-3 py-1 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ml-auto"
+              className="px-3 py-1 rounded-xl bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ml-auto"
               title="Share Muscle Progress"
             >
-              <span className="material-symbols-outlined text-[14px]">share</span>
+              <Share2 className="w-3.5 h-3.5 stroke-[2.2]" />
               <span>Share Progress</span>
             </button>
           )}
@@ -262,9 +266,9 @@ export default function MuscleHeatmap({
       </div>
 
       {/* ── Anatomical Vector Figures Container ── */}
-      <div className="w-full flex items-center justify-center gap-6 sm:gap-12 relative py-2">
+      <div className="w-full max-w-full flex items-center justify-center gap-2 sm:gap-8 md:gap-12 relative py-2 overflow-hidden">
         {(currentView === 'both' || currentView === 'front') && (
-          <div className="w-full max-w-[190px] sm:max-w-[220px]">
+          <div className={`w-full ${currentView === 'both' ? 'max-w-[145px] sm:max-w-[200px]' : 'max-w-[200px] sm:max-w-[240px]'} flex-1 min-w-0 flex items-center justify-center`}>
             <AnatomicalFrontBody
               metrics={metrics}
               selectedMuscleId={selectedMuscleId}
@@ -277,7 +281,7 @@ export default function MuscleHeatmap({
         )}
 
         {(currentView === 'both' || currentView === 'back') && (
-          <div className="w-full max-w-[190px] sm:max-w-[220px]">
+          <div className={`w-full ${currentView === 'both' ? 'max-w-[145px] sm:max-w-[200px]' : 'max-w-[200px] sm:max-w-[240px]'} flex-1 min-w-0 flex items-center justify-center`}>
             <AnatomicalBackBody
               metrics={metrics}
               selectedMuscleId={selectedMuscleId}
@@ -372,12 +376,14 @@ export default function MuscleHeatmap({
             className="w-full px-4 py-3 flex items-center justify-between text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
           >
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[18px]">balance</span>
+              <Scale className="w-4 h-4 text-[var(--color-primary)] stroke-[2.2]" />
               <span>Biomechanical Muscle Symmetry & Balance</span>
             </div>
-            <span className="material-symbols-outlined text-[18px]">
-              {symmetryOpen ? 'expand_less' : 'expand_more'}
-            </span>
+            {symmetryOpen ? (
+              <ChevronUp className="w-4 h-4 text-[var(--color-muted)]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[var(--color-muted)]" />
+            )}
           </button>
 
           {symmetryOpen && (
@@ -424,14 +430,12 @@ export default function MuscleHeatmap({
               </div>
 
               {/* Training Focus Note */}
-              <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
+              <div className="p-2.5 rounded-xl bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[16px]">
-                    auto_awesome
-                  </span>
+                  <Sparkles className="w-4 h-4 text-[var(--color-primary)] stroke-[2.2]" />
                   <span className="text-on-surface">
                     Most Stimulated:{' '}
-                    <strong className="text-primary">{balanceSummary.mostTrainedRegion}</strong>
+                    <strong className="text-[var(--color-primary)]">{balanceSummary.mostTrainedRegion}</strong>
                   </span>
                 </div>
                 {balanceSummary.leastTrainedRegion !== 'None' && (
