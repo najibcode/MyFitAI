@@ -7,6 +7,7 @@
 import { useRef } from 'react';
 import type { PhotoTransform } from '../../types/shareCard';
 import { fileToDataUrl } from '../../services/progressPhotoService';
+import { Camera, Upload, Trash2, RotateCw, Maximize } from 'lucide-react';
 
 interface PhotoCropEditorProps {
   photoUrl: string | null;
@@ -57,7 +58,7 @@ export default function PhotoCropEditor({
     <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/[0.06] space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-on-surface flex items-center gap-1.5 uppercase tracking-wider">
-          <span className="material-symbols-outlined text-primary text-[16px]">add_a_photo</span>
+          <Camera className="w-4 h-4 text-primary" />
           Physique Photo
         </span>
 
@@ -73,9 +74,9 @@ export default function PhotoCropEditor({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1 rounded-xl bg-primary text-black text-xs font-bold flex items-center gap-1 active:scale-95 transition-all shadow-sm"
+            className="px-3 py-1 rounded-xl bg-primary text-black text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
           >
-            <span className="material-symbols-outlined text-sm">upload</span>
+            <Upload className="w-3.5 h-3.5" />
             {photoUrl ? 'Replace' : 'Upload'}
           </button>
 
@@ -86,7 +87,7 @@ export default function PhotoCropEditor({
               className="p-1.5 rounded-xl bg-white/[0.06] text-rose-400 hover:bg-rose-500/10 active:scale-95 transition-all"
               title="Remove photo (Heatmap only)"
             >
-              <span className="material-symbols-outlined text-[16px]">delete</span>
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -120,7 +121,7 @@ export default function PhotoCropEditor({
               onClick={handleRotate}
               className="flex-1 py-1.5 px-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-xs font-semibold text-on-surface flex items-center justify-center gap-1.5 border border-white/[0.06] active:scale-95 transition-all"
             >
-              <span className="material-symbols-outlined text-sm">rotate_right</span>
+              <RotateCw className="w-3.5 h-3.5" />
               Rotate ({transform.rotation}°)
             </button>
 
@@ -129,7 +130,7 @@ export default function PhotoCropEditor({
               onClick={handleToggleFit}
               className="flex-1 py-1.5 px-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-xs font-semibold text-on-surface flex items-center justify-center gap-1.5 border border-white/[0.06] active:scale-95 transition-all capitalize"
             >
-              <span className="material-symbols-outlined text-sm">aspect_ratio</span>
+              <Maximize className="w-3.5 h-3.5" />
               Fit: {transform.fit}
             </button>
           </div>

@@ -26,6 +26,24 @@ import { generateAICaption } from '../../services/gemini';
 import PhotoCropEditor from './PhotoCropEditor';
 import ShareCardPreview from './ShareCardPreview';
 import { triggerHaptic } from '../../utils/audioFeedback';
+import {
+  Share2,
+  X,
+  Info,
+  Columns,
+  Image,
+  Activity,
+  GitCompare,
+  Square,
+  Flame,
+  CheckSquare,
+  MessageSquare,
+  Sparkles,
+  Check,
+  Copy,
+  Download,
+  RefreshCw,
+} from 'lucide-react';
 
 interface ShareableMuscleCardModalProps {
   isOpen: boolean;
@@ -195,13 +213,13 @@ export default function ShareableMuscleCardModal({
 
   if (!isOpen) return null;
 
-  const TEMPLATES: Array<{ id: ShareCardTemplate; label: string; icon: string }> = [
-    { id: 'split', label: 'Split Dual', icon: 'view_column' },
-    { id: 'hero_photo', label: 'Hero Photo', icon: 'photo_size_select_actual' },
-    { id: 'anatomical_focus', label: 'Anatomy Focus', icon: 'accessibility_new' },
-    { id: 'progress_compare', label: 'Compare (B/A)', icon: 'compare' },
-    { id: 'minimal', label: 'Minimal', icon: 'crop_square' },
-    { id: 'heatmap_only', label: 'Heatmap Only', icon: 'local_fire_department' },
+  const TEMPLATES: Array<{ id: ShareCardTemplate; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+    { id: 'split', label: 'Split Dual', icon: Columns },
+    { id: 'hero_photo', label: 'Hero Photo', icon: Image },
+    { id: 'anatomical_focus', label: 'Anatomy Focus', icon: Activity },
+    { id: 'progress_compare', label: 'Compare (B/A)', icon: GitCompare },
+    { id: 'minimal', label: 'Minimal', icon: Square },
+    { id: 'heatmap_only', label: 'Heatmap Only', icon: Flame },
   ];
 
   const PERIODS: Array<{ id: ShareCardPeriod; label: string }> = [
@@ -246,7 +264,7 @@ export default function ShareableMuscleCardModal({
         <div className="p-4 sm:p-5 bg-[var(--color-surface-container)] border-b border-white/[0.04] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined text-[18px]">share</span>
+              <Share2 className="w-4 h-4" />
             </div>
             <div>
               <h2 className="font-headline font-bold text-base text-on-surface">
@@ -262,7 +280,7 @@ export default function ShareableMuscleCardModal({
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/[0.06] text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -277,7 +295,7 @@ export default function ShareableMuscleCardModal({
           {statusMessage && (
             <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-xs font-semibold text-primary flex items-center justify-between animate-in fade-in">
               <span className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">info</span>
+                <Info className="w-4 h-4" />
                 {statusMessage}
               </span>
             </div>
@@ -289,24 +307,27 @@ export default function ShareableMuscleCardModal({
               Card Template
             </span>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-              {TEMPLATES.map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setConfig(prev => ({ ...prev, template: t.id }));
-                  }}
-                  className={`p-2 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
-                    config.template === t.id
-                      ? 'bg-primary/10 border-primary text-primary font-bold'
-                      : 'bg-[var(--color-surface-container)] border-white/[0.04] text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">{t.icon}</span>
-                  <span className="text-[10px] truncate w-full">{t.label}</span>
-                </button>
-              ))}
+              {TEMPLATES.map(t => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setConfig(prev => ({ ...prev, template: t.id }));
+                    }}
+                    className={`p-2 rounded-xl border text-center flex flex-col items-center gap-1.5 transition-all ${
+                      config.template === t.id
+                        ? 'bg-primary/10 border-primary text-primary font-bold'
+                        : 'bg-[var(--color-surface-container)] border-white/[0.04] text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[10px] truncate w-full">{t.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -480,9 +501,11 @@ export default function ShareableMuscleCardModal({
                   : 'bg-white/[0.04] border-white/[0.06] text-on-surface-variant'
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">
-                {config.showStats ? 'check_box' : 'check_box_outline_blank'}
-              </span>
+              {config.showStats ? (
+                <CheckSquare className="w-3.5 h-3.5" />
+              ) : (
+                <Square className="w-3.5 h-3.5" />
+              )}
               Statistics Grid
             </button>
 
@@ -495,9 +518,11 @@ export default function ShareableMuscleCardModal({
                   : 'bg-white/[0.04] border-white/[0.06] text-on-surface-variant'
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">
-                {config.showDate ? 'check_box' : 'check_box_outline_blank'}
-              </span>
+              {config.showDate ? (
+                <CheckSquare className="w-3.5 h-3.5" />
+              ) : (
+                <Square className="w-3.5 h-3.5" />
+              )}
               Date Range
             </button>
 
@@ -510,9 +535,11 @@ export default function ShareableMuscleCardModal({
                   : 'bg-white/[0.04] border-white/[0.06] text-on-surface-variant'
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">
-                {config.showWatermark ? 'check_box' : 'check_box_outline_blank'}
-              </span>
+              {config.showWatermark ? (
+                <CheckSquare className="w-3.5 h-3.5" />
+              ) : (
+                <Square className="w-3.5 h-3.5" />
+              )}
               Watermark
             </button>
           </div>
@@ -521,7 +548,7 @@ export default function ShareableMuscleCardModal({
           <div className="p-3.5 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.06] space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5 uppercase tracking-wider">
-                <span className="material-symbols-outlined text-primary text-sm">chat</span>
+                <MessageSquare className="w-3.5 h-3.5 text-primary" />
                 Social Caption
               </span>
               <div className="flex items-center gap-1.5">
@@ -531,9 +558,11 @@ export default function ShareableMuscleCardModal({
                   onClick={handleGenerateAICaption}
                   className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-xs font-semibold text-primary border border-primary/20 flex items-center gap-1 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    {isGeneratingAICaption ? 'sync' : 'auto_awesome'}
-                  </span>
+                  {isGeneratingAICaption ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
                   {isGeneratingAICaption ? 'Generating…' : 'AI Caption'}
                 </button>
                 <button
@@ -541,9 +570,11 @@ export default function ShareableMuscleCardModal({
                   onClick={handleCopyCaption}
                   className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-on-surface flex items-center gap-1 active:scale-95 transition-all"
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    {copiedCaption ? 'check' : 'content_copy'}
-                  </span>
+                  {copiedCaption ? (
+                    <Check className="w-3.5 h-3.5 text-[#30D158]" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
                   {copiedCaption ? 'Copied!' : 'Copy'}
                 </button>
               </div>
@@ -562,7 +593,7 @@ export default function ShareableMuscleCardModal({
             onClick={handleSave}
             className="flex-1 py-3 px-4 rounded-2xl bg-white/[0.08] hover:bg-white/[0.12] text-on-surface font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all border border-white/[0.08] disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-lg">download</span>
+            <Download className="w-4 h-4" />
             {isExporting ? 'Generating…' : 'Save Image'}
           </button>
 
@@ -570,9 +601,9 @@ export default function ShareableMuscleCardModal({
             type="button"
             disabled={isExporting}
             onClick={handleShare}
-            className="flex-1 py-3 px-4 rounded-2xl bg-primary text-on-primary font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50"
+            className="flex-1 py-3 px-4 rounded-2xl bg-primary text-black font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-lg">share</span>
+            <Share2 className="w-4 h-4" />
             {isExporting ? 'Preparing…' : 'Share Progress'}
           </button>
         </div>

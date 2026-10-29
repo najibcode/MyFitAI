@@ -8,6 +8,8 @@ import { useMemo } from 'react';
 import type { ShareCardConfig, ShareableMuscleData } from '../../types/shareCard';
 import { FRONT_MUSCLE_PATHS } from '../muscleMap/AnatomicalFrontBody';
 import { BACK_MUSCLE_PATHS } from '../muscleMap/AnatomicalBackBody';
+import { Activity } from 'lucide-react';
+import MyFitAILogo from '../brand/MyFitAILogo';
 
 interface ShareCardPreviewProps {
   config: ShareCardConfig;
@@ -84,11 +86,7 @@ export default function ShareCardPreview({
       <div className="flex items-center justify-between z-10">
         {config.showLogo && (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined text-black text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                fitness_center
-              </span>
-            </div>
+            <MyFitAILogo size={32} />
             <div>
               <span className="font-headline font-black text-sm tracking-tight block leading-none">
                 MyFitAI
@@ -127,7 +125,7 @@ export default function ShareCardPreview({
                 />
               ) : (
                 <div className="text-center p-3 text-on-surface-variant/60">
-                  <span className="material-symbols-outlined text-3xl mb-1 block">accessibility_new</span>
+                  <Activity className="w-7 h-7 mx-auto mb-1 text-primary opacity-60" />
                   <span className="text-[10px] uppercase font-bold tracking-wider">Physique Photo</span>
                 </div>
               )}

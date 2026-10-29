@@ -156,25 +156,35 @@ function drawBrandHeader(
 ) {
   ctx.save();
 
-  // Logo Icon Square
+  // Logo Icon Square - Obsidian base
   const iconSize = 44;
   drawRoundedRect(ctx, x, y, iconSize, iconSize, 12);
-  ctx.fillStyle = '#FF7A00'; // Brand primary neon orange
+  ctx.fillStyle = '#080808';
   ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#2A2A2D';
+  ctx.stroke();
 
-  // Dumbbell / Fitness Glyph inside logo icon
+  // Kinetic Apex Mark
   ctx.save();
-  ctx.translate(x + iconSize / 2, y + iconSize / 2);
-  ctx.fillStyle = '#000000';
-  ctx.beginPath();
-  // Barbell center
-  ctx.fillRect(-12, -2.5, 24, 5);
-  // Left plates
-  ctx.fillRect(-15, -9, 4, 18);
-  ctx.fillRect(-18, -6, 3, 12);
-  // Right plates
-  ctx.fillRect(11, -9, 4, 18);
-  ctx.fillRect(15, -6, 3, 12);
+  ctx.translate(x, y);
+  const s = iconSize / 100;
+  ctx.scale(s, s);
+
+  // Outer primary chevron (Athletic Green)
+  ctx.fillStyle = '#30D158';
+  const p1 = new Path2D('M 25 78 L 50 48 L 75 78 L 84 70 L 50 30 L 16 70 Z');
+  ctx.fill(p1);
+
+  // Upper inner chevron (Pure White)
+  ctx.fillStyle = '#FFFFFF';
+  const p2 = new Path2D('M 35 44 L 50 26 L 65 44 L 72 37 L 50 12 L 28 37 Z');
+  ctx.fill(p2);
+
+  // Apex core (Athletic Green)
+  ctx.fillStyle = '#30D158';
+  const p3 = new Path2D('M 50 49 L 55 55 L 50 61 L 45 55 Z');
+  ctx.fill(p3);
   ctx.restore();
 
   // Typography: MYFITAI
