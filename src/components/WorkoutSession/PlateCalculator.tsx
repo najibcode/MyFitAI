@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
+import { Calculator } from 'lucide-react';
 
 interface PlateCalculatorProps {
   isOpen: boolean;
@@ -63,12 +64,12 @@ export default function PlateCalculator({ isOpen, onClose, initialWeight }: Plat
 
   return (
     <div className="fixed inset-0 z-[150] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] w-full max-w-md rounded-t-[2rem] border-t border-white/[0.06] p-6 pb-10 animate-slide-up">
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-5" />
-        <h3 className="font-headline font-extrabold text-lg tracking-tight mb-5 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">calculate</span>
-          Plate Calculator
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#151517] w-full max-w-md rounded-t-3xl border-t border-[#2A2A2D] p-6 pb-10">
+        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+        <h3 className="font-headline font-black text-lg text-[#F5F5F5] uppercase tracking-tight mb-5 flex items-center gap-2">
+          <Calculator className="w-5 h-5 text-[#30D158]" />
+          <span>Plate Calculator</span>
         </h3>
 
         {/* Target weight input */}

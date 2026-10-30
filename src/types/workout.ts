@@ -7,7 +7,32 @@
 import type { MuscleGroup, EquipmentType, ExerciseType } from './exercise';
 
 /** The type of an individual set */
-export type SetType = 'normal' | 'warmup' | 'drop' | 'amrap' | 'failure';
+export type SetType =
+  | 'normal'
+  | 'warmup'
+  | 'drop'
+  | 'failure'
+  | 'amrap'
+  | 'rest_pause'
+  | 'myo_reps'
+  | 'back_off'
+  | 'top_set'
+  | 'timed'
+  | 'bodyweight'
+  | 'cardio';
+
+/** Grouping type for supersets, giant sets, circuits, and dropsets */
+export type SetGroupType = 'superset' | 'giant_set' | 'circuit' | 'dropset';
+
+/** A structured group of exercises (e.g. Superset A1-A2, Circuit 1-4) */
+export interface SetGroup {
+  id: string;
+  name?: string; // e.g. "Superset A", "Giant Set 1"
+  type: SetGroupType;
+  exerciseIds: string[]; // references exerciseId or indices in the workout
+  restAfterGroupSeconds: number; // rest timer triggered after full cycle
+  rounds?: number;
+}
 
 /** Set completion state */
 export type SetStatus = 'pending' | 'completed' | 'failed' | 'skipped';
@@ -70,7 +95,13 @@ export interface PlannedSet {
   targetDuration?: number; // seconds
   targetDistance?: number; // meters
   rpe?: number;
+  rir?: number;
   setType: SetType;
+  isDrop?: boolean;
+  dropLevel?: number;
+  isBodyweight?: boolean;
+  addedWeight?: number;
+  repsPerSide?: { left: number; right: number };
 }
 
 /** An exercise slot within a workout template */
@@ -82,9 +113,11 @@ export interface WorkoutExercise {
   equipment?: EquipmentType;
   primaryMuscles?: MuscleGroup[];
   isUnilateral?: boolean;
+  isBodyweight?: boolean;
   sets: PlannedSet[];
   restSeconds: number;
   notes: string;
+  warmupNotes?: string;
   supersetGroup?: string; // e.g. 'A', 'B', 'C' — exercises with same group are a superset
   progressionRule?: ProgressionRule;
   gifUrl?: string;
@@ -99,6 +132,10 @@ export interface WorkoutTemplate {
   type: WorkoutType;
   targetMuscles: MuscleGroup[];
   exercises: WorkoutExercise[];
+  setGroups?: SetGroup[];
+  warmupNotes?: string;
+  cooldownNotes?: string;
+  defaultRestSeconds?: number;
   createdAt: string;
   updatedAt: string;
   estimatedDuration?: number; // minutes
@@ -159,6 +196,10 @@ export interface LoggedSet {
   incline?: number;   // %
   calories?: number;
   repsPerSide?: { left: number; right: number };
+  dropLevel?: number;
+  isDrop?: boolean;
+  isBodyweight?: boolean;
+  addedWeight?: number;
   timestamp: string;
   notes?: string;
   isPR?: boolean;
@@ -172,11 +213,13 @@ export interface SessionExercise {
   thumbnailEmoji?: string;
   primaryMuscles?: MuscleGroup[];
   isUnilateral?: boolean;
+  isBodyweight?: boolean;
   supersetGroup?: string;
   restSeconds?: number;
   progressionRule?: ProgressionRule;
   sets: LoggedSet[];
   notes?: string;
+  warmupNotes?: string;
   gifUrl?: string;
   imageUrl?: string;
 }
@@ -204,6 +247,9 @@ export interface WorkoutSession {
   endedAt?: string;
   duration: number; // seconds
   exercises: SessionExercise[];
+  setGroups?: SetGroup[];
+  warmupNotes?: string;
+  cooldownNotes?: string;
   totalVolume: number;
   totalSets: number;
   totalReps: number;
