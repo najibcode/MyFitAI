@@ -12,6 +12,22 @@ import type { ExerciseType } from '../../types/exercise';
 import type { ProgressionRecommendation } from '../../engine/progression';
 import { generateWarmupSets } from '../../engine/warmupGenerator';
 import { triggerHaptic } from '../../utils/audioFeedback';
+import {
+  Dumbbell,
+  CheckCircle2,
+  Circle,
+  Flame,
+  Calculator,
+  TrendingUp,
+  Play,
+  Pause,
+  Plus,
+  FileText,
+  Trash2,
+  SkipForward,
+} from 'lucide-react';
+
+import ExerciseMedia from '../media/ExerciseMedia';
 
 interface GhostValue {
   reps: number;
@@ -47,17 +63,24 @@ interface ExerciseSetLoggerProps {
 }
 
 const SET_TYPE_LABELS: Record<SetType, { label: string; short: string; color: string }> = {
-  normal:  { label: 'Normal',  short: 'N', color: 'text-on-surface' },
-  warmup:  { label: 'Warm-up', short: 'W', color: 'text-[#60A5FA]' },
-  drop:    { label: 'Drop',    short: 'D', color: 'text-[#FBBF24]' },
-  amrap:   { label: 'AMRAP',   short: 'A', color: 'text-[#6FFB85]' },
-  failure: { label: 'Failure', short: 'F', color: 'text-error' },
+  normal:      { label: 'Normal',      short: 'N',  color: 'text-[#F5F5F5]' },
+  warmup:      { label: 'Warm-up',     short: 'W',  color: 'text-[#4F9CF9]' },
+  drop:        { label: 'Dropset',     short: 'D',  color: 'text-[#F5C542]' },
+  amrap:       { label: 'AMRAP',       short: 'A',  color: 'text-[#30D158]' },
+  failure:     { label: 'Failure',     short: 'F',  color: 'text-[#FF453A]' },
+  rest_pause:  { label: 'Rest-Pause',  short: 'RP', color: 'text-[#BF5AF2]' },
+  myo_reps:    { label: 'Myo-Reps',    short: 'M',  color: 'text-[#FF9F0A]' },
+  top_set:     { label: 'Top Set',     short: 'T',  color: 'text-[#FF375F]' },
+  back_off:    { label: 'Back-off',    short: 'B',  color: 'text-[#64D2FF]' },
+  timed:       { label: 'Timed Hold',  short: 'TM', color: 'text-[#FFD60A]' },
+  bodyweight:  { label: 'Bodyweight',  short: 'BW', color: 'text-[#32D74B]' },
+  cardio:      { label: 'Cardio',      short: 'C',  color: 'text-[#30B0C7]' },
 };
 
 export default function ExerciseSetLogger({
   exerciseIdx,
   exerciseName,
-  thumbnailEmoji,
+  thumbnailEmoji: _thumbnailEmoji,
   gifUrl,
   imageUrl,
   exerciseType = 'weight_reps',
@@ -177,10 +200,9 @@ export default function ExerciseSetLogger({
     }
 
     onLogSet(exerciseIdx, setIdx, finalSet);
-    onSetComplete(exerciseIdx, setIdx);
-
-    // Auto-start rest timer
-    if (restSeconds > 0) {
+    if (onSetComplete) {
+      onSetComplete(exerciseIdx, setIdx);
+    } else if (restSeconds > 0) {
       onStartRest(restSeconds);
     }
 
@@ -215,24 +237,26 @@ export default function ExerciseSetLogger({
   const totalSets = sets.length;
 
   return (
-    <div className="bg-[var(--color-surface-container)] rounded-3xl border border-white/[0.04] overflow-hidden animate-card-enter space-y-2">
+    <div className="bg-[#151517] rounded-2xl border border-[#2A2A2D] overflow-hidden space-y-2">
       {/* Exercise Header */}
-      <div className="px-4 sm:px-5 pt-4 pb-2 flex items-center justify-between gap-3">
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0 w-1.5 h-10 bg-primary rounded-full" />
+          <div className="flex-shrink-0 w-1.5 h-9 bg-[#30D158] rounded-full" />
           {imageUrl || gifUrl ? (
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/40 border border-white/10 flex-shrink-0 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 border border-[#2A2A2D] flex-shrink-0 flex items-center justify-center">
               <img src={imageUrl || gifUrl} alt="" className="w-full h-full object-cover" />
             </div>
           ) : (
-            <span className="text-2xl flex-shrink-0">{thumbnailEmoji || '🏋️'}</span>
+            <div className="w-10 h-10 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] flex-shrink-0 flex items-center justify-center text-[#A1A1A6]">
+              <Dumbbell className="w-5 h-5 text-[#30D158]" />
+            </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="font-headline font-extrabold text-sm sm:text-base text-on-surface leading-snug tracking-tight break-words">
+            <h3 className="font-headline font-black text-sm text-[#F5F5F5] uppercase tracking-tight break-words">
               {exerciseName}
             </h3>
-            <p className="text-[10px] text-on-surface-variant uppercase tracking-[0.15em] font-semibold mt-0.5">
-              {completedCount}/{totalSets} Sets · {restSeconds}s Rest
+            <p className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider mt-0.5">
+              {completedCount}/{totalSets} SETS · {restSeconds}S REST
             </p>
           </div>
         </div>
@@ -240,41 +264,27 @@ export default function ExerciseSetLogger({
         {/* Header Right Action - Notes */}
         <button
           onClick={() => setShowNotesEditor(!showNotesEditor)}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all flex-shrink-0 border ${
+          className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0 border ${
             exerciseNotes || showNotesEditor
-              ? 'text-primary bg-primary/10 border-primary/30'
-              : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-white/[0.06] border-white/[0.06]'
+              ? 'text-[#30D158] bg-[#30D158]/10 border-[#30D158]/30'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F5] hover:bg-[#1E1E20] border-[#2A2A2D]'
           }`}
           title="Exercise Notes"
         >
-          <span className="material-symbols-outlined text-[18px]">sticky_note_2</span>
+          <FileText className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Animated Workout Demonstration - Always Visible */}
+      {/* Animated Biomechanical Form Guide — Integrated Media Engine */}
       {(gifUrl || imageUrl) && (
-        <div className="px-3 sm:px-4 py-1.5">
-          <div className="w-full h-48 sm:h-56 rounded-2xl overflow-hidden bg-black relative border border-white/10 flex items-center justify-center shadow-lg group">
-            {gifUrl ? (
-              <img
-                src={gifUrl}
-                alt={exerciseName}
-                className="w-full h-full object-contain p-1"
-                loading="lazy"
-              />
-            ) : (
-              <img
-                src={imageUrl}
-                alt={exerciseName}
-                className="w-full h-full object-cover opacity-85"
-                loading="lazy"
-              />
-            )}
-            <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-sm text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5 z-10 border border-white/10 pointer-events-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Animated Form Guide
-            </div>
-          </div>
+        <div className="px-3 sm:px-4 py-1">
+          <ExerciseMedia
+            gifUrl={gifUrl}
+            imageUrl={imageUrl}
+            exerciseName={exerciseName}
+            aspectRatio="wide"
+            priority={exerciseIdx === 0}
+          />
         </div>
       )}
 
@@ -284,11 +294,11 @@ export default function ExerciseSetLogger({
           {onPrependWarmupSets && (
             <button
               onClick={handleGenerateWarmup}
-              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-primary transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95"
+              className="px-3 py-1.5 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] hover:text-[#4F9CF9] transition-all flex items-center gap-1.5 border border-[#2A2A2D] active:scale-95"
               title="Auto-calculate warm-up ramp sets"
             >
-              <span className="material-symbols-outlined text-[14px] text-[#60A5FA]">whatshot</span>
-              Warmup Ramp
+              <Flame className="w-3.5 h-3.5 text-[#4F9CF9]" />
+              WARMUP RAMP
             </button>
           )}
 
@@ -298,11 +308,11 @@ export default function ExerciseSetLogger({
                 const targetWeight = sets.find(s => s.weight > 0)?.weight || ghostValues[0]?.weight || 0;
                 onOpenPlateCalc(targetWeight);
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-primary transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95"
+              className="px-3 py-1.5 rounded-lg bg-[#1E1E20] hover:bg-[#2A2A2D] text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] hover:text-[#30D158] transition-all flex items-center gap-1.5 border border-[#2A2A2D] active:scale-95"
               title="Barbell Plate Calculator"
             >
-              <span className="material-symbols-outlined text-[14px] text-primary">calculate</span>
-              Plate Calc
+              <Calculator className="w-3.5 h-3.5 text-[#30D158]" />
+              PLATE CALC
             </button>
           )}
         </div>
@@ -310,21 +320,18 @@ export default function ExerciseSetLogger({
 
       {/* Progression Recommendation Banner */}
       {progressionRec && progressionRec.reason && (
-        <div className="mx-4 px-3.5 py-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[16px] flex-shrink-0">
-            trending_up
-          </span>
+        <div className="mx-4 px-3.5 py-2 rounded-xl bg-[#30D158]/5 border border-[#30D158]/20 flex items-center gap-2.5">
+          <TrendingUp className="w-4 h-4 text-[#30D158] flex-shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-primary truncate">
-              Target: {progressionRec.targetWeight > 0 ? `${progressionRec.targetWeight}kg × ` : ''}{progressionRec.targetReps} reps
+            <p className="text-[11px] font-bold text-[#30D158] truncate">
+              TARGET: {progressionRec.targetWeight > 0 ? `${progressionRec.targetWeight}kg × ` : ''}{progressionRec.targetReps} reps
             </p>
-            <p className="text-[10px] text-on-surface-variant truncate">
+            <p className="text-[10px] text-[#A1A1A6] truncate">
               {progressionRec.reason}
             </p>
           </div>
         </div>
       )}
-
       {/* Exercise Notes Box */}
       {showNotesEditor && (
         <div className="mx-4 pb-2">
@@ -333,48 +340,48 @@ export default function ExerciseSetLogger({
             value={exerciseNotes || ''}
             onChange={(e) => onUpdateExerciseNotes?.(e.target.value)}
             placeholder="Notes for this exercise (e.g. 2 notches higher on pin)..."
-            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-on-surface outline-none focus:border-primary/40"
+            className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2 text-xs text-[#F5F5F5] outline-none focus:border-[#30D158]/50"
           />
         </div>
       )}
 
       {/* Set Rows */}
-      <div className="px-3 pb-3 space-y-1.5">
+      <div className="px-3 pb-3 space-y-2">
         {/* Dynamic Column Headers based on Exercise Type */}
-        <div className="grid grid-cols-[36px_1fr_1fr_48px_40px] gap-2 px-2 pb-1">
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Set</span>
+        <div className="grid grid-cols-[34px_1fr_1fr_46px_40px] sm:grid-cols-[40px_1fr_1fr_52px_44px] gap-1.5 sm:gap-2 px-1 sm:px-2 pb-1 items-center">
+          <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Set</span>
           
           {exerciseType === 'timed' ? (
             <>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Duration</span>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Timer</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Duration</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Timer</span>
             </>
           ) : exerciseType === 'cardio' ? (
             <>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Dist (km)</span>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Time (m)</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Dist (km)</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Time (m)</span>
             </>
           ) : exerciseType === 'reps_per_side' ? (
             <>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">L Reps</span>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">R Reps</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">L Reps</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">R Reps</span>
             </>
           ) : exerciseType === 'bodyweight_reps' ? (
             <>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">+Weight</span>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Reps</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">+Kg</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Reps</span>
             </>
           ) : (
             <>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Weight</span>
-              <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Reps</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Kg</span>
+              <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Reps</span>
             </>
           )}
 
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold text-center">
+          <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">
             {effortMode === 'rir' ? 'RIR' : effortMode === 'off' ? 'Note' : 'RPE'}
           </span>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-bold text-center">✓</span>
+          <span className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider font-bold text-center">Done</span>
         </div>
 
         {sets.map((set, setIdx) => {
@@ -388,48 +395,53 @@ export default function ExerciseSetLogger({
           return (
             <div
               key={setIdx}
-              className="relative overflow-hidden rounded-2xl"
+              className="relative overflow-hidden rounded-xl"
               onTouchStart={(e) => handleTouchStart(setIdx, e)}
               onTouchEnd={handleTouchEnd}
             >
               {/* Swipe action */}
               {isSwiped && !isCompleted && (
-                <div className="absolute inset-0 flex items-center justify-end pr-3 bg-error/10 z-10">
+                <div className="absolute inset-0 flex items-center justify-end pr-3 bg-[#FF453A]/10 z-10">
                   <button
                     onClick={() => handleSkip(setIdx)}
-                    className="px-3 py-1.5 bg-error text-white text-[10px] font-bold uppercase tracking-widest rounded-lg active:scale-95"
+                    className="h-10 px-3 bg-[#FF453A] text-white text-[10px] font-bold uppercase tracking-wider rounded-lg active:scale-95 flex items-center gap-1"
                   >
+                    <SkipForward className="w-3.5 h-3.5" />
                     Skip
                   </button>
                   <button
                     onClick={() => onRemoveSet(exerciseIdx, setIdx)}
-                    className="px-3 py-1.5 bg-[var(--color-surface-container-highest)] text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-lg ml-2 active:scale-95"
+                    className="h-10 px-3 bg-[#2A2A2D] text-[#F5F5F5] text-[10px] font-bold uppercase tracking-wider rounded-lg ml-2 active:scale-95 flex items-center gap-1"
                   >
-                    Delete
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Del
                   </button>
                 </div>
               )}
 
               <div
-                className={`grid grid-cols-[36px_1fr_1fr_48px_40px] gap-2 items-center px-2 py-2 rounded-2xl transition-all ${
+                className={`grid grid-cols-[34px_1fr_1fr_46px_40px] sm:grid-cols-[40px_1fr_1fr_52px_44px] gap-1.5 sm:gap-2 items-center px-1.5 sm:px-2 py-2 rounded-xl transition-all ${
+                  set.setType === 'drop' ? 'ml-2.5 sm:ml-4 border-l-2 border-l-[#F5C542] shadow-[-4px_0_12px_rgba(245,197,66,0.1)]' : ''
+                } ${
                   isSkipped
-                    ? 'bg-error/5 opacity-40'
+                    ? 'bg-[#FF453A]/5 opacity-40'
                     : isCompleted
                     ? isPR
-                      ? 'bg-primary/10 border border-primary/30'
-                      : 'bg-[var(--color-surface-container-high)] opacity-80'
-                    : 'bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container-high)]'
+                      ? 'bg-[#30D158]/10 border border-[#30D158]/30'
+                      : 'bg-[#1E1E20]/90 border border-[#30D158]/20'
+                    : 'bg-[#1E1E20] border border-[#2A2A2D] hover:border-[#3A3A3D]'
                 } ${isSwiped ? 'translate-x-[-120px]' : 'translate-x-0'}`}
               >
-                {/* Set number + type indicator button */}
+                {/* Set number + type indicator button (min 44px height) */}
                 <button
                   onClick={() => setExpandedSetType(expandedSetType === setIdx ? null : setIdx)}
-                  className={`text-center text-xs font-black ${typeInfo.color} w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] active:scale-90 transition-transform relative`}
+                  className={`text-center font-mono font-black text-xs ${typeInfo.color} h-11 w-8 sm:w-10 flex items-center justify-center rounded-lg bg-[#080808]/60 border border-[#2A2A2D] active:scale-90 transition-transform relative`}
                   disabled={isCompleted}
+                  title={`Set ${setIdx + 1} (${typeInfo.label})`}
                 >
                   {isSkipped ? '—' : typeInfo.short}
                   {isPR && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center text-[7px] text-black font-black">
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#FF8A00] rounded-full flex items-center justify-center text-[8px] text-black font-black">
                       ★
                     </span>
                   )}
@@ -444,7 +456,7 @@ export default function ExerciseSetLogger({
                     placeholder={ghost?.duration?.toString() || '30'}
                     onChange={(e) => handleInputChange(setIdx, 'duration', e.target.value)}
                     disabled={isCompleted || activeTimerSetIdx === setIdx}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 ) : exerciseType === 'cardio' ? (
                   <input
@@ -455,7 +467,7 @@ export default function ExerciseSetLogger({
                     placeholder="km"
                     onChange={(e) => handleInputChange(setIdx, 'distance', e.target.value)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 ) : exerciseType === 'reps_per_side' ? (
                   <input
@@ -465,7 +477,7 @@ export default function ExerciseSetLogger({
                     placeholder="L"
                     onChange={(e) => handleSideRepsChange(setIdx, 'left', e.target.value)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 ) : (
                   <input
@@ -476,7 +488,7 @@ export default function ExerciseSetLogger({
                     placeholder={ghost?.weight?.toString() || (exerciseType === 'bodyweight_reps' ? 'BW' : '0')}
                     onChange={(e) => handleInputChange(setIdx, 'weight', e.target.value)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 )}
 
@@ -485,16 +497,23 @@ export default function ExerciseSetLogger({
                   <button
                     onClick={() => handleStartSetTimer(setIdx)}
                     disabled={isCompleted}
-                    className={`w-full py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all ${
+                    className={`w-full h-11 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all ${
                       activeTimerSetIdx === setIdx
-                        ? 'bg-primary text-black animate-pulse'
-                        : 'bg-white/[0.04] text-on-surface hover:bg-white/[0.08]'
+                        ? 'bg-[#FF8A00] text-black font-black animate-pulse'
+                        : 'bg-[#080808]/60 text-[#F5F5F5] border border-[#2A2A2D] hover:bg-[#1E1E20]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-sm">
-                      {activeTimerSetIdx === setIdx ? 'pause' : 'timer'}
-                    </span>
-                    {activeTimerSetIdx === setIdx ? `${timerSeconds}s` : 'Start'}
+                    {activeTimerSetIdx === setIdx ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5" />
+                        <span>{timerSeconds}s</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 text-[#30D158]" />
+                        <span>Start</span>
+                      </>
+                    )}
                   </button>
                 ) : exerciseType === 'cardio' ? (
                   <input
@@ -504,7 +523,7 @@ export default function ExerciseSetLogger({
                     placeholder="min"
                     onChange={(e) => handleInputChange(setIdx, 'duration', (parseFloat(e.target.value) || 0) * 60)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 ) : exerciseType === 'reps_per_side' ? (
                   <input
@@ -514,7 +533,7 @@ export default function ExerciseSetLogger({
                     placeholder="R"
                     onChange={(e) => handleSideRepsChange(setIdx, 'right', e.target.value)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 ) : (
                   <input
@@ -524,7 +543,7 @@ export default function ExerciseSetLogger({
                     placeholder={ghost?.reps?.toString() || '0'}
                     onChange={(e) => handleInputChange(setIdx, 'reps', e.target.value)}
                     disabled={isCompleted}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-2 text-sm font-bold text-on-surface text-center outline-none focus:border-primary/50 tabular-nums"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] rounded-lg px-2 text-sm font-mono font-bold text-[#F5F5F5] text-center outline-none focus:border-[#30D158]/50 tabular-nums"
                   />
                 )}
 
@@ -537,76 +556,79 @@ export default function ExerciseSetLogger({
                       handleInputChange(setIdx, 'rpe', isNaN(rir) ? 0 : 10 - rir);
                     }}
                     disabled={isCompleted}
-                    className="bg-white/[0.05] border border-white/[0.08] focus:border-primary/50 rounded-xl px-1 py-2 text-xs font-bold text-on-surface text-center outline-none disabled:opacity-50 appearance-none transition-colors"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] focus:border-[#30D158]/50 rounded-lg px-1 text-xs font-mono font-bold text-[#F5F5F5] text-center outline-none disabled:opacity-50 appearance-none transition-colors"
                   >
-                    <option value="" className="bg-[#1c1c1c] text-white">—</option>
+                    <option value="" className="bg-[#151517] text-white">—</option>
                     {[0, 1, 2, 3, 4].map(v => (
-                      <option key={v} value={v} className="bg-[#1c1c1c] text-white">{v}</option>
+                      <option key={v} value={v} className="bg-[#151517] text-white">{v}</option>
                     ))}
                   </select>
                 ) : effortMode === 'off' ? (
                   <button
                     onClick={() => setActiveSetNoteIdx(activeSetNoteIdx === setIdx ? null : setIdx)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-xl mx-auto ${
-                      set.notes ? 'text-primary bg-primary/10' : 'text-on-surface-variant/40'
+                    className={`h-11 w-full flex items-center justify-center rounded-lg border border-[#2A2A2D] ${
+                      set.notes ? 'text-[#30D158] bg-[#30D158]/10' : 'text-[#6B6B70] bg-[#080808]/60'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[16px]">notes</span>
+                    <FileText className="w-4 h-4" />
                   </button>
                 ) : (
                   <select
                     value={set.rpe || ''}
                     onChange={(e) => handleInputChange(setIdx, 'rpe', e.target.value)}
                     disabled={isCompleted}
-                    className="bg-white/[0.05] border border-white/[0.08] focus:border-primary/50 rounded-xl px-1 py-2 text-xs font-bold text-on-surface text-center outline-none disabled:opacity-50 appearance-none transition-colors"
+                    className="w-full h-11 bg-[#080808]/60 border border-[#2A2A2D] focus:border-[#30D158]/50 rounded-lg px-1 text-xs font-mono font-bold text-[#F5F5F5] text-center outline-none disabled:opacity-50 appearance-none transition-colors"
                   >
-                    <option value="" className="bg-[#1c1c1c] text-white">—</option>
+                    <option value="" className="bg-[#151517] text-white">—</option>
                     {[6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10].map(v => (
-                      <option key={v} value={v} className="bg-[#1c1c1c] text-white">{v}</option>
+                      <option key={v} value={v} className="bg-[#151517] text-white">{v}</option>
                     ))}
                   </select>
                 )}
 
-                {/* Complete button */}
+                {/* Complete button (44px touch target) */}
                 <button
                   onClick={() => handleComplete(setIdx)}
                   disabled={isCompleted}
-                  className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 mx-auto ${
+                  aria-label={isCompleted ? `Set ${setIdx + 1} completed` : `Complete set ${setIdx + 1}`}
+                  className={`w-11 h-11 flex items-center justify-center rounded-lg transition-all active:scale-90 mx-auto ${
                     isCompleted
-                      ? 'bg-[#6FFB85]/20 text-[#6FFB85]'
-                      : 'bg-white/[0.03] text-on-surface-variant hover:bg-primary/10 hover:text-primary'
+                      ? 'bg-[#30D158]/20 text-[#30D158] border border-[#30D158]/40'
+                      : 'bg-[#080808]/60 border border-[#2A2A2D] text-[#A1A1A6] hover:border-[#30D158]/50 hover:text-[#30D158]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[18px]" style={isCompleted ? { fontVariationSettings: "'FILL' 1" } : {}}>
-                    {isCompleted ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
+                  {isCompleted ? (
+                    <CheckCircle2 className="w-5 h-5 text-[#30D158]" />
+                  ) : (
+                    <Circle className="w-5 h-5" />
+                  )}
                 </button>
               </div>
 
               {/* Individual Set Note Input */}
               {activeSetNoteIdx === setIdx && (
-                <div className="px-2 py-1.5 bg-white/[0.02]">
+                <div className="px-2 py-1.5 bg-[#080808]/40 border-x border-b border-[#2A2A2D] rounded-b-xl">
                   <input
                     type="text"
                     value={set.notes || ''}
                     onChange={(e) => handleInputChange(setIdx, 'notes', e.target.value)}
                     placeholder="Set note (e.g. form felt smooth)..."
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1 text-[11px] text-on-surface outline-none"
+                    className="w-full bg-[#151517] border border-[#2A2A2D] rounded-lg px-2.5 py-1 text-[11px] text-[#F5F5F5] outline-none focus:border-[#30D158]/40"
                   />
                 </div>
               )}
 
               {/* Set type picker dropdown */}
               {expandedSetType === setIdx && !isCompleted && (
-                <div className="flex gap-1.5 px-2 py-2 bg-[var(--color-surface-container-high)] rounded-b-2xl animate-in fade-in duration-200">
+                <div className="flex gap-1.5 p-2 bg-[#1E1E20] border-t border-[#2A2A2D] rounded-b-xl">
                   {(Object.entries(SET_TYPE_LABELS) as [SetType, typeof SET_TYPE_LABELS[SetType]][]).map(([type, info]) => (
                     <button
                       key={type}
                       onClick={() => handleSetTypeChange(setIdx, type)}
-                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95 ${
                         set.setType === type
-                          ? 'bg-primary/15 text-primary border border-primary/30'
-                          : 'bg-white/[0.03] text-on-surface-variant hover:bg-white/[0.06]'
+                          ? 'bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30'
+                          : 'bg-[#151517] text-[#A1A1A6] border border-[#2A2A2D] hover:text-[#F5F5F5]'
                       }`}
                     >
                       {info.label}
@@ -618,13 +640,13 @@ export default function ExerciseSetLogger({
           );
         })}
 
-        {/* Add Set */}
+        {/* Add Set Button */}
         <button
           onClick={() => onAddSet(exerciseIdx)}
-          className="w-full py-2.5 rounded-2xl border border-dashed border-white/[0.08] text-[11px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+          className="w-full h-11 rounded-xl border border-dashed border-[#2A2A2D] hover:border-[#30D158]/40 text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6] hover:text-[#30D158] bg-[#151517]/50 hover:bg-[#1E1E20] transition-all active:scale-[0.99] flex items-center justify-center gap-2"
         >
-          <span className="material-symbols-outlined text-[14px]">add</span>
-          Add Set
+          <Plus className="w-4 h-4" />
+          <span>Add Set</span>
         </button>
       </div>
     </div>

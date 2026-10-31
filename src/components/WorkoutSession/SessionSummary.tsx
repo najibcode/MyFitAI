@@ -1,14 +1,15 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Session Summary (post-workout screen)
+// Editorial athletic completion moment: key metrics, muscle training summary, share modal
 // ─────────────────────────────────────────────────────────────
 
 import type { WorkoutSession } from '../../types/workout';
 import { formatDuration, formatVolume } from '../../types/workout';
-import { useState, useMemo } from 'react';
-import type { CSSProperties } from 'react';
+import { useState } from 'react';
 import MuscleHeatmap from '../MuscleHeatmap';
 import ShareableMuscleCardModal from '../share/ShareableMuscleCardModal';
 import { triggerHaptic } from '../../utils/audioFeedback';
+import { CheckCircle2, Trophy, Share2, ArrowRight } from 'lucide-react';
 
 interface SessionSummaryProps {
   session: WorkoutSession;
@@ -18,96 +19,94 @@ interface SessionSummaryProps {
 export default function SessionSummary({ session, onDone }: SessionSummaryProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const hasPRs = session.prsHit.length > 0;
-  const confettiPieces = useMemo(
-    () => Array.from({ length: 30 }, (_, i) => ({
-      left: `${(i * 37) % 100}%`,
-      duration: `${1.5 + ((i * 17) % 20) / 10}s`,
-      delay: `${((i * 7) % 5) / 10}s`,
-      color: ['#FF7A00', '#6FFB85', '#FAB0FF', '#FBBF24', '#60A5FA'][i % 5],
-      rotation: `${360 + ((i * 29) % 360)}deg`,
-    })),
-    []
-  );
+
+  // Compute top stimulated muscle groups from session
+  const muscleVolumeMap: Record<string, number> = {};
+  session.exercises.forEach(ex => {
+    const completedSets = ex.sets.filter(s => s.completed && !s.skipped);
+    const volume = completedSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+    (ex.primaryMuscles || ['chest']).forEach(m => {
+      muscleVolumeMap[m] = (muscleVolumeMap[m] || 0) + volume;
+    });
+  });
+
+  const muscleRankings = Object.entries(muscleVolumeMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+  const maxMuscleVol = Math.max(...Object.values(muscleVolumeMap), 1);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col animate-in fade-in duration-500">
-      {/* Confetti overlay for PRs */}
-      {hasPRs && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-          {confettiPieces.map((piece, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 rounded-full"
-              style={{
-                left: piece.left,
-                top: `-5%`,
-                backgroundColor: piece.color,
-                '--confetti-rotation': piece.rotation,
-                animation: `confettiFall ${piece.duration} ease-in ${piece.delay} forwards`,
-              } as CSSProperties & { '--confetti-rotation': string }}
-            />
-          ))}
-          <style>{`
-            @keyframes confettiFall {
-              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-              100% { transform: translateY(110vh) rotate(var(--confetti-rotation)); opacity: 0; }
-            }
-          `}</style>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto px-6 pt-16 pb-32 max-w-md mx-auto w-full relative z-10">
-        {/* Top badge */}
+    <div className="fixed inset-0 z-[100] bg-[#080808] flex flex-col overflow-y-auto">
+      <div className="flex-1 px-4 sm:px-6 pt-12 pb-32 max-w-xl mx-auto w-full">
+        {/* Editorial Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary/10 border-2 border-primary/30 mb-4 animate-scale-in">
-            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {hasPRs ? 'emoji_events' : 'check_circle'}
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#30D158]/10 border border-[#30D158]/30 mb-4 text-[#30D158]">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+          <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-[#30D158] font-bold block mb-1">
+            SESSION CONCLUDED
+          </span>
+          <h1 className="font-headline font-black text-3xl sm:text-4xl text-[#F5F5F5] uppercase tracking-tight">
+            WORKOUT COMPLETE
+          </h1>
+          <p className="text-[#A1A1A6] text-xs font-mono uppercase tracking-wider mt-1">
+            {session.templateName || 'Training Session'}
+          </p>
+        </div>
+
+        {/* 4-Stat Typographic Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8">
+          <div className="bg-[#151517] border border-[#2A2A2D] rounded-xl p-3 text-center">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#A1A1A6] block mb-1">DURATION</span>
+            <span className="font-mono font-black text-xl text-[#F5F5F5] tabular-nums">
+              {formatDuration(session.duration)}
             </span>
           </div>
-          <h1 className="font-headline font-black text-3xl tracking-tight mb-1">
-            {hasPRs ? 'New Records!' : 'Workout Complete'}
-          </h1>
-          <p className="text-on-surface-variant text-sm">{session.templateName}</p>
+
+          <div className="bg-[#151517] border border-[#2A2A2D] rounded-xl p-3 text-center">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#A1A1A6] block mb-1">SETS COMPLETED</span>
+            <span className="font-mono font-black text-xl text-[#F5F5F5] tabular-nums">
+              {session.totalSets}
+            </span>
+          </div>
+
+          <div className="bg-[#151517] border border-[#2A2A2D] rounded-xl p-3 text-center">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#A1A1A6] block mb-1">VOLUME</span>
+            <span className="font-mono font-black text-xl text-[#30D158] tabular-nums">
+              {formatVolume(session.totalVolume)}
+            </span>
+          </div>
+
+          <div className="bg-[#151517] border border-[#2A2A2D] rounded-xl p-3 text-center">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#A1A1A6] block mb-1">RECORDS</span>
+            <span className={`font-mono font-black text-xl tabular-nums ${hasPRs ? 'text-[#FF8A00]' : 'text-[#A1A1A6]'}`}>
+              {session.prsHit.length} PRs
+            </span>
+          </div>
         </div>
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {[
-            { label: 'Duration', value: formatDuration(session.duration), icon: 'timer' },
-            { label: 'Volume', value: formatVolume(session.totalVolume), unit: 'lbs', icon: 'fitness_center' },
-            { label: 'Sets', value: session.totalSets.toString(), icon: 'repeat' },
-            { label: 'Exercises', value: session.exercises.length.toString(), icon: 'list' },
-          ].map(stat => (
-            <div key={stat.label} className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/[0.04]">
-              <span className="material-symbols-outlined text-primary text-lg mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>{stat.icon}</span>
-              <p className="font-headline font-black text-2xl tabular-nums">{stat.value}
-                {stat.unit && <span className="text-xs font-normal text-on-surface-variant ml-1">{stat.unit}</span>}
-              </p>
-              <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mt-0.5">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* PRs section */}
+        {/* Personal Records Banner (if any) */}
         {hasPRs && (
-          <div className="mb-6">
-            <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-primary mb-3 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[14px]">emoji_events</span>
-              Personal Records ({session.prsHit.length})
-            </h3>
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="w-4 h-4 text-[#FF8A00]" />
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#FF8A00] font-bold">
+                PERSONAL RECORDS ACHIEVED ({session.prsHit.length})
+              </h3>
+            </div>
             <div className="space-y-2">
               {session.prsHit.map((pr, i) => (
-                <div key={i} className="bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div key={i} className="bg-[#151517] border border-[#FF8A00]/30 rounded-xl px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-sm text-on-surface">{pr.exerciseName}</p>
-                    <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">
-                      {pr.type === '1rm' ? 'Est. 1RM' : pr.type} PR
+                    <p className="font-bold text-sm text-[#F5F5F5]">{pr.exerciseName}</p>
+                    <p className="text-[10px] text-[#A1A1A6] font-mono uppercase tracking-wider">
+                      {pr.type === '1rm' ? 'ESTIMATED 1RM' : pr.type} RECORD
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-headline font-black text-lg text-primary tabular-nums">{pr.value}</p>
+                    <p className="font-mono font-black text-lg text-[#FF8A00] tabular-nums">{pr.value}</p>
                     {pr.previousValue && (
-                      <p className="text-[10px] text-on-surface-variant">was {pr.previousValue}</p>
+                      <p className="text-[10px] text-[#A1A1A6] font-mono">prev {pr.previousValue}</p>
                     )}
                   </div>
                 </div>
@@ -116,48 +115,83 @@ export default function SessionSummary({ session, onDone }: SessionSummaryProps)
           </div>
         )}
 
-        {/* Exercise summary */}
-        <div className="mb-6">
-          <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-3">Exercise Breakdown</h3>
+        {/* Muscle Stimulus Progress Bars */}
+        {muscleRankings.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono uppercase tracking-wider text-[#A1A1A6] font-bold">
+                MUSCLE TRAINING STIMULUS
+              </span>
+              <span className="text-[10px] font-mono text-[#30D158] uppercase">Relative Load</span>
+            </div>
+
+            <div className="space-y-2.5 bg-[#151517] border border-[#2A2A2D] rounded-xl p-4">
+              {muscleRankings.map(([muscle, vol]) => {
+                const pct = Math.min(100, Math.round((vol / maxMuscleVol) * 100));
+                return (
+                  <div key={muscle} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold uppercase tracking-wider text-[#F5F5F5]">
+                        {muscle.replace('_', ' ')}
+                      </span>
+                      <span className="font-mono text-[#A1A1A6] tabular-nums">{formatVolume(vol)}</span>
+                    </div>
+                    <div className="w-full h-2 bg-[#1E1E20] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#30D158] rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Exercise Performance Breakdown */}
+        <div className="mb-8">
+          <h3 className="text-xs font-mono uppercase tracking-wider text-[#A1A1A6] font-bold mb-3">
+            EXERCISE BREAKDOWN
+          </h3>
           <div className="space-y-2">
             {session.exercises.map((ex, i) => {
               const completedSets = ex.sets.filter(s => s.completed && !s.skipped);
               const exVolume = completedSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
               return (
-                <div key={i} className="bg-[var(--color-surface-container)] rounded-xl px-4 py-3 flex items-center justify-between border border-white/[0.03]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-6 bg-primary/40 rounded-full" />
+                <div key={i} className="bg-[#151517] border border-[#2A2A2D] rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-[#A1A1A6] font-bold">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
                     <div>
-                      <p className="font-bold text-sm text-on-surface">{ex.exerciseName}</p>
-                      <p className="text-[10px] text-on-surface-variant">{completedSets.length} sets</p>
+                      <p className="font-bold text-sm text-[#F5F5F5] uppercase tracking-tight">{ex.exerciseName}</p>
+                      <p className="text-[10px] text-[#A1A1A6] font-mono">{completedSets.length} sets completed</p>
                     </div>
                   </div>
-                  <span className="font-mono text-sm font-bold text-on-surface-variant tabular-nums">{formatVolume(exVolume)}</span>
+                  <span className="font-mono text-xs font-bold text-[#F5F5F5] tabular-nums">{formatVolume(exVolume)}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Muscle Training Map & Share Progress Card */}
-        <div className="mb-6 p-4 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.04]">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">accessibility_new</span>
-              <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-on-surface">
-                Muscles Stimulated
-              </h3>
-            </div>
+        {/* Muscle Training Map & Share */}
+        <div className="mb-8 p-4 rounded-xl bg-[#151517] border border-[#2A2A2D]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-mono uppercase tracking-wider text-[#F5F5F5] font-bold">
+              ANATOMICAL HEATMAP
+            </h3>
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('light');
                 setShowShareModal(true);
               }}
-              className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all"
+              className="px-3 py-1.5 rounded-lg bg-[#30D158]/10 hover:bg-[#30D158]/20 text-[#30D158] border border-[#30D158]/30 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
             >
-              <span className="material-symbols-outlined text-xs">share</span>
-              Share Card
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Share Card</span>
             </button>
           </div>
 
@@ -171,30 +205,33 @@ export default function SessionSummary({ session, onDone }: SessionSummaryProps)
             interactive={false}
             className="scale-95 origin-top"
           />
+        </div>
 
+        {/* Dual Actions: [ VIEW ANALYSIS ] & [ SHARE PROGRESS ] */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           <button
             type="button"
             onClick={() => {
               triggerHaptic('medium');
               setShowShareModal(true);
             }}
-            className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-transparent hover:border-primary/40 border border-primary/30 text-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
+            className="h-12 rounded-xl bg-[#151517] border border-[#2A2A2D] text-[#F5F5F5] hover:bg-[#1E1E20] font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-base">share</span>
-            Share Workout & Muscle Map
+            <Share2 className="w-4 h-4 text-[#30D158]" />
+            <span>Share Progress</span>
+          </button>
+
+          <button
+            onClick={onDone}
+            className="h-12 rounded-xl bg-[#30D158] hover:bg-[#5EEB78] text-black font-mono font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-[#30D158]/10"
+          >
+            <span>Finish & Save</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background to-transparent z-20">
-        <button onClick={onDone}
-          className="w-full max-w-md mx-auto block bg-primary text-on-primary py-4 rounded-2xl font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform shadow-lg">
-          Done
-        </button>
-      </div>
-
-      {/* Share Card Modal */}
+      {/* Share Progress Card Modal */}
       <ShareableMuscleCardModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -204,3 +241,4 @@ export default function SessionSummary({ session, onDone }: SessionSummaryProps)
     </div>
   );
 }
+
