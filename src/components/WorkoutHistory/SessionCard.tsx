@@ -1,9 +1,11 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Session Card (compact history card)
+// Athletic Personal Operating System UI/UX
 // ─────────────────────────────────────────────────────────────
 
 import type { WorkoutSession } from '../../types/workout';
 import { formatDuration, formatVolume } from '../../types/workout';
+import { Trophy, Trash2, Clock, Dumbbell, Repeat } from 'lucide-react';
 
 interface SessionCardProps {
   session: WorkoutSession;
@@ -27,49 +29,63 @@ export default function SessionCard({ session, onTap, onDelete }: SessionCardPro
   return (
     <div
       onClick={() => onTap(session.id)}
-      className="bg-[var(--color-surface-container)] rounded-2xl border border-white/[0.04] p-4 cursor-pointer hover:bg-[var(--color-surface-container-high)] transition-all active:scale-[0.98] group relative"
+      className="bg-[#151517] rounded-2xl border border-[#2A2A2D] p-4 cursor-pointer hover:border-[#3A3A3D] transition-all active:scale-[0.99] group relative space-y-3"
     >
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h4 className="font-headline font-bold text-sm text-on-surface truncate">{session.templateName}</h4>
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-headline font-bold text-sm text-[#F5F5F5] truncate">
+              {session.templateName}
+            </h4>
             {hasPRs && (
-              <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0 flex items-center gap-0.5">
-                <span className="material-symbols-outlined text-[10px]">emoji_events</span>
+              <span className="bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30 text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md flex-shrink-0 flex items-center gap-1">
+                <Trophy className="w-3 h-3" />
                 {session.prsHit.length} PR{session.prsHit.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">{relativeDate(session.startedAt)}</p>
+          <p className="text-[10px] font-mono font-semibold text-[#A1A1A6] uppercase tracking-wider">
+            {relativeDate(session.startedAt)}
+          </p>
         </div>
+
         <button
-          onClick={(e) => { e.stopPropagation(); onDelete(session.id); }}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant/0 group-hover:text-on-surface-variant/50 hover:text-error hover:bg-error/10 transition-all active:scale-90"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(session.id);
+          }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B6B70] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-all active:scale-90"
+          aria-label="Delete Session"
         >
-          <span className="material-symbols-outlined text-[14px]">delete</span>
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-on-surface-variant">
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">timer</span>
-          {formatDuration(session.duration)}
+      <div className="flex items-center gap-4 text-xs font-mono text-[#A1A1A6]">
+        <span className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-[#30D158]" />
+          <span className="tabular-nums">{formatDuration(session.duration)}</span>
         </span>
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">fitness_center</span>
-          {formatVolume(session.totalVolume)} lbs
+        <span className="flex items-center gap-1.5">
+          <Dumbbell className="w-3.5 h-3.5 text-[#FF8A00]" />
+          <span className="tabular-nums">{formatVolume(session.totalVolume)} kg</span>
         </span>
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">repeat</span>
-          {session.totalSets} sets
+        <span className="flex items-center gap-1.5">
+          <Repeat className="w-3.5 h-3.5 text-[#4F9CF9]" />
+          <span className="tabular-nums">{session.totalSets} sets</span>
         </span>
       </div>
 
       {/* Muscle badges */}
       {session.musclesWorked.length > 0 && (
-        <div className="flex gap-1 mt-2 flex-wrap">
+        <div className="flex gap-1.5 pt-1 flex-wrap">
           {session.musclesWorked.slice(0, 4).map(m => (
-            <span key={m} className="text-[8px] uppercase tracking-wider bg-white/[0.03] text-on-surface-variant px-1.5 py-0.5 rounded font-semibold">{m}</span>
+            <span
+              key={m}
+              className="text-[9px] font-mono uppercase tracking-wider bg-[#1E1E20] border border-[#2A2A2D] text-[#A1A1A6] px-2 py-0.5 rounded font-medium"
+            >
+              {m}
+            </span>
           ))}
         </div>
       )}
