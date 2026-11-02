@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../utils/db';
+import { ArrowLeft } from 'lucide-react';
 import type { Exercise, MuscleGroup, EquipmentType, ExerciseType, BodyPart, ExerciseDifficulty, ExerciseCategory, MovementPattern } from '../types/exercise';
 import {
   ALL_BODY_PARTS, ALL_EQUIPMENT, ALL_EXERCISE_TYPES, ALL_MUSCLE_GROUPS,
@@ -92,10 +93,14 @@ export default function CustomExerciseCreator() {
     <main className="max-w-md mx-auto px-5 pt-6 pb-32">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface active:scale-90 transition-transform">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] active:scale-95 transition-all"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-headline font-extrabold text-xl tracking-tight">Create Exercise</h1>
+        <h1 className="font-headline font-black text-xl text-[#F5F5F5] uppercase tracking-tight">Create Custom Exercise</h1>
       </div>
 
       <div className="space-y-5">

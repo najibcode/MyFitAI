@@ -2,6 +2,7 @@
 // MyFitAI — Exercise Library Browser (Full Page)
 // Searchable, filterable exercise database with dynamic filters,
 // categorized sections, and inline exercise previews.
+// Athletic Personal Operating System UI/UX
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useMemo, useCallback } from 'react';
@@ -12,6 +13,7 @@ import {
   getAvailableFilters,
   type ExerciseLibraryEntry,
 } from '../data/exerciseLibrary';
+import ExerciseMedia from '../components/media/ExerciseMedia';
 import {
   ALL_BODY_PARTS,
   ALL_EQUIPMENT,
@@ -24,6 +26,17 @@ import {
   type MuscleGroup,
   type ExerciseType,
 } from '../types/exercise';
+import {
+  ArrowLeft,
+  X,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  SearchX,
+  ChevronRight,
+  AlertTriangle,
+  Dumbbell,
+} from 'lucide-react';
 
 interface ExerciseLibraryProps {
   /** If in picker mode, called when user selects an exercise */
@@ -91,62 +104,78 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
   };
 
   return (
-    <main className={`max-w-md mx-auto ${isPickerMode ? 'px-0 pt-0 pb-4' : 'px-5 pt-6 pb-32'}`}>
+    <main className={`max-w-xl mx-auto ${isPickerMode ? 'px-0 pt-0 pb-4' : 'px-4 sm:px-6 pt-6 pb-28'}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 border-b border-[#2A2A2D] pb-4">
         <div className="flex items-center gap-3">
           {!isPickerMode ? (
-            <button onClick={() => navigate('/workout')} className="w-9 h-9 rounded-xl bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface active:scale-90 transition-transform">
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <button
+              onClick={() => navigate('/workout')}
+              className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] active:scale-95 transition-all"
+              aria-label="Back to Workout"
+            >
+              <ArrowLeft className="w-5 h-5" />
             </button>
           ) : (
-            <button onClick={onClose} className="w-9 h-9 rounded-xl bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface active:scale-90 transition-transform">
-              <span className="material-symbols-outlined text-[18px]">close</span>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] active:scale-95 transition-all"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
             </button>
           )}
           <div>
-            <h1 className="font-headline font-extrabold text-xl tracking-tight">
-              {isPickerMode ? 'Add Exercise' : 'Exercise Library'}
+            <h1 className="font-headline font-black text-xl sm:text-2xl text-[#F5F5F5] uppercase tracking-tight">
+              {isPickerMode ? 'Select Exercise' : 'Exercise Database'}
             </h1>
-            <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">
-              {EXERCISE_LIBRARY.length} exercises
+            <p className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider font-semibold">
+              {EXERCISE_LIBRARY.length} anatomical movements
             </p>
           </div>
         </div>
         <button
           onClick={() => navigate('/workout/exercises/custom')}
-          className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform"
+          className="w-10 h-10 rounded-xl bg-[#30D158]/15 border border-[#30D158]/30 flex items-center justify-center text-[#30D158] hover:bg-[#30D158]/25 active:scale-95 transition-all"
+          title="Create Custom Exercise"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <Plus className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
 
       {/* Search + Filter Toggle */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2.5 mb-4">
         <div className="flex-1 relative">
-          <span className="material-symbols-outlined text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2 text-[18px]">search</span>
+          <Search className="w-4 h-4 text-[#6B6B70] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search exercises..."
-            className="w-full bg-[var(--color-surface-container)] border border-white/[0.04] rounded-xl pl-10 pr-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary/40 transition-colors"
+            placeholder="Search exercise, muscle, or movement..."
+            className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl pl-10 pr-10 py-3 text-xs sm:text-sm text-[#F5F5F5] placeholder:text-[#6B6B70] outline-none focus:border-[#30D158] transition-colors"
           />
           {query && (
-            <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant active:scale-90">
-              <span className="material-symbols-outlined text-[16px]">close</span>
+            <button
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B70] hover:text-[#F5F5F5] active:scale-90"
+              aria-label="Clear Search"
+            >
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-90 relative ${
-            hasActiveFilters ? 'bg-primary text-on-primary' : 'bg-[var(--color-surface-container)] text-on-surface-variant'
+          className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-95 relative border ${
+            hasActiveFilters
+              ? 'bg-[#30D158] text-black border-[#30D158] shadow-sm'
+              : 'bg-[#151517] text-[#A1A1A6] border-[#2A2A2D] hover:text-[#F5F5F5]'
           }`}
+          aria-label="Filter Options"
         >
-          <span className="material-symbols-outlined text-[20px]">tune</span>
+          <SlidersHorizontal className="w-4 h-4" />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] text-black text-[9px] font-black rounded-full flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}
@@ -155,21 +184,23 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
 
       {/* Filter Chips */}
       {showFilters && (
-        <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 mb-4 border border-white/[0.04] space-y-4 animate-in slide-in-from-top duration-200">
+        <div className="bg-[#151517] rounded-2xl p-4 mb-4 border border-[#2A2A2D] space-y-4 animate-in fade-in duration-200">
           {/* Body Part */}
           <div>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Body Part</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6] mb-2">
+              Anatomical Region
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {ALL_BODY_PARTS.map(bp => (
                 <button
                   key={bp}
                   onClick={() => setBodyPartFilter(bodyPartFilter === bp ? '' : bp)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all active:scale-95 border ${
                     bodyPartFilter === bp
-                      ? 'bg-primary text-on-primary'
+                      ? 'bg-[#30D158] text-black border-[#30D158]'
                       : availableFilters.bodyParts.includes(bp)
-                      ? 'bg-white/[0.04] text-on-surface hover:bg-white/[0.08]'
-                      : 'bg-white/[0.02] text-on-surface-variant/30'
+                      ? 'bg-[#1E1E20] text-[#F5F5F5] border-[#2A2A2D] hover:border-[#3A3A3D]'
+                      : 'bg-[#1E1E20]/40 text-[#6B6B70] border-[#2A2A2D] opacity-40'
                   }`}
                   disabled={!availableFilters.bodyParts.includes(bp) && bodyPartFilter !== bp}
                 >
@@ -181,16 +212,20 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
 
           {/* Equipment */}
           <div>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Equipment</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6] mb-2">
+              Equipment
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {ALL_EQUIPMENT.filter(eq => availableFilters.equipment.includes(eq) || equipmentFilter === eq).map(eq => (
+              {ALL_EQUIPMENT.filter(
+                eq => availableFilters.equipment.includes(eq) || equipmentFilter === eq
+              ).map(eq => (
                 <button
                   key={eq}
                   onClick={() => setEquipmentFilter(equipmentFilter === eq ? '' : eq)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all active:scale-95 border ${
                     equipmentFilter === eq
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-white/[0.04] text-on-surface hover:bg-white/[0.08]'
+                      ? 'bg-[#30D158] text-black border-[#30D158]'
+                      : 'bg-[#1E1E20] text-[#F5F5F5] border-[#2A2A2D] hover:border-[#3A3A3D]'
                   }`}
                 >
                   {EQUIPMENT_LABELS[eq]}
@@ -201,16 +236,18 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
 
           {/* Exercise Type */}
           <div>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Type</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6] mb-2">
+              Type / Metric
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {availableFilters.exerciseTypes.map(t => (
                 <button
                   key={t}
                   onClick={() => setExerciseTypeFilter(exerciseTypeFilter === t ? '' : t)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all active:scale-95 border ${
                     exerciseTypeFilter === t
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-white/[0.04] text-on-surface hover:bg-white/[0.08]'
+                      ? 'bg-[#30D158] text-black border-[#30D158]'
+                      : 'bg-[#1E1E20] text-[#F5F5F5] border-[#2A2A2D] hover:border-[#3A3A3D]'
                   }`}
                 >
                   {EXERCISE_TYPE_LABELS[t]}
@@ -220,7 +257,10 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
           </div>
 
           {hasActiveFilters && (
-            <button onClick={clearFilters} className="text-error text-[11px] font-bold uppercase tracking-wider active:scale-95">
+            <button
+              onClick={clearFilters}
+              className="text-[#FF453A] text-xs font-mono font-bold uppercase tracking-wider hover:underline pt-1 block"
+            >
               Clear All Filters
             </button>
           )}
@@ -229,8 +269,8 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
 
       {/* Results Count */}
       {(query || hasActiveFilters) && (
-        <p className="text-[11px] text-on-surface-variant mb-3 font-semibold">
-          {results.length} exercise{results.length !== 1 ? 's' : ''} found
+        <p className="text-xs font-mono text-[#A1A1A6] mb-3">
+          {results.length} exercise{results.length !== 1 ? 's' : ''} matched
         </p>
       )}
 
@@ -238,10 +278,11 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
       {grouped ? (
         <div className="space-y-6">
           {[...grouped.entries()].map(([bodyPart, exercises]) => (
-            <div key={bodyPart}>
-              <h2 className="text-[11px] uppercase tracking-[0.2em] font-bold text-primary mb-3 flex items-center gap-2">
-                <span className="w-1 h-4 bg-primary rounded-full" />
-                {BODY_PART_LABELS[bodyPart]} · {exercises.length}
+            <div key={bodyPart} className="space-y-2.5">
+              <h2 className="text-xs font-mono uppercase tracking-wider font-bold text-[#30D158] flex items-center gap-2">
+                <span className="w-1 h-3.5 bg-[#30D158] rounded-full" />
+                <span>{BODY_PART_LABELS[bodyPart]}</span>
+                <span className="text-[#6B6B70] font-normal">({exercises.length})</span>
               </h2>
               <div className="space-y-1.5">
                 {exercises.map((ex, i) => (
@@ -258,10 +299,10 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
             <ExerciseRow key={i} entry={ex} onTap={handleExerciseTap} />
           ))}
           {results.length === 0 && (
-            <div className="text-center py-16">
-              <span className="material-symbols-outlined text-5xl text-on-surface-variant/20 mb-3 block">search_off</span>
-              <p className="font-headline font-bold text-lg text-on-surface-variant/50 mb-1">No exercises found</p>
-              <p className="text-on-surface-variant/30 text-sm">Try adjusting your search or filters.</p>
+            <div className="text-center py-16 bg-[#151517] rounded-3xl border border-[#2A2A2D] p-6 space-y-2">
+              <SearchX className="w-8 h-8 text-[#6B6B70] mx-auto" />
+              <p className="font-headline font-bold text-base text-[#F5F5F5]">No exercises found</p>
+              <p className="text-xs text-[#A1A1A6]">Try adjusting keywords or relaxing filters.</p>
             </div>
           )}
         </div>
@@ -277,14 +318,20 @@ export default function ExerciseLibrary({ onPick, isPickerMode, onClose }: Exerc
 
 // ─── Exercise Row ───────────────────────────────────────────
 
-function ExerciseRow({ entry, onTap }: { entry: ExerciseLibraryEntry; onTap: (e: ExerciseLibraryEntry) => void }) {
+function ExerciseRow({
+  entry,
+  onTap,
+}: {
+  entry: ExerciseLibraryEntry;
+  onTap: (e: ExerciseLibraryEntry) => void;
+}) {
   const thumb = entry.imageUrl || entry.gifUrl;
   return (
     <button
       onClick={() => onTap(entry)}
-      className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-[var(--color-surface-container)] border border-white/[0.04] hover:bg-[var(--color-surface-container-high)] hover:border-white/10 transition-all active:scale-[0.98] text-left group"
+      className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-[#151517] border border-[#2A2A2D] hover:border-[#3A3A3D] transition-all active:scale-[0.99] text-left group"
     >
-      <div className="w-12 h-12 rounded-xl bg-black/40 overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center relative shadow-sm">
+      <div className="w-12 h-12 rounded-xl bg-[#1E1E20] overflow-hidden flex-shrink-0 border border-[#2A2A2D] flex items-center justify-center relative shadow-sm">
         {thumb ? (
           <img
             src={thumb}
@@ -293,24 +340,31 @@ function ExerciseRow({ entry, onTap }: { entry: ExerciseLibraryEntry; onTap: (e:
             loading="lazy"
           />
         ) : (
-          <span className="text-2xl">{entry.emoji}</span>
+          <Dumbbell className="w-5 h-5 text-[#30D158]" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-headline font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{entry.name}</p>
-        <p className="text-[10px] text-on-surface-variant truncate">
-          {entry.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(', ')} · {EQUIPMENT_LABELS[entry.equipment] || entry.equipment}
+        <p className="font-headline font-bold text-sm text-[#F5F5F5] truncate group-hover:text-[#30D158] transition-colors">
+          {entry.name}
+        </p>
+        <p className="text-[11px] font-mono text-[#A1A1A6] truncate mt-0.5">
+          {entry.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(', ')} ·{' '}
+          {EQUIPMENT_LABELS[entry.equipment] || entry.equipment}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider ${
-          entry.difficulty === 'beginner' ? 'bg-[#6FFB85]/10 text-[#6FFB85]' :
-          entry.difficulty === 'intermediate' ? 'bg-[#FBBF24]/10 text-[#FBBF24]' :
-          'bg-error/10 text-error'
-        }`}>
+        <span
+          className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${
+            entry.difficulty === 'beginner'
+              ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
+              : entry.difficulty === 'intermediate'
+              ? 'bg-[#F5C542]/10 text-[#F5C542] border-[#F5C542]/20'
+              : 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/20'
+          }`}
+        >
           {entry.difficulty}
         </span>
-        <span className="material-symbols-outlined text-[16px] text-on-surface-variant/30 group-hover:text-primary transition-colors">chevron_right</span>
+        <ChevronRight className="w-4 h-4 text-[#6B6B70] group-hover:text-[#F5F5F5] transition-colors" />
       </div>
     </button>
   );
@@ -318,91 +372,116 @@ function ExerciseRow({ entry, onTap }: { entry: ExerciseLibraryEntry; onTap: (e:
 
 // ─── Exercise Detail Modal ──────────────────────────────────
 
-function ExerciseDetailModal({ entry, onClose }: { entry: ExerciseLibraryEntry; onClose: () => void }) {
+function ExerciseDetailModal({
+  entry,
+  onClose,
+}: {
+  entry: ExerciseLibraryEntry;
+  onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] rounded-t-3xl w-full max-w-md max-h-[85vh] overflow-y-auto border-t border-white/[0.06] shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#151517] rounded-t-3xl w-full max-w-xl max-h-[85vh] overflow-y-auto border-t border-[#2A2A2D] shadow-2xl animate-slide-up [scrollbar-width:none]">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 bg-white/10 rounded-full" />
+          <div className="w-10 h-1 bg-[#2A2A2D] rounded-full" />
         </div>
 
-        {/* Animated GIF demonstration */}
+        {/* Animated Demonstration */}
         {(entry.gifUrl || entry.imageUrl) && (
-          <div className="relative mx-4 rounded-2xl overflow-hidden mb-4 aspect-video bg-black flex items-center justify-center border border-white/10 shadow-xl">
-            <img
-              src={entry.gifUrl || entry.imageUrl}
-              alt={entry.name}
-              className="w-full h-full object-contain p-1"
-              loading="eager"
+          <div className="mx-5 mb-4 rounded-2xl overflow-hidden border border-[#2A2A2D] shadow-xl">
+            <ExerciseMedia
+              gifUrl={entry.gifUrl}
+              imageUrl={entry.imageUrl}
+              exerciseName={entry.name}
+              primaryMuscle={entry.primaryMuscles[0]}
+              aspectRatio="wide"
             />
-            <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-bold uppercase tracking-wider text-white flex items-center gap-1.5 shadow-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Animated Form Guide
-            </div>
           </div>
         )}
 
         {/* Header */}
         <div className="px-5 mb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">{entry.emoji}</span>
+          <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <h2 className="font-headline font-extrabold text-xl tracking-tight">{entry.name}</h2>
+              <h2 className="font-headline font-black text-xl text-[#F5F5F5] uppercase tracking-tight">
+                {entry.name}
+              </h2>
               {entry.aliases && entry.aliases.length > 0 && (
-                <p className="text-[10px] text-on-surface-variant">
-                  Also: {entry.aliases.join(', ')}
+                <p className="text-[11px] font-mono text-[#A1A1A6] mt-0.5">
+                  Aliases: {entry.aliases.join(', ')}
                 </p>
               )}
             </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5]"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1.5 mt-3">
-            <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-1 rounded-lg bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20 text-[10px] font-mono font-bold uppercase tracking-wider">
               {BODY_PART_LABELS[entry.bodyPart]}
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-1 rounded-lg bg-[#1E1E20] text-[#A1A1A6] border border-[#2A2A2D] text-[10px] font-mono font-bold uppercase tracking-wider">
               {EQUIPMENT_LABELS[entry.equipment]}
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-1 rounded-lg bg-[#1E1E20] text-[#A1A1A6] border border-[#2A2A2D] text-[10px] font-mono font-bold uppercase tracking-wider">
               {EXERCISE_TYPE_LABELS[entry.exerciseType]}
             </span>
-            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-              entry.difficulty === 'beginner' ? 'bg-[#6FFB85]/10 text-[#6FFB85]' :
-              entry.difficulty === 'intermediate' ? 'bg-[#FBBF24]/10 text-[#FBBF24]' :
-              'bg-error/10 text-error'
-            }`}>
+            <span
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                entry.difficulty === 'beginner'
+                  ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
+                  : entry.difficulty === 'intermediate'
+                  ? 'bg-[#F5C542]/10 text-[#F5C542] border-[#F5C542]/20'
+                  : 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/20'
+              }`}
+            >
               {entry.difficulty}
             </span>
           </div>
         </div>
 
         {/* Muscles */}
-        <div className="px-5 mb-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Target Muscles</h3>
+        <div className="px-5 mb-4 space-y-1.5">
+          <h3 className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6]">
+            Targeted Musculature
+          </h3>
           <div className="flex flex-wrap gap-1.5">
             {entry.primaryMuscles.map(m => (
-              <span key={m} className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold">
-                {MUSCLE_GROUP_LABELS[m]}
+              <span
+                key={m}
+                className="px-2.5 py-1 rounded-lg bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30 text-[10px] font-mono font-bold"
+              >
+                {MUSCLE_GROUP_LABELS[m]} (Primary)
               </span>
             ))}
             {entry.secondaryMuscles.map(m => (
-              <span key={m} className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-on-surface-variant text-[10px] font-bold">
-                {MUSCLE_GROUP_LABELS[m]}
+              <span
+                key={m}
+                className="px-2.5 py-1 rounded-lg bg-[#1E1E20] text-[#A1A1A6] border border-[#2A2A2D] text-[10px] font-mono font-semibold"
+              >
+                {MUSCLE_GROUP_LABELS[m]} (Synergist)
               </span>
             ))}
           </div>
         </div>
 
         {/* Instructions */}
-        <div className="px-5 mb-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Instructions</h3>
+        <div className="px-5 mb-4 space-y-2">
+          <h3 className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6]">
+            Biomechanical Execution Steps
+          </h3>
           <ol className="space-y-2">
             {entry.instructions.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm text-on-surface">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">
+              <li key={i} className="flex gap-3 text-xs leading-relaxed text-[#F5F5F5]">
+                <span className="flex-shrink-0 w-5 h-5 rounded-md bg-[#30D158]/15 text-[#30D158] text-[10px] font-mono font-bold flex items-center justify-center">
                   {i + 1}
                 </span>
                 <span className="pt-0.5">{step}</span>
@@ -412,30 +491,40 @@ function ExerciseDetailModal({ entry, onClose }: { entry: ExerciseLibraryEntry; 
         </div>
 
         {/* Tips */}
-        <div className="px-5 mb-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant mb-2">Pro Tips</h3>
-          <div className="bg-primary/5 border border-primary/10 rounded-xl px-4 py-3">
-            <p className="text-sm text-on-surface">{entry.tips}</p>
+        {entry.tips && (
+          <div className="px-5 mb-4 space-y-1.5">
+            <h3 className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#A1A1A6]">
+              Coaching Cue
+            </h3>
+            <div className="bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-4 py-3">
+              <p className="text-xs text-[#F5F5F5] leading-relaxed">{entry.tips}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Safety Notes */}
         {entry.safetyNotes && entry.safetyNotes.length > 0 && (
-          <div className="px-5 mb-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-error mb-2">Safety</h3>
-            <div className="bg-error/5 border border-error/10 rounded-xl px-4 py-3 space-y-1">
+          <div className="px-5 mb-4 space-y-1.5">
+            <h3 className="text-[10px] font-mono uppercase tracking-wider font-bold text-[#FF453A]">
+              Safety Warning
+            </h3>
+            <div className="bg-[#FF453A]/10 border border-[#FF453A]/20 rounded-xl px-4 py-3 space-y-1">
               {entry.safetyNotes.map((note, i) => (
-                <p key={i} className="text-sm text-on-surface flex gap-2">
-                  <span className="text-error">⚠️</span> {note}
-                </p>
+                <div key={i} className="flex items-start gap-2 text-xs text-[#FF453A]">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>{note}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
 
         {/* Close button */}
-        <div className="p-5 pt-2">
-          <button onClick={onClose} className="w-full py-3 rounded-xl bg-[var(--color-surface-container)] text-on-surface font-bold text-sm uppercase tracking-wider active:scale-95 transition-transform">
+        <div className="p-5 pt-2 border-t border-[#2A2A2D]">
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 rounded-xl bg-[#1E1E20] hover:bg-[#2A2A2D] text-[#F5F5F5] font-headline font-bold text-xs uppercase tracking-wider active:scale-[0.98] transition-all"
+          >
             Close
           </button>
         </div>
