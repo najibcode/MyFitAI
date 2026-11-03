@@ -11,6 +11,15 @@ import type { Routine, RoutineDay } from '../types/workout';
 import { MUSCLE_GROUP_LABELS } from '../types/exercise';
 import type { MuscleGroup } from '../types/exercise';
 import MuscleHeatmap from '../components/MuscleHeatmap';
+import {
+  SlidersHorizontal,
+  Calendar,
+  Moon,
+  Dumbbell,
+  X,
+  ChevronRight,
+  Plus,
+} from 'lucide-react';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
@@ -221,7 +230,7 @@ export default function WeeklyPlanner() {
           onClick={() => setShowRoutineModal(true)}
           className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-on-surface text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all border border-white/[0.06]"
         >
-          <span className="material-symbols-outlined text-[16px]">tune</span>
+          <SlidersHorizontal className="w-3.5 h-3.5" />
           Routines ({routines.length})
         </button>
       </div>
@@ -231,7 +240,7 @@ export default function WeeklyPlanner() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+              <Calendar className="w-4 h-4" />
             </div>
             <div>
               <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">
@@ -321,7 +330,7 @@ export default function WeeklyPlanner() {
         {/* Workout or Rest Card */}
         {selectedDayPlan?.isRest ? (
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.04] text-center space-y-2">
-            <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">self_improvement</span>
+            <Moon className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
             <p className="font-headline font-bold text-sm text-on-surface">Rest & Recovery</p>
             <p className="text-xs text-on-surface-variant max-w-xs mx-auto">
               Your muscles repair and grow stronger during rest. Stay hydrated and prioritize sleep.
@@ -352,7 +361,7 @@ export default function WeeklyPlanner() {
               {selectedTemplate.exercises.slice(0, 4).map((ex, i) => (
                 <div key={i} className="flex items-center justify-between text-xs py-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{ex.thumbnailEmoji || '🏋️'}</span>
+                    <Dumbbell className="w-3.5 h-3.5 text-primary" />
                     <span className="font-semibold text-on-surface truncate max-w-[200px]">{ex.exerciseName}</span>
                   </div>
                   <span className="text-on-surface-variant font-mono text-[11px]">{ex.sets.length} sets</span>
@@ -367,7 +376,7 @@ export default function WeeklyPlanner() {
           </div>
         ) : (
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-dashed border-white/[0.08] text-center space-y-2">
-            <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">fitness_center</span>
+            <Dumbbell className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
             <p className="font-headline font-bold text-sm text-on-surface">No Template Assigned</p>
             <p className="text-xs text-on-surface-variant">
               Choose a workout template to attach to this day.
@@ -487,9 +496,9 @@ export default function WeeklyPlanner() {
               </div>
               <button
                 onClick={() => setAssignDayPicker(null)}
-                className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-on-surface"
+                className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-on-surface hover:bg-white/[0.08] transition-colors"
               >
-                <span className="material-symbols-outlined text-sm">close</span>
+                <X className="w-4 h-4 text-on-surface" />
               </button>
             </div>
 
@@ -499,13 +508,13 @@ export default function WeeklyPlanner() {
               className="w-full py-3.5 px-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-left flex items-center justify-between active:scale-95 transition-all"
             >
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary">bed</span>
+                <Moon className="w-5 h-5 text-primary" />
                 <div>
                   <p className="font-bold text-sm text-on-surface">Rest Day</p>
                   <p className="text-[10px] text-on-surface-variant">Recovery & restoration</p>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
+              <ChevronRight className="w-4 h-4 text-on-surface-variant" />
             </button>
 
             {/* Template options */}
@@ -530,7 +539,7 @@ export default function WeeklyPlanner() {
                         {t.exercises.length} exercises · ~{t.estimatedDuration || 45}m
                       </p>
                     </div>
-                    <span className="material-symbols-outlined text-on-surface-variant text-sm">add</span>
+                    <Plus className="w-4 h-4 text-on-surface-variant" />
                   </button>
                 ))
               )}
@@ -551,9 +560,9 @@ export default function WeeklyPlanner() {
               </div>
               <button
                 onClick={() => setShowRoutineModal(false)}
-                className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-on-surface"
+                className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-on-surface hover:bg-white/[0.08] transition-colors"
               >
-                <span className="material-symbols-outlined text-sm">close</span>
+                <X className="w-4 h-4 text-on-surface" />
               </button>
             </div>
 

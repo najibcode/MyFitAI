@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // MyFitAI — Program Builder
 // Weekly schedule grid: assign templates to days of the week
+// Athletic Personal Operating System UI/UX
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
@@ -8,6 +9,7 @@ import { useWorkoutBuilder } from '../context/WorkoutBuilderContext';
 import { db } from '../utils/db';
 import type { Program, DaySlot, WeekSchedule } from '../types/program';
 import { DAY_LABELS_FULL } from '../types/program';
+import { ChevronRight, Bed, X, Check } from 'lucide-react';
 
 interface ProgramBuilderProps {
   isOpen: boolean;
@@ -38,14 +40,26 @@ export default function ProgramBuilder({ isOpen, onClose }: ProgramBuilderProps)
     const template = templates.find(t => t.id === templateId);
     if (!template) return;
     const next = [...schedule];
-    next[dayIdx] = { ...next[dayIdx], templateId, templateName: template.name, isRest: false, label: template.name };
+    next[dayIdx] = {
+      ...next[dayIdx],
+      templateId,
+      templateName: template.name,
+      isRest: false,
+      label: template.name,
+    };
     setSchedule(next);
     setSelectingDay(null);
   };
 
   const markRest = (dayIdx: number) => {
     const next = [...schedule];
-    next[dayIdx] = { ...next[dayIdx], templateId: undefined, templateName: undefined, isRest: true, label: 'Rest' };
+    next[dayIdx] = {
+      ...next[dayIdx],
+      templateId: undefined,
+      templateName: undefined,
+      isRest: true,
+      label: 'Rest',
+    };
     setSchedule(next);
     setSelectingDay(null);
   };
@@ -57,7 +71,7 @@ export default function ProgramBuilder({ isOpen, onClose }: ProgramBuilderProps)
     }));
     const program: Program = {
       id: crypto.randomUUID(),
-      name: name || 'My Program',
+      name: name || 'My Training Program',
       description: '',
       goal: 'general_fitness',
       durationWeeks: weeks,
@@ -81,88 +95,153 @@ export default function ProgramBuilder({ isOpen, onClose }: ProgramBuilderProps)
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] w-full max-w-md mx-auto h-[80vh] rounded-t-[2rem] border-t border-white/[0.06] flex flex-col p-5 animate-slide-up">
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4" />
-        <h3 className="font-headline font-extrabold text-lg mb-1">Create Program</h3>
-        <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-5">Weekly schedule</p>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#151517] w-full max-w-xl mx-auto h-[82vh] rounded-t-3xl border-t border-[#2A2A2D] flex flex-col p-5 sm:p-6 animate-slide-up shadow-2xl">
+        <div className="w-12 h-1 bg-[#2A2A2D] rounded-full mx-auto mb-4" />
 
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-          placeholder="Program name..."
-          className="w-full bg-[var(--color-surface-container)] border border-white/[0.04] rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-primary/30 mb-4" />
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-headline font-black text-xl text-[#F5F5F5] uppercase tracking-wide">
+              Create Mesocycle Program
+            </h3>
+            <p className="text-[10px] font-mono text-[#A1A1A6] uppercase tracking-wider font-semibold">
+              Weekly Microcycle Schedule
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="e.g. 8-Week Hypertrophy Overload..."
+          className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-4 py-3 text-sm font-semibold text-[#F5F5F5] placeholder:text-[#6B6B70] outline-none focus:border-[#30D158] mb-4 transition-colors"
+        />
 
         {/* Duration selector */}
         <div className="flex items-center gap-3 mb-5">
-          <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Duration</span>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+            Duration
+          </span>
           <div className="flex gap-1.5">
             {[4, 6, 8, 12].map(w => (
-              <button key={w} onClick={() => setWeeks(w)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${
-                  weeks === w ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-white/[0.03] text-on-surface-variant border border-white/[0.04]'
-                }`}>
-                {w}wk
+              <button
+                key={w}
+                type="button"
+                onClick={() => setWeeks(w)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all active:scale-95 border ${
+                  weeks === w
+                    ? 'bg-[#30D158] text-black border-[#30D158] shadow-sm'
+                    : 'bg-[#1E1E20] text-[#A1A1A6] border-[#2A2A2D] hover:text-[#F5F5F5]'
+                }`}
+              >
+                {w} Weeks
               </button>
             ))}
           </div>
         </div>
 
         {/* Weekly grid */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 [scrollbar-width:none]">
           {schedule.map((day, idx) => (
-            <button key={idx} onClick={() => setSelectingDay(idx)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] ${
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setSelectingDay(idx)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all active:scale-[0.99] text-left ${
                 day.isRest
-                  ? 'bg-white/[0.02] border-white/[0.03] text-on-surface-variant'
-                  : 'bg-[var(--color-surface-container)] border-primary/20'
-              }`}>
-              <span className="text-[11px] font-bold uppercase tracking-wider w-8 text-on-surface-variant/50">{DAY_LABELS_FULL[idx].slice(0, 3)}</span>
-              <div className="flex-1 text-left">
-                <p className={`text-sm font-bold ${day.isRest ? 'text-on-surface-variant/50' : 'text-on-surface'}`}>
-                  {day.isRest ? 'Rest Day' : day.label}
+                  ? 'bg-[#1E1E20]/50 border-[#2A2A2D] text-[#6B6B70]'
+                  : 'bg-[#1E1E20] border-[#2A2A2D] hover:border-[#30D158]/40'
+              }`}
+            >
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider w-10 text-[#A1A1A6]">
+                {DAY_LABELS_FULL[idx].slice(0, 3)}
+              </span>
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-headline font-bold ${
+                    day.isRest ? 'text-[#6B6B70]' : 'text-[#F5F5F5]'
+                  }`}
+                >
+                  {day.isRest ? 'Rest & Physiological Recovery' : day.label}
                 </p>
               </div>
-              {!day.isRest && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-              <span className="material-symbols-outlined text-on-surface-variant/30 text-[16px]">chevron_right</span>
+              {!day.isRest && (
+                <div className="w-2 h-2 rounded-full bg-[#30D158] shadow-[0_0_8px_rgba(48,209,88,0.5)]" />
+              )}
+              <ChevronRight className="w-4 h-4 text-[#6B6B70]" />
             </button>
           ))}
         </div>
 
         {/* Save button */}
-        <button onClick={handleSave}
-          className="w-full bg-primary text-on-primary py-4 rounded-2xl font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform mt-4">
-          Save Program
+        <button
+          onClick={handleSave}
+          className="w-full bg-[#30D158] hover:bg-[#30D158]/90 text-black py-4 rounded-xl font-headline font-black text-xs uppercase tracking-wider active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(48,209,88,0.25)]"
+        >
+          <Check className="w-4 h-4 stroke-[3]" />
+          <span>Save Mesocycle Program</span>
         </button>
 
-        {/* Template picker */}
+        {/* Template picker sub-sheet */}
         {selectingDay !== null && (
-          <div className="absolute inset-x-0 bottom-0 bg-[var(--color-surface)] rounded-t-[2rem] border-t border-white/[0.06] p-5 max-h-[60vh] flex flex-col animate-slide-up">
-            <h4 className="font-headline font-bold text-sm mb-3">
-              Assign to {DAY_LABELS_FULL[selectingDay]}
-            </h4>
-            <div className="flex-1 overflow-y-auto space-y-1.5">
-              <button onClick={() => markRest(selectingDay)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.03] text-on-surface-variant active:scale-[0.98]">
-                <span className="material-symbols-outlined text-[18px]">hotel</span>
-                <span className="text-sm font-bold">Rest Day</span>
+          <div className="absolute inset-x-0 bottom-0 bg-[#151517] rounded-t-3xl border-t border-[#2A2A2D] p-5 max-h-[60vh] flex flex-col animate-slide-up shadow-2xl z-20">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-headline font-bold text-sm text-[#F5F5F5] uppercase tracking-wide">
+                Assign to {DAY_LABELS_FULL[selectingDay]}
+              </h4>
+              <button
+                onClick={() => setSelectingDay(null)}
+                className="text-xs font-mono text-[#A1A1A6] hover:text-[#F5F5F5]"
+              >
+                Cancel
               </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 [scrollbar-width:none]">
+              <button
+                type="button"
+                onClick={() => markRest(selectingDay)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] text-[#A1A1A6] hover:text-[#F5F5F5] active:scale-[0.98] text-left"
+              >
+                <Bed className="w-4 h-4 text-[#4F9CF9]" />
+                <span className="text-xs font-headline font-bold">
+                  Rest & Deload Day
+                </span>
+              </button>
+
               {templates.map(t => (
-                <button key={t.id} onClick={() => assignTemplate(selectingDay, t.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-container)] border border-white/[0.04] hover:border-primary/20 active:scale-[0.98] transition-all">
-                  <div className="w-1 h-6 bg-primary rounded-full" />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-bold text-on-surface">{t.name}</p>
-                    <p className="text-[10px] text-on-surface-variant">{t.exercises.length} exercises</p>
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => assignTemplate(selectingDay, t.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] hover:border-[#30D158]/40 active:scale-[0.98] transition-all text-left"
+                >
+                  <div className="w-1 h-6 bg-[#30D158] rounded-full" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-headline font-bold text-[#F5F5F5] truncate">
+                      {t.name}
+                    </p>
+                    <p className="text-[10px] font-mono text-[#A1A1A6]">
+                      {t.exercises.length} Exercises
+                    </p>
                   </div>
                 </button>
               ))}
+
               {templates.length === 0 && (
-                <p className="text-center text-on-surface-variant text-sm py-8">No templates yet. Create a workout first.</p>
+                <div className="text-center py-6 text-xs text-[#A1A1A6]">
+                  No workout templates found. Create a template in Workout Planner first.
+                </div>
               )}
             </div>
-            <button onClick={() => setSelectingDay(null)}
-              className="w-full py-3 mt-3 text-on-surface-variant text-[11px] font-bold uppercase tracking-widest active:scale-95">
-              Cancel
-            </button>
           </div>
         )}
       </div>
