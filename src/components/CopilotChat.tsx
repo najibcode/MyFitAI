@@ -1,8 +1,14 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — AI Biomechanical Copilot Chat Drawer
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useRef } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import { useNutrition } from '../context/NutritionContext';
 import { useActivity } from '../context/ActivityContext';
 import { sendToGemini, type GeminiMessage, type UserContext } from '../services/gemini';
+import { Sparkles, X, ArrowUp } from 'lucide-react';
 
 interface CopilotChatProps {
   isOpen: boolean;
@@ -17,11 +23,11 @@ interface Message {
   isError?: boolean;
 }
 
-const SUGGESTIONS = [
-  "What should I eat today?",
-  "Give me a quick workout",
-  "How's my progress?",
-  "Help me sleep better",
+const ATHLETIC_SUGGESTIONS = [
+  "Adjust training volume for 6h sleep",
+  "How to progressively overload bench press?",
+  "Recommend high-protein recovery meal",
+  "Explain my muscle fatigue landmarks",
 ];
 
 export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
@@ -32,9 +38,9 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
     {
       id: '1',
       sender: 'ai',
-      text: `Hey ${profile.name}! 👋 I'm your AI assistant. Ask me anything about fitness, nutrition, or recovery.`,
-      timestamp: new Date()
-    }
+      text: `Hello ${profile.name}. I am your AI biomechanical copilot. What training, nutritional pacing, or recovery variables would you like to review?`,
+      timestamp: new Date(),
+    },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -48,12 +54,14 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
   if (!isOpen) return null;
 
   const getUserContext = (): UserContext => {
-    const nutritionSummary = dailySummary ? {
-      caloriesConsumed: dailySummary.caloriesConsumed,
-      calorieGoal: nutritionTarget?.dailyCalories || profile.dailyCalorieGoal || 2000,
-      proteinGrams: dailySummary.proteinConsumed,
-      proteinGoal: nutritionTarget?.proteinGrams || profile.dailyProteinGoal || 150,
-    } : undefined;
+    const nutritionSummary = dailySummary
+      ? {
+          caloriesConsumed: dailySummary.caloriesConsumed,
+          calorieGoal: nutritionTarget?.dailyCalories || profile.dailyCalorieGoal || 2000,
+          proteinGrams: dailySummary.proteinConsumed,
+          proteinGoal: nutritionTarget?.proteinGrams || profile.dailyProteinGoal || 150,
+        }
+      : undefined;
 
     return {
       name: profile.name,
@@ -80,7 +88,7 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
       id: Date.now().toString(),
       sender: 'user',
       text,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
@@ -95,20 +103,26 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
         { role: 'model', parts: [{ text: response }] },
       ]);
 
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: response,
-        timestamp: new Date()
-      }]);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: response,
+          timestamp: new Date(),
+        },
+      ]);
     } catch {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: "Couldn't connect. Check your internet and try again.",
-        timestamp: new Date(),
-        isError: true,
-      }]);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: "Telemetry connection unavailable. Please check your network and retry.",
+          timestamp: new Date(),
+          isError: true,
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
@@ -117,79 +131,91 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col justify-end">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+      <div
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
-      ></div>
+      />
 
       {/* Main Drawer */}
-      <div className="relative bg-[var(--color-surface)] w-full h-[85vh] max-w-md mx-auto rounded-t-[2.5rem] border-t border-primary/20 shadow-[0_-20px_60px_rgba(255,122,0,0.15)] flex flex-col animate-in slide-in-from-bottom-[100%] duration-300">
-        
+      <div className="relative bg-[#151517] w-full h-[85vh] max-w-xl mx-auto rounded-t-3xl border-t border-[#2A2A2D] shadow-2xl flex flex-col animate-slide-up">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none"></div>
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary text-xl animate-pulse">auto_sparkle</span>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2D] relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#A78BFA]/15 border border-[#A78BFA]/30 flex items-center justify-center text-[#A78BFA]">
+              <Sparkles className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
-              <h2 className="font-headline font-black text-white text-lg leading-none tracking-tight">AI Assistant</h2>
-              <p className="text-[10px] text-primary font-bold tracking-widest uppercase mt-0.5 flex items-center gap-1">
-                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                 Powered by Gemini
+              <div className="flex items-center gap-2">
+                <h2 className="font-headline font-black text-[#F5F5F5] text-base uppercase tracking-tight">
+                  AI Biomechanical Copilot
+                </h2>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#A78BFA] px-1.5 py-0.5 rounded bg-[#A78BFA]/10 border border-[#A78BFA]/20">
+                  GEMINI 3.8
+                </span>
+              </div>
+              <p className="text-[10px] text-[#A1A1A6] font-mono mt-0.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+                Live Context Ingestion Active
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors relative z-10"
+            className="w-9 h-9 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
+            aria-label="Close"
           >
-            <span className="material-symbols-outlined">close</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-          {messages.map((msg) => {
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 [scrollbar-width:none]">
+          {messages.map(msg => {
             const isAI = msg.sender === 'ai';
             return (
-              <div key={msg.id} className={`flex ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                <div className={`max-w-[85%] rounded-[1.5rem] p-4 ${
-                  isAI 
-                    ? msg.isError
-                      ? 'bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 rounded-tl-sm'
-                      : 'bg-[var(--color-surface-container)] border border-primary/20 text-white rounded-tl-sm'
-                    : 'bg-primary text-black rounded-tr-sm shadow-[0_4px_20px_rgba(255,122,0,0.2)]'
-                }`}>
-                  <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
-                    isAI 
-                      ? msg.isError ? 'text-[#FF4D4D]' : 'font-light' 
-                      : 'font-medium'
-                  }`}>{msg.text}</p>
+              <div
+                key={msg.id}
+                className={`flex ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in duration-200`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-2xl p-4 text-xs leading-relaxed ${
+                    isAI
+                      ? msg.isError
+                        ? 'bg-[#FF453A]/10 border border-[#FF453A]/25 text-[#FF453A] rounded-tl-sm'
+                        : 'bg-[#1E1E20] border border-[#2A2A2D] text-[#F5F5F5] rounded-tl-sm'
+                      : 'bg-[#FF8A00] text-black font-semibold rounded-tr-sm shadow-sm'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
               </div>
             );
           })}
-          
+
           {isTyping && (
-             <div className="flex justify-start animate-in fade-in">
-               <div className="bg-[var(--color-surface-container)] border border-white/5 rounded-[1.5rem] rounded-tl-sm px-5 py-4 flex items-center gap-2">
-                 <div className="flex gap-1.5">
-                   <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                   <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                   <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                 </div>
-                 <span className="text-[10px] text-on-surface-variant/50 ml-1">Thinking...</span>
-               </div>
-             </div>
+            <div className="flex justify-start animate-in fade-in">
+              <div className="bg-[#1E1E20] border border-[#2A2A2D] rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#A78BFA] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#A78BFA] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#A78BFA] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-[10px] font-mono text-[#A1A1A6]">
+                  Analyzing biomechanics...
+                </span>
+              </div>
+            </div>
           )}
 
           {/* Quick suggestions when chat is fresh */}
           {messages.length <= 1 && !isTyping && (
             <div className="flex flex-wrap gap-2 pt-2">
-              {SUGGESTIONS.map((s, i) => (
-                <button key={i} onClick={() => handleSend(s)}
-                  className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] text-white/70 hover:text-white hover:border-primary/30 transition-all active:scale-95">
+              {ATHLETIC_SUGGESTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(s)}
+                  className="px-3 py-2 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] text-[11px] text-[#A1A1A6] hover:text-[#F5F5F5] hover:border-[#30D158]/40 transition-all active:scale-95 text-left"
+                >
                   {s}
                 </button>
               ))}
@@ -200,27 +226,31 @@ export default function CopilotChat({ isOpen, onClose }: CopilotChatProps) {
         </div>
 
         {/* Input Area */}
-        <div className="p-6 pt-4 border-t border-white/5 bg-[var(--color-surface)]">
-           <form 
-             onSubmit={(e) => { e.preventDefault(); handleSend(inputValue); }}
-             className="relative flex items-center"
-           >
-             <input 
-               type="text"
-               value={inputValue}
-               onChange={(e) => setInputValue(e.target.value)}
-               placeholder="Ask anything..."
-               disabled={isTyping}
-               className="w-full bg-[var(--color-surface-container)] border border-white/10 rounded-full py-4 pl-6 pr-14 text-sm text-white placeholder:text-white/30 outline-none focus:border-primary/50 transition-colors shadow-inner disabled:opacity-50"
-             />
-             <button 
-               type="submit"
-               disabled={!inputValue.trim() || isTyping}
-               className="absolute right-2 w-10 h-10 rounded-full bg-primary flex items-center justify-center text-black disabled:opacity-30 disabled:bg-white/10 disabled:text-white/30 transition-all hover:scale-105 active:scale-95"
-             >
-                <span className="material-symbols-outlined text-[18px]">send</span>
-             </button>
-           </form>
+        <div className="p-4 sm:p-5 border-t border-[#2A2A2D] bg-[#151517]">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handleSend(inputValue);
+            }}
+            className="relative flex items-center"
+          >
+            <input
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              placeholder="Ask about volume landmarks, deloading, macros..."
+              disabled={isTyping}
+              className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl py-3 pl-4 pr-12 text-xs sm:text-sm text-[#F5F5F5] placeholder:text-[#6B6B70] outline-none focus:border-[#A78BFA] transition-colors disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!inputValue.trim() || isTyping}
+              className="absolute right-1.5 w-8 h-8 rounded-lg bg-[#A78BFA] hover:bg-[#A78BFA]/90 flex items-center justify-center text-black disabled:opacity-30 disabled:bg-[#2A2A2D] disabled:text-[#6B6B70] transition-all active:scale-95"
+              aria-label="Send Message"
+            >
+              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </form>
         </div>
       </div>
     </div>
