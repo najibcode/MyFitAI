@@ -1,19 +1,57 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Performance Progress & Body Composition Master
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useFitnessContext } from '../context/FitnessContext';
 import { useGamification } from '../context/GamificationContext';
 import { usePreferences } from '../context/PreferencesContext';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import MuscleHeatmap from '../components/MuscleHeatmap';
 import ShareableMuscleCardModal from '../components/share/ShareableMuscleCardModal';
 import { triggerHaptic } from '../utils/audioFeedback';
+import {
+  Flame,
+  Dumbbell,
+  Trophy,
+  Zap,
+  TrendingDown,
+  TrendingUp,
+  Scale,
+  Share2,
+  Plus,
+  Calculator,
+  Ruler,
+  Activity,
+  CheckCircle2,
+  ArrowRight,
+  X,
+  Award,
+  Calendar,
+} from 'lucide-react';
 
-const EXERCISES = ['Bench Press','Squat','Deadlift','OHP','Barbell Row','Lat Pulldown','Leg Press','Dumbbell Curl'];
+const EXERCISES = ['Bench Press', 'Squat', 'Deadlift', 'OHP', 'Barbell Row', 'Lat Pulldown', 'Leg Press', 'Dumbbell Curl'];
 const BODY_LABELS = [
-  { label:'Chest', unit:'in' },{ label:'Waist', unit:'in' },{ label:'Arms', unit:'in' },
-  { label:'Thighs', unit:'in' },{ label:'Body Fat', unit:'%' },{ label:'Shoulders', unit:'in' },
+  { label: 'Chest', unit: 'in' },
+  { label: 'Waist', unit: 'in' },
+  { label: 'Arms', unit: 'in' },
+  { label: 'Thighs', unit: 'in' },
+  { label: 'Body Fat', unit: '%' },
+  { label: 'Shoulders', unit: 'in' },
 ];
 
 export default function Progress() {
-  const { profile, activities, heatmapData, weightHistory, mealLogs, strengthHistory, logStrength, bodyMeasurementHistory, logBodyMeasurement } = useFitnessContext();
+  const {
+    profile,
+    activities,
+    heatmapData,
+    weightHistory,
+    mealLogs,
+    strengthHistory,
+    logStrength,
+    bodyMeasurementHistory,
+    logBodyMeasurement,
+  } = useFitnessContext();
   const { xp, level, levelTitle, xpProgress, achievements, weeklyMissions, streak, longestStreak } = useGamification();
   const { weightUnit } = usePreferences();
   const [activeTab, setActiveTab] = useState<'overview' | 'muscles' | 'strength' | 'body' | 'achievements'>('overview');
@@ -27,11 +65,12 @@ export default function Progress() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [bLabel, setBLabel] = useState(BODY_LABELS[0].label);
   const [bValue, setBValue] = useState('');
+
   // 1RM Calculator
   const [calcWeight, setCalcWeight] = useState('');
   const [calcReps, setCalcReps] = useState('');
 
-  const toDisplay = (lbs: number) => weightUnit === 'kg' ? Math.round(lbs / 2.20462 * 10) / 10 : lbs;
+  const toDisplay = useCallback((lbs: number) => (weightUnit === 'kg' ? Math.round((lbs / 2.20462) * 10) / 10 : lbs), [weightUnit]);
   const displayWeight = toDisplay(profile.weight);
 
   const weightChartData = useMemo(() => {
@@ -47,21 +86,27 @@ export default function Progress() {
     }));
     let path = `M${points[0].x},${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
-      const p = points[i - 1], c = points[i];
+      const p = points[i - 1];
+      const c = points[i];
       path += ` C${p.x + (c.x - p.x) * 0.4},${p.y} ${p.x + (c.x - p.x) * 0.6},${c.y} ${c.x},${c.y}`;
     }
     const last = points[points.length - 1];
     const first = weightHistory[0].weight;
     const lastW = weightHistory[weightHistory.length - 1].weight;
     const diff = lastW - first;
-    const weeks = Math.max(1, Math.round((Date.parse(weightHistory[weightHistory.length - 1].date) - Date.parse(weightHistory[0].date)) / (7 * 86400000)));
+    const weeks = Math.max(
+      1,
+      Math.round((Date.parse(weightHistory[weightHistory.length - 1].date) - Date.parse(weightHistory[0].date)) / (7 * 86400000))
+    );
     return {
-      linePath: path, fillPath: path + ` V200 H0 Z`, lastPoint: last,
-      labels: recent.map(e => new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(' ', '\n')),
+      linePath: path,
+      fillPath: path + ' V200 H0 Z',
+      lastPoint: last,
+      labels: recent.map(e => new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
       trendText: `${diff > 0 ? '+' : ''}${toDisplay(diff).toFixed(1)} ${weightUnit} in ${weeks} weeks`,
       isDown: diff < 0,
     };
-  }, [weightHistory, weightUnit]);
+  }, [weightHistory, weightUnit, toDisplay]);
 
   // Derive strength lifts from real data
   const strengthLifts = useMemo(() => {
@@ -72,12 +117,18 @@ export default function Progress() {
         exerciseMap.set(e.exercise, { current: e.weight, previous: e.weight, reps: e.reps });
       } else {
         const existing = exerciseMap.get(e.exercise)!;
-        existing.previous = e.weight; // older entry becomes previous
+        existing.previous = e.weight;
       }
     });
     return Array.from(exerciseMap.entries()).map(([name, data]) => {
-      const change = data.previous > 0 ? ((data.current - data.previous) / data.previous * 100).toFixed(1) : '0';
-      return { name, current: data.current, previous: data.previous, reps: data.reps, change: Number(change) >= 0 ? `+${change}%` : `${change}%` };
+      const change = data.previous > 0 ? (((data.current - data.previous) / data.previous) * 100).toFixed(1) : '0';
+      return {
+        name,
+        current: data.current,
+        previous: data.previous,
+        reps: data.reps,
+        change: Number(change) >= 0 ? `+${change}%` : `${change}%`,
+      };
     });
   }, [strengthHistory]);
 
@@ -99,10 +150,15 @@ export default function Progress() {
   const calorieBalance = useMemo(() => {
     const days: { label: string; burned: number; consumed: number }[] = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
+      const d = new Date();
+      d.setDate(d.getDate() - i);
       const ds = d.toDateString();
-      const burned = activities.filter(a => a.type === 'Workout' && new Date(a.timestamp).toDateString() === ds).reduce((s, a) => s + (a.caloriesBurned || 0), 0);
-      const consumed = mealLogs.filter(m => new Date(m.timestamp).toDateString() === ds).reduce((s, m) => s + m.calories, 0);
+      const burned = activities
+        .filter(a => a.type === 'Workout' && new Date(a.timestamp).toDateString() === ds)
+        .reduce((s, a) => s + (a.caloriesBurned || 0), 0);
+      const consumed = mealLogs
+        .filter(m => new Date(m.timestamp).toDateString() === ds)
+        .reduce((s, m) => s + m.calories, 0);
       days.push({ label: d.toLocaleDateString('en-US', { weekday: 'short' }), burned, consumed });
     }
     return days;
@@ -111,26 +167,45 @@ export default function Progress() {
   // Auto-generated timeline from real data
   const timelineEvents = useMemo(() => {
     const events: { date: string; note: string; color: string }[] = [];
-    // First workout
-    const workouts = activities.filter(a => a.type === 'Workout').sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    if (workouts.length > 0) events.push({ date: new Date(workouts[0].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), note: 'First workout logged!', color: '#fab0ff' });
-    if (workouts.length >= 10) events.push({ date: new Date(workouts[9].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), note: '10th workout completed', color: '#ff9800' });
-    // Weight milestones
+    const workouts = activities
+      .filter(a => a.type === 'Workout')
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    if (workouts.length > 0)
+      events.push({
+        date: new Date(workouts[0].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        note: 'First workout logged in MyFitAI',
+        color: '#30D158',
+      });
+    if (workouts.length >= 10)
+      events.push({
+        date: new Date(workouts[9].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        note: '10th workout milestone reached',
+        color: '#FF8A00',
+      });
     if (weightHistory.length >= 2) {
-      const firstW = weightHistory[0]; const lastW = weightHistory[weightHistory.length - 1];
+      const firstW = weightHistory[0];
+      const lastW = weightHistory[weightHistory.length - 1];
       const diff = lastW.weight - firstW.weight;
-      if (Math.abs(diff) >= 1) events.push({ date: new Date(lastW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), note: `Weight ${diff < 0 ? 'down' : 'up'} ${Math.abs(toDisplay(diff)).toFixed(1)} ${weightUnit}`, color: diff < 0 ? '#6FFB85' : '#FF4D4D' });
+      if (Math.abs(diff) >= 1)
+        events.push({
+          date: new Date(lastW.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          note: `Weight ${diff < 0 ? 'down' : 'up'} ${Math.abs(toDisplay(diff)).toFixed(1)} ${weightUnit}`,
+          color: diff < 0 ? '#30D158' : '#FF453A',
+        });
     }
-    // Strength PRs
     if (strengthHistory.length > 0) {
-      const best = strengthHistory.reduce((a, b) => a.weight > b.weight ? a : b);
-      events.push({ date: new Date(best.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), note: `PR: ${best.exercise} — ${best.weight} lbs × ${best.reps}`, color: '#FF7A00' });
+      const best = strengthHistory.reduce((a, b) => (a.weight > b.weight ? a : b));
+      events.push({
+        date: new Date(best.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        note: `PR: ${best.exercise} — ${best.weight} lbs × ${best.reps}`,
+        color: '#4F9CF9',
+      });
     }
     return events.reverse();
-  }, [activities, weightHistory, strengthHistory, weightUnit]);
+  }, [activities, weightHistory, strengthHistory, weightUnit, toDisplay]);
 
   // 1RM Epley formula
-  const calc1RM = (w: number, r: number) => r === 1 ? w : Math.round(w * (1 + r / 30));
+  const calc1RM = (w: number, r: number) => (r === 1 ? w : Math.round(w * (1 + r / 30)));
   const estimated1RM = calcWeight && calcReps ? calc1RM(Number(calcWeight), Number(calcReps)) : 0;
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -139,176 +214,307 @@ export default function Progress() {
   const handleLogStrength = () => {
     if (!sWeight || !sReps) return;
     logStrength(sExercise, Number(sWeight), Number(sReps));
-    setSWeight(''); setSReps(''); setShowStrengthModal(false);
+    setSWeight('');
+    setSReps('');
+    setShowStrengthModal(false);
   };
+
   const handleLogBody = () => {
     if (!bValue) return;
     const unit = BODY_LABELS.find(b => b.label === bLabel)?.unit || 'in';
     logBodyMeasurement(bLabel, Number(bValue), unit);
-    setBValue(''); setShowBodyModal(false);
+    setBValue('');
+    setShowBodyModal(false);
+  };
+
+  const renderGamificationIcon = (icon: string, className = 'w-5 h-5') => {
+    switch (icon) {
+      case 'fitness_center':
+        return <Dumbbell className={className} />;
+      case 'local_fire_department':
+        return <Flame className={className} />;
+      case 'military_tech':
+      case 'trophy':
+        return <Trophy className={className} />;
+      case 'star':
+        return <Zap className={className} />;
+      default:
+        return <Award className={className} />;
+    }
   };
 
   return (
-    <main className="max-w-lg mx-auto px-5 pt-6 pb-32 space-y-6">
-      {/* Header */}
-      <header className="flex items-end justify-between gap-4">
+    <main className="w-full max-w-4xl mx-auto px-3.5 sm:px-4 pt-4 pb-28 space-y-5 sm:space-y-6 animate-fade-in min-w-0 box-border">
+      {/* ── Header ── */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-headline font-bold text-[28px] tracking-tight">Progress</h1>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#A1A1A6] block">
+            PERFORMANCE METRICS & BODY COMPOSITION
+          </span>
+          <h1 className="font-headline font-black text-2xl sm:text-3xl text-[#F5F5F5] tracking-tight">
+            Your Progress
+          </h1>
+          <p className="text-xs text-[#A1A1A6] mt-0.5 font-mono">
+            {activities.filter(a => a.type === 'Workout').length} WORKOUTS COMPLETED · {streak} DAY STREAK
+          </p>
         </div>
-        {/* XP Bar */}
-        <div className="flex items-center gap-3 bg-[var(--color-surface-container)] rounded-xl px-4 py-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center">
-            <span className="font-headline font-bold text-primary text-sm">{level}</span>
+
+        {/* Level & XP Progress Card */}
+        <div className="flex items-center gap-3 bg-[#151517] rounded-2xl px-4 py-3 border border-[#2A2A2D] shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#30D158]">
+            <Trophy className="w-5 h-5" />
           </div>
-          <div className="min-w-[80px]">
-            <div className="flex justify-between text-[10px] font-medium mb-1">
-              <span className="text-primary">{levelTitle}</span>
-              <span className="text-on-surface-variant">{xp} XP</span>
+          <div className="min-w-[100px]">
+            <div className="flex justify-between text-xs font-bold mb-1">
+              <span className="text-[#F5F5F5]">Lvl {level} · {levelTitle}</span>
+              <span className="text-[#30D158] font-mono">{xp} XP</span>
             </div>
-            <div className="w-full h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full transition-all duration-700" style={{ width: `${xpProgress}%` }}></div>
+            <div className="w-full h-1.5 bg-[#1E1E20] rounded-full overflow-hidden border border-[#2A2A2D]">
+              <div
+                className="h-full bg-[#30D158] rounded-full transition-all duration-700"
+                style={{ width: `${xpProgress}%` }}
+              />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Tab Switcher */}
-      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] pb-1">
+      {/* ── Tab Switcher ── */}
+      <div className="flex gap-1 p-1 bg-[#151517] rounded-xl border border-[#2A2A2D] overflow-x-auto max-w-full custom-scrollbar [scrollbar-width:none]">
         {(
           [
-            { id: 'overview', label: 'Overview' },
-            { id: 'muscles', label: 'Muscle Map' },
-            { id: 'strength', label: 'Strength' },
-            { id: 'body', label: 'Body Metrics' },
-            { id: 'achievements', label: 'Badges' },
+            { id: 'overview', label: 'Overview', icon: Activity },
+            { id: 'muscles', label: 'Muscle Map', icon: Dumbbell },
+            { id: 'strength', label: 'Strength', icon: TrendingUp },
+            { id: 'body', label: 'Body Metrics', icon: Ruler },
+            { id: 'achievements', label: 'Badges', icon: Award },
           ] as const
-        ).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-xl font-semibold text-xs transition-colors whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'bg-primary text-black'
-                : 'bg-[var(--color-surface-container)] text-on-surface-variant hover:text-white'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ).map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 sm:flex-1 py-2 px-3 rounded-lg text-xs font-headline font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+                isActive
+                  ? 'bg-[#1E1E20] text-[#30D158] border border-[#30D158]/30 shadow-sm'
+                  : 'text-[#A1A1A6] hover:text-[#F5F5F5]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
+      {/* ═══════════════════════════════════════════════════════
+          TAB 1: OVERVIEW
+      ═══════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5 group hover:border-primary/30 transition-colors flex flex-col justify-center">
-              <span className="material-symbols-outlined text-[#FF4D4D] text-2xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-              <p className="font-headline font-black text-3xl tracking-tighter">{streak}</p>
-              <p className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold mt-0.5 line-clamp-1">Day Streak</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] flex flex-col justify-between h-24">
+              <div className="flex items-center justify-between text-[#FF8A00]">
+                <Flame className="w-5 h-5" />
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">Streak</span>
+              </div>
+              <div>
+                <p className="font-headline font-black text-2xl text-[#F5F5F5] font-mono">{streak}</p>
+                <p className="text-[10px] text-[#A1A1A6] font-medium">Days active</p>
+              </div>
             </div>
-            <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5 flex flex-col justify-center">
-              <span className="material-symbols-outlined text-primary text-2xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>fitness_center</span>
-              <p className="font-headline font-black text-3xl tracking-tighter">{activities.filter(a => a.type === 'Workout').length}</p>
-              <p className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold mt-0.5 line-clamp-1">Total Workouts</p>
+
+            <div className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] flex flex-col justify-between h-24">
+              <div className="flex items-center justify-between text-[#30D158]">
+                <Dumbbell className="w-5 h-5" />
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">Sessions</span>
+              </div>
+              <div>
+                <p className="font-headline font-black text-2xl text-[#F5F5F5] font-mono">
+                  {activities.filter(a => a.type === 'Workout').length}
+                </p>
+                <p className="text-[10px] text-[#A1A1A6] font-medium">Workouts logged</p>
+              </div>
             </div>
-            <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5 flex flex-col justify-center">
-              <span className="material-symbols-outlined text-secondary text-2xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>trophy</span>
-              <p className="font-headline font-black text-3xl tracking-tighter">{unlockedCount}</p>
-              <p className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold mt-0.5 line-clamp-1">Achievements</p>
+
+            <div className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] flex flex-col justify-between h-24">
+              <div className="flex items-center justify-between text-[#F5C542]">
+                <Trophy className="w-5 h-5" />
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">Badges</span>
+              </div>
+              <div>
+                <p className="font-headline font-black text-2xl text-[#F5F5F5] font-mono">{unlockedCount}</p>
+                <p className="text-[10px] text-[#A1A1A6] font-medium">Achievements</p>
+              </div>
             </div>
-            <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5 flex flex-col justify-center">
-              <span className="material-symbols-outlined text-[#fab0ff] text-2xl mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <p className="font-headline font-black text-3xl tracking-tighter">{longestStreak}</p>
-              <p className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold mt-0.5 line-clamp-1">Best Streak</p>
+
+            <div className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] flex flex-col justify-between h-24">
+              <div className="flex items-center justify-between text-[#4F9CF9]">
+                <Zap className="w-5 h-5" />
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">Record</span>
+              </div>
+              <div>
+                <p className="font-headline font-black text-2xl text-[#F5F5F5] font-mono">{longestStreak}</p>
+                <p className="text-[10px] text-[#A1A1A6] font-medium">Best streak days</p>
+              </div>
             </div>
           </div>
 
           {/* Weight Trend Chart */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5 relative overflow-hidden">
-            <div className="flex justify-between items-start mb-6">
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-headline font-bold text-xl">Weight Trend</h3>
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  BODY WEIGHT TRAJECTORY
+                </span>
+                <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">Weight Trend</h3>
                 {weightChartData && (
-                  <p className={`text-[10px] ${weightChartData.isDown ? 'text-secondary' : 'text-[#FF4D4D]'} font-bold uppercase tracking-widest mt-1 flex items-center gap-1`}>
-                    <span className="material-symbols-outlined text-[12px]">{weightChartData.isDown ? 'trending_down' : 'trending_up'}</span> {weightChartData.trendText}
+                  <p
+                    className={`text-xs ${
+                      weightChartData.isDown ? 'text-[#30D158]' : 'text-[#FF453A]'
+                    } font-bold mt-1 flex items-center gap-1 font-mono`}
+                  >
+                    {weightChartData.isDown ? (
+                      <TrendingDown className="w-4 h-4" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4" />
+                    )}
+                    {weightChartData.trendText}
                   </p>
                 )}
               </div>
               <div className="text-right">
-                <span className="font-headline font-black text-3xl tracking-tighter">{displayWeight}</span>
-                <span className="text-[10px] text-on-surface-variant font-bold ml-1">{weightUnit.toUpperCase()}</span>
+                <span className="font-headline font-black text-3xl sm:text-4xl text-[#F5F5F5] font-mono tabular-nums">
+                  {displayWeight}
+                </span>
+                <span className="text-xs text-[#A1A1A6] font-bold ml-1 uppercase">{weightUnit}</span>
               </div>
             </div>
+
             {weightChartData ? (
               <>
-                <div className="h-40 relative">
+                <div className="h-44 relative pt-2">
                   <svg className="w-full h-full" viewBox="0 0 800 200" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="wtGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                        <stop offset="0%" stopColor={weightChartData.isDown ? '#6FFB85' : '#FF4D4D'} stopOpacity="0.3" />
-                        <stop offset="100%" stopColor={weightChartData.isDown ? '#6FFB85' : '#FF4D4D'} stopOpacity="0" />
+                        <stop
+                          offset="0%"
+                          stopColor={weightChartData.isDown ? '#30D158' : '#FF453A'}
+                          stopOpacity="0.25"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={weightChartData.isDown ? '#30D158' : '#FF453A'}
+                          stopOpacity="0"
+                        />
                       </linearGradient>
                     </defs>
-                    <line stroke="#ffffff" strokeOpacity="0.03" x1="0" x2="800" y1="50" y2="50" />
-                    <line stroke="#ffffff" strokeOpacity="0.03" x1="0" x2="800" y1="100" y2="100" />
-                    <line stroke="#ffffff" strokeOpacity="0.03" x1="0" x2="800" y1="150" y2="150" />
-                    <path d={weightChartData.linePath} fill="transparent" stroke={weightChartData.isDown ? '#6FFB85' : '#FF4D4D'} strokeWidth="3" strokeLinecap="round" />
+                    <line stroke="#ffffff" strokeOpacity="0.05" x1="0" x2="800" y1="50" y2="50" />
+                    <line stroke="#ffffff" strokeOpacity="0.05" x1="0" x2="800" y1="100" y2="100" />
+                    <line stroke="#ffffff" strokeOpacity="0.05" x1="0" x2="800" y1="150" y2="150" />
+                    <path
+                      d={weightChartData.linePath}
+                      fill="transparent"
+                      stroke={weightChartData.isDown ? '#30D158' : '#FF453A'}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
                     <path d={weightChartData.fillPath} fill="url(#wtGrad)" />
-                    <circle cx={weightChartData.lastPoint.x} cy={weightChartData.lastPoint.y} r="6" fill={weightChartData.isDown ? '#6FFB85' : '#FF4D4D'} />
-                    <circle cx={weightChartData.lastPoint.x} cy={weightChartData.lastPoint.y} r="12" fill="transparent" stroke={weightChartData.isDown ? '#6FFB85' : '#FF4D4D'} strokeWidth="2" opacity="0.4" />
+                    <circle
+                      cx={weightChartData.lastPoint.x}
+                      cy={weightChartData.lastPoint.y}
+                      r="5"
+                      fill={weightChartData.isDown ? '#30D158' : '#FF453A'}
+                    />
+                    <circle
+                      cx={weightChartData.lastPoint.x}
+                      cy={weightChartData.lastPoint.y}
+                      r="10"
+                      fill="transparent"
+                      stroke={weightChartData.isDown ? '#30D158' : '#FF453A'}
+                      strokeWidth="2"
+                      opacity="0.4"
+                    />
                   </svg>
                 </div>
-                <div className="flex justify-between mt-3 text-[9px] font-label font-bold text-white/30 uppercase tracking-[0.2em] px-2">
-                  {weightChartData.labels.map((l, i) => <span key={i}>{l}</span>)}
+                <div className="flex justify-between mt-2 text-[9px] font-mono text-[#6B6B70] uppercase px-1">
+                  {weightChartData.labels.map((l, i) => (
+                    <span key={i}>{l}</span>
+                  ))}
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-on-surface-variant">
-                <span className="material-symbols-outlined text-4xl opacity-30 mb-3">monitor_weight</span>
-                <p className="text-sm font-medium">Log your weight daily to see trends here</p>
+              <div className="flex flex-col items-center justify-center py-12 text-[#A1A1A6] space-y-2">
+                <Scale className="w-8 h-8 text-[#6B6B70]" />
+                <p className="text-sm font-semibold text-[#F5F5F5]">Log daily weight to visualize trend</p>
+                <p className="text-xs text-[#A1A1A6]">Record 2 or more weigh-ins to generate your trajectory chart.</p>
               </div>
             )}
           </div>
 
           {/* Consistency Heatmap */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
-            <h3 className="font-headline font-bold text-xl mb-6">Consistency Heatmap</h3>
-            <div className="flex gap-1">
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-0.5">
+                  TRAINING ADHERENCE
+                </span>
+                <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">Consistency Heatmap</h3>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-[#A1A1A6] font-mono">
+                <span>Less</span>
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#1E1E20] border border-[#2A2A2D]" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#30D158]/30" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#30D158]/60" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#30D158]" />
+                <span>More</span>
+              </div>
+            </div>
+
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
               {heatmapData.map((week, wi) => (
-                <div key={wi} className="flex-1 flex flex-col gap-1">
+                <div key={wi} className="flex-1 flex flex-col gap-1.5 min-w-[12px]">
                   {week.map((day, di) => (
                     <div
                       key={di}
                       className={`aspect-square rounded-[3px] transition-colors ${
-                        day === 0 ? 'bg-white/5' :
-                        day === 1 ? 'bg-secondary/30' :
-                        day === 2 ? 'bg-secondary/60' : 'bg-secondary shadow-[0_0_6px_rgba(111,251,133,0.3)]'
+                        day === 0
+                          ? 'bg-[#1E1E20] border border-[#2A2A2D]'
+                          : day === 1
+                          ? 'bg-[#30D158]/30'
+                          : day === 2
+                          ? 'bg-[#30D158]/60'
+                          : 'bg-[#30D158] shadow-[0_0_8px_rgba(48,209,88,0.4)]'
                       }`}
-                    ></div>
+                    />
                   ))}
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-end gap-2 mt-4"><span className="text-[9px] text-on-surface-variant font-bold uppercase">Less</span>{[5, 30, 60, 100].map(o => <div key={o} className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(111,251,133,${o/100})` }}></div>)}<span className="text-[9px] text-on-surface-variant font-bold uppercase">More</span></div>
           </div>
 
           {/* Anatomical Muscle Training Map Overview Card */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 sm:p-8 border border-white/5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2A2D]">
               <div>
-                <h3 className="font-headline font-bold text-xl flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-2xl">accessibility_new</span>
-                  Anatomical Muscle Training Map
+                <span className="text-[10px] uppercase tracking-wider text-[#30D158] font-bold block mb-0.5">
+                  ANATOMICAL STIMULUS
+                </span>
+                <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">
+                  Muscle Training Map
                 </h3>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  Biomechanical stimulus, recovery status & volume landmarks across 30+ muscles.
+                <p className="text-xs text-[#A1A1A6] mt-0.5">
+                  Biomechanical volume, recovery status & landmark analysis across 30+ muscles.
                 </p>
               </div>
               <button
                 onClick={() => setActiveTab('muscles')}
-                className="text-xs text-primary font-bold hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                className="text-xs text-[#30D158] font-headline font-bold hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
               >
-                Deep Analysis <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                Deep Analysis <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -322,27 +528,55 @@ export default function Progress() {
           </div>
 
           {/* Weekly Missions */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-headline font-bold text-xl">Weekly Missions</h3>
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{completedMissions}/{weeklyMissions.length} Done</span>
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-[#2A2A2D]">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-0.5">
+                  WEEKLY TARGETS
+                </span>
+                <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">Active Missions</h3>
+              </div>
+              <span className="text-xs font-bold text-[#30D158] font-mono">
+                {completedMissions}/{weeklyMissions.length} COMPLETED
+              </span>
             </div>
-            <div className="space-y-4">
+
+            <div className="space-y-3">
               {weeklyMissions.map(m => (
-                <div key={m.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${m.completed ? 'bg-secondary/10 border-secondary/30' : 'bg-white/5 border-white/5'}`}>
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${m.completed ? 'bg-secondary/20 text-secondary' : 'bg-primary/10 text-primary'}`}>
-                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{m.icon}</span>
+                <div
+                  key={m.id}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                    m.completed
+                      ? 'bg-[#1E1E20]/60 border-[#30D158]/30'
+                      : 'bg-[#1E1E20] border-[#2A2A2D]'
+                  }`}
+                >
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                      m.completed ? 'bg-[#30D158]/20 text-[#30D158]' : 'bg-[#151517] text-[#A1A1A6]'
+                    }`}
+                  >
+                    {renderGamificationIcon(m.icon, 'w-5 h-5')}
                   </div>
-                  <div className="flex-1">
-                    <p className={`font-headline font-bold text-sm ${m.completed ? 'line-through text-white/50' : ''}`}>{m.title}</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5">{m.description}</p>
-                    <div className="w-full h-1.5 bg-[#252528] rounded-full mt-2 overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-700 ${m.completed ? 'bg-secondary' : 'bg-primary'}`} style={{ width: `${(m.current / m.target) * 100}%` }}></div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-headline font-bold text-sm ${m.completed ? 'line-through text-[#6B6B70]' : 'text-[#F5F5F5]'}`}>
+                      {m.title}
+                    </p>
+                    <p className="text-[11px] text-[#A1A1A6] mt-0.5">{m.description}</p>
+                    <div className="w-full h-1.5 bg-[#151517] rounded-full mt-2 overflow-hidden border border-[#2A2A2D]">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          m.completed ? 'bg-[#30D158]' : 'bg-[#FF8A00]'
+                        }`}
+                        style={{ width: `${Math.min(100, (m.current / m.target) * 100)}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-primary">+{m.xpReward} XP</p>
-                    <p className="text-[10px] text-on-surface-variant font-bold mt-1">{m.current}/{m.target}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-bold text-[#30D158] font-mono">+{m.xpReward} XP</p>
+                    <p className="text-[11px] text-[#A1A1A6] font-mono mt-0.5">
+                      {m.current}/{m.target}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -351,22 +585,21 @@ export default function Progress() {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          TAB 2: MUSCLE TRAINING MAP (Deep Anatomical View)
+      ═══════════════════════════════════════════════════════ */}
       {activeTab === 'muscles' && (
         <div className="space-y-6">
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 sm:p-8 border border-white/5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-white/5">
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-8 border border-[#2A2A2D] space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#2A2A2D]">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono uppercase tracking-widest text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 font-bold">
-                    30+ Anatomical Regions
-                  </span>
-                  <span className="text-xs text-on-surface-variant font-mono">Real Session Data</span>
-                </div>
-                <h2 className="font-headline font-black text-2xl mt-1.5 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-2xl">accessibility_new</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#30D158] font-bold block mb-1">
+                  30+ ANATOMICAL REGIONS · EVIDENCE-BASED
+                </span>
+                <h2 className="font-headline font-black text-2xl text-[#F5F5F5]">
                   Advanced Muscle Training Map
                 </h2>
-                <p className="text-xs text-on-surface-variant mt-1 leading-relaxed max-w-2xl">
+                <p className="text-xs text-[#A1A1A6] mt-1 leading-relaxed max-w-2xl">
                   Interactive biomechanical mapping of primary movers, synergists, hypertrophy volume landmarks (MEV/MAV/MRV), and physiological recovery decay curves.
                 </p>
               </div>
@@ -377,10 +610,10 @@ export default function Progress() {
                   triggerHaptic('medium');
                   setShowShareModal(true);
                 }}
-                className="self-start sm:self-center px-4 py-2.5 rounded-2xl bg-primary text-black font-bold text-xs uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
+                className="self-start sm:self-center px-4 py-2.5 rounded-xl bg-[#30D158] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all shadow-md cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">share</span>
-                Share Muscle Progress
+                <Share2 className="w-4 h-4" />
+                Share Progress Card
               </button>
             </div>
 
@@ -395,37 +628,52 @@ export default function Progress() {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          TAB 3: STRENGTH LIFTS & 1RM CALCULATOR
+      ═══════════════════════════════════════════════════════ */}
       {activeTab === 'strength' && (
-        <div className="space-y-8">
-          {/* Add Strength Entry */}
-          <button onClick={() => setShowStrengthModal(true)} className="w-full bg-primary text-black py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <span className="material-symbols-outlined text-xl">add</span> Log Strength Entry
+        <div className="space-y-6">
+          {/* Add Strength Entry CTA */}
+          <button
+            onClick={() => setShowStrengthModal(true)}
+            className="w-full bg-[#FF8A00] text-black py-4 rounded-2xl font-headline font-black text-sm flex items-center justify-center gap-2 active:scale-98 transition-transform shadow-md"
+          >
+            <Plus className="w-4 h-4" /> Log Strength Entry
           </button>
 
           {/* Strength Lifts from real data */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
-            <h3 className="font-headline font-bold text-xl mb-6">Strength Progress</h3>
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">Strength Progress</h3>
             {strengthLifts.length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-on-surface-variant">
-                <span className="material-symbols-outlined text-4xl opacity-30 mb-3">fitness_center</span>
-                <p className="text-sm font-medium">Log your first lift to track progress</p>
+              <div className="flex flex-col items-center py-12 text-[#A1A1A6] space-y-2">
+                <Dumbbell className="w-8 h-8 text-[#6B6B70]" />
+                <p className="text-sm font-semibold text-[#F5F5F5]">No strength records logged yet</p>
+                <p className="text-xs text-[#A1A1A6]">Tap the button above to log your current working weights.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {strengthLifts.map((lift, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl group hover:bg-white/10 transition-colors">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined text-xl">fitness_center</span>
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 p-4 bg-[#1E1E20] rounded-2xl border border-[#2A2A2D] transition-colors"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#FF8A00] shrink-0">
+                      <Dumbbell className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-headline font-bold truncate">{lift.name}</p>
-                      <div className="w-full h-1.5 bg-[#252528] rounded-full overflow-hidden mt-2">
-                        <div className="h-full bg-gradient-to-r from-primary to-[#00c6ff] rounded-full" style={{ width: `${Math.min(100, (lift.current / 400) * 100)}%` }}></div>
+                      <p className="font-headline font-bold text-sm text-[#F5F5F5] truncate">{lift.name}</p>
+                      <div className="w-full h-1.5 bg-[#151517] rounded-full overflow-hidden mt-2 border border-[#2A2A2D]">
+                        <div
+                          className="h-full bg-[#FF8A00] rounded-full"
+                          style={{ width: `${Math.min(100, (lift.current / 400) * 100)}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-headline font-black text-xl">{lift.current}<span className="text-xs text-on-surface-variant ml-1">lbs</span></p>
-                      <p className="text-secondary text-[10px] font-bold">{lift.change}</p>
+                    <div className="text-right shrink-0">
+                      <p className="font-headline font-black text-xl text-[#F5F5F5] font-mono">
+                        {lift.current} <span className="text-xs text-[#A1A1A6]">lbs</span>
+                      </p>
+                      <p className="text-[#30D158] text-[10px] font-bold font-mono">{lift.change}</p>
                     </div>
                   </div>
                 ))}
@@ -434,73 +682,120 @@ export default function Progress() {
           </div>
 
           {/* Interactive 1RM Calculator */}
-          <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-[2rem] p-8 border border-primary/20">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-primary text-3xl">calculate</span>
-              <h3 className="font-headline font-bold text-xl">1RM Calculator</h3>
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div className="flex items-center gap-3">
+              <Calculator className="w-6 h-6 text-[#FF8A00]" />
+              <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">1RM Calculator (Epley)</h3>
             </div>
-            <p className="text-on-surface-variant text-sm mb-4">Enter your working weight and reps to estimate your one-rep max (Epley formula).</p>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <p className="text-[#A1A1A6] text-xs">
+              Enter working set weight and performed reps to estimate maximal one-rep strength.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Weight (lbs)</label>
-                <input type="number" value={calcWeight} onChange={e => setCalcWeight(e.target.value)} placeholder="185" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-lg text-center focus:border-primary outline-none" />
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  Weight (lbs)
+                </label>
+                <input
+                  type="number"
+                  value={calcWeight}
+                  onChange={e => setCalcWeight(e.target.value)}
+                  placeholder="185"
+                  className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-4 py-3 text-[#F5F5F5] font-bold text-lg text-center focus:border-[#FF8A00] outline-none font-mono"
+                />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Reps</label>
-                <input type="number" value={calcReps} onChange={e => setCalcReps(e.target.value)} placeholder="5" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-lg text-center focus:border-primary outline-none" />
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  Reps Performed
+                </label>
+                <input
+                  type="number"
+                  value={calcReps}
+                  onChange={e => setCalcReps(e.target.value)}
+                  placeholder="5"
+                  className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-4 py-3 text-[#F5F5F5] font-bold text-lg text-center focus:border-[#FF8A00] outline-none font-mono"
+                />
               </div>
             </div>
             {estimated1RM > 0 && (
-              <div className="bg-black/30 rounded-xl p-6 text-center border border-primary/30">
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Estimated 1RM</p>
-                <p className="font-headline font-black text-5xl text-primary mt-1">{estimated1RM}</p>
-                <p className="text-[10px] text-on-surface-variant font-bold mt-1">LBS</p>
+              <div className="bg-[#1E1E20] rounded-2xl p-5 text-center border border-[#FF8A00]/30 space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-[#A1A1A6] font-bold">
+                  Calculated Estimated 1RM
+                </p>
+                <p className="font-headline font-black text-4xl sm:text-5xl text-[#FF8A00] font-mono tabular-nums">
+                  {estimated1RM} <span className="text-base text-[#A1A1A6]">LBS</span>
+                </p>
               </div>
             )}
           </div>
 
           {/* Calorie Balance — last 7 days */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
-            <h3 className="font-headline font-bold text-xl mb-6">7-Day Calorie Balance</h3>
-            <div className="flex items-end gap-2 h-40">
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">7-Day Calorie Balance</h3>
+            <div className="flex items-end gap-2 h-40 pt-4">
               {calorieBalance.map((d, i) => {
                 const maxVal = Math.max(...calorieBalance.map(x => Math.max(x.burned, x.consumed)), 1);
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex gap-0.5 items-end" style={{ height: '120px' }}>
-                      <div className="flex-1 bg-[#FF4D4D]/60 rounded-t-sm transition-all" style={{ height: `${(d.burned / maxVal) * 100}%`, minHeight: d.burned > 0 ? '4px' : '0' }}></div>
-                      <div className="flex-1 bg-primary/60 rounded-t-sm transition-all" style={{ height: `${(d.consumed / maxVal) * 100}%`, minHeight: d.consumed > 0 ? '4px' : '0' }}></div>
+                    <div className="w-full flex gap-1 items-end justify-center" style={{ height: '120px' }}>
+                      <div
+                        className="w-1/2 bg-[#FF453A]/70 rounded-t-sm transition-all"
+                        style={{
+                          height: `${(d.burned / maxVal) * 100}%`,
+                          minHeight: d.burned > 0 ? '4px' : '0',
+                        }}
+                        title={`Burned: ${d.burned} kcal`}
+                      />
+                      <div
+                        className="w-1/2 bg-[#30D158]/70 rounded-t-sm transition-all"
+                        style={{
+                          height: `${(d.consumed / maxVal) * 100}%`,
+                          minHeight: d.consumed > 0 ? '4px' : '0',
+                        }}
+                        title={`Consumed: ${d.consumed} kcal`}
+                      />
                     </div>
-                    <span className="text-[9px] text-on-surface-variant font-bold uppercase">{d.label}</span>
+                    <span className="text-[9px] text-[#A1A1A6] font-bold uppercase">{d.label}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-on-surface-variant"><span className="w-2.5 h-2.5 rounded-sm bg-[#FF4D4D]/60"></span>Burned</span>
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-on-surface-variant"><span className="w-2.5 h-2.5 rounded-sm bg-primary/60"></span>Consumed</span>
+            <div className="flex justify-center gap-6 pt-2 border-t border-[#2A2A2D]">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#A1A1A6]">
+                <span className="w-2.5 h-2.5 rounded-sm bg-[#FF453A]/70" />
+                Burned
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#A1A1A6]">
+                <span className="w-2.5 h-2.5 rounded-sm bg-[#30D158]/70" />
+                Consumed
+              </span>
             </div>
           </div>
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          TAB 4: BODY METRICS & COMPOSITION
+      ═══════════════════════════════════════════════════════ */}
       {activeTab === 'body' && (
-        <div className="space-y-8">
-          {/* Add Body Measurement */}
-          <button onClick={() => setShowBodyModal(true)} className="w-full bg-secondary text-black py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <span className="material-symbols-outlined text-xl">straighten</span> Log Body Measurement
+        <div className="space-y-6">
+          {/* Add Body Measurement CTA */}
+          <button
+            onClick={() => setShowBodyModal(true)}
+            className="w-full bg-[#30D158] text-black py-4 rounded-2xl font-headline font-black text-sm flex items-center justify-center gap-2 active:scale-98 transition-transform shadow-md"
+          >
+            <Ruler className="w-4 h-4" /> Log Body Measurement
           </button>
 
           {/* Body Measurements from real data */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {bodyMeasurements.map((m, i) => (
-              <div key={i} className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5 group hover:border-primary/30 transition-colors">
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">{m.label}</p>
+              <div key={i} className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">{m.label}</p>
                 <div className="flex items-end justify-between">
-                  <p className="font-headline font-black text-2xl tracking-tighter">{m.value}</p>
+                  <p className="font-headline font-black text-2xl text-[#F5F5F5] font-mono">{m.value}</p>
                   {m.trend !== 'neutral' && (
-                    <span className={`material-symbols-outlined text-sm ${m.trend === 'up' ? 'text-secondary' : 'text-[#FF4D4D]'}`}>
-                      {m.trend === 'up' ? 'trending_up' : 'trending_down'}
+                    <span className={m.trend === 'up' ? 'text-[#30D158]' : 'text-[#FF453A]'}>
+                      {m.trend === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                     </span>
                   )}
                 </div>
@@ -509,54 +804,72 @@ export default function Progress() {
           </div>
 
           {/* Body Recomposition Predictor */}
-          <div className="bg-gradient-to-br from-secondary/10 to-transparent rounded-[2rem] p-8 border border-secondary/20">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>query_stats</span>
-              <h3 className="font-headline font-bold text-xl">Body Recomposition Predictor</h3>
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#30D158] font-bold block mb-0.5">
+                ALGORITHMIC PROJECTION
+              </span>
+              <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">
+                Body Recomposition Predictor
+              </h3>
+              <p className="text-[#A1A1A6] text-xs mt-0.5">
+                Calculated based on current caloric deficit/surplus, training cadence, and consistency.
+              </p>
             </div>
-            <p className="text-on-surface-variant text-sm mb-6">Based on your current weight trajectory and consistency.</p>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-black/30 rounded-xl p-6 border border-white/5 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">Projected Weight (4 wk)</p>
-                <p className="font-headline font-black text-4xl text-secondary tracking-tighter">
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#1E1E20] rounded-2xl p-5 border border-[#2A2A2D] text-center space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">
+                  Projected Weight (4 Wk)
+                </p>
+                <p className="font-headline font-black text-3xl sm:text-4xl text-[#30D158] font-mono tabular-nums">
                   {weightHistory.length >= 2
                     ? (() => {
                         const first = weightHistory[0].weight;
                         const last = weightHistory[weightHistory.length - 1].weight;
-                        const days = Math.max(1, (Date.parse(weightHistory[weightHistory.length - 1].date) - Date.parse(weightHistory[0].date)) / 86400000);
+                        const days = Math.max(
+                          1,
+                          (Date.parse(weightHistory[weightHistory.length - 1].date) - Date.parse(weightHistory[0].date)) / 86400000
+                        );
                         return toDisplay(last + ((last - first) / days) * 28).toFixed(1);
                       })()
-                    : toDisplay(profile.weight).toFixed(1)
-                  }
+                    : toDisplay(profile.weight).toFixed(1)}
                 </p>
-                <p className="text-[9px] text-on-surface-variant font-bold mt-1">{weightUnit.toUpperCase()}</p>
+                <p className="text-[10px] text-[#A1A1A6] font-bold uppercase">{weightUnit}</p>
               </div>
-              <div className="bg-black/30 rounded-xl p-6 border border-white/5 text-center">
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-2">Current Streak</p>
-                <p className="font-headline font-black text-4xl text-secondary tracking-tighter">{streak}</p>
-                <p className="text-[9px] text-on-surface-variant font-bold mt-1">DAYS</p>
+
+              <div className="bg-[#1E1E20] rounded-2xl p-5 border border-[#2A2A2D] text-center space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold">
+                  Current Streak
+                </p>
+                <p className="font-headline font-black text-3xl sm:text-4xl text-[#30D158] font-mono tabular-nums">
+                  {streak}
+                </p>
+                <p className="text-[10px] text-[#A1A1A6] font-bold uppercase">Days Consistent</p>
               </div>
             </div>
           </div>
 
           {/* Transformation Timeline */}
-          <div className="bg-[var(--color-surface-container)] rounded-[2rem] p-8 border border-white/5">
-            <h3 className="font-headline font-bold text-xl mb-6">Transformation Timeline</h3>
+          <div className="bg-[#151517] rounded-3xl p-6 sm:p-7 border border-[#2A2A2D] space-y-4">
+            <h3 className="font-headline font-bold text-xl text-[#F5F5F5]">Transformation Timeline</h3>
             {timelineEvents.length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-on-surface-variant">
-                <span className="material-symbols-outlined text-4xl opacity-30 mb-3">timeline</span>
-                <p className="text-sm font-medium">Milestones will appear as you train</p>
+              <div className="flex flex-col items-center py-10 text-[#A1A1A6] space-y-2">
+                <Calendar className="w-8 h-8 text-[#6B6B70]" />
+                <p className="text-sm font-semibold text-[#F5F5F5]">Milestones will appear as you train</p>
               </div>
             ) : (
-              <div className="space-y-6 relative">
-                <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-white/10"></div>
+              <div className="space-y-4 relative pl-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1px] before:bg-[#2A2A2D]">
                 {timelineEvents.map((event, i) => (
-                  <div key={i} className="flex gap-4 items-start relative pl-12">
-                    <div className="absolute left-4 w-4 h-4 rounded-full border-2" style={{ borderColor: event.color, backgroundColor: `${event.color}33` }}></div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: event.color }}>{event.date}</p>
-                      <p className="text-white text-sm font-medium mt-1">{event.note}</p>
-                    </div>
+                  <div key={i} className="relative pl-4 space-y-0.5">
+                    <div
+                      className="absolute -left-[19px] top-1.5 w-3 h-3 rounded-full border-2 border-[#151517]"
+                      style={{ backgroundColor: event.color }}
+                    />
+                    <p className="text-[10px] uppercase font-bold font-mono" style={{ color: event.color }}>
+                      {event.date}
+                    </p>
+                    <p className="text-[#F5F5F5] text-xs font-medium">{event.note}</p>
                   </div>
                 ))}
               </div>
@@ -565,26 +878,38 @@ export default function Progress() {
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════
+          TAB 5: ACHIEVEMENTS & BADGES
+      ═══════════════════════════════════════════════════════ */}
       {activeTab === 'achievements' && (
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {achievements.map(a => (
-              <div key={a.id} className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${
-                a.unlocked
-                  ? 'bg-[var(--color-surface-container)] border-primary/30 shadow-[0_0_20px_rgba(255,122,0,0.1)]'
-                  : 'bg-black/20 border-white/5 opacity-50 grayscale'
-              }`}>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                  a.unlocked ? 'bg-primary/20 text-primary' : 'bg-white/5 text-on-surface-variant'
-                }`}>
-                  <span className="material-symbols-outlined text-2xl" style={a.unlocked ? { fontVariationSettings: "'FILL' 1" } : {}}>{a.icon}</span>
+              <div
+                key={a.id}
+                className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${
+                  a.unlocked
+                    ? 'bg-[#151517] border-[#30D158]/30 shadow-sm'
+                    : 'bg-[#151517]/40 border-[#2A2A2D] opacity-40'
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                    a.unlocked ? 'bg-[#30D158]/15 text-[#30D158]' : 'bg-[#1E1E20] text-[#6B6B70]'
+                  }`}
+                >
+                  {renderGamificationIcon(a.icon, 'w-6 h-6')}
                 </div>
-                <div className="flex-1">
-                  <p className="font-headline font-bold text-sm">{a.title}</p>
-                  <p className="text-[10px] text-on-surface-variant mt-0.5">{a.description}</p>
-                  {a.unlocked && <p className="text-[9px] text-primary font-bold mt-1">+{a.xpReward} XP Earned</p>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-headline font-bold text-sm text-[#F5F5F5]">{a.title}</p>
+                  <p className="text-[11px] text-[#A1A1A6] mt-0.5 leading-snug">{a.description}</p>
+                  {a.unlocked && (
+                    <p className="text-[10px] text-[#30D158] font-mono font-bold mt-1">
+                      +{a.xpReward} XP UNLOCKED
+                    </p>
+                  )}
                 </div>
-                {a.unlocked && <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
+                {a.unlocked && <CheckCircle2 className="w-5 h-5 text-[#30D158] shrink-0" />}
               </div>
             ))}
           </div>
@@ -593,46 +918,159 @@ export default function Progress() {
 
       {/* ═══ Strength Modal ═══ */}
       {showStrengthModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setShowStrengthModal(false)}>
-          <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-t-[2rem] p-8 space-y-5 animate-[slideUp_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-            <h3 className="font-headline font-bold text-xl text-center">Log Strength Entry</h3>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Exercise</label>
-              <select value={sExercise} onChange={e => setSExercise(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-primary">
-                {EXERCISES.map(ex => <option key={ex} value={ex}>{ex}</option>)}
-              </select>
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowStrengthModal(false)}
+        >
+          <div
+            className="bg-[#151517] w-full max-w-sm rounded-3xl p-6 space-y-4 border border-[#2A2A2D]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-headline font-bold text-lg text-[#F5F5F5]">Log Strength Lift</h3>
+              <button
+                type="button"
+                onClick={() => setShowStrengthModal(false)}
+                className="w-8 h-8 rounded-full bg-[#1E1E20] text-[#A1A1A6] hover:text-[#F5F5F5] flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Weight (lbs)</label>
-                <input type="number" value={sWeight} onChange={e => setSWeight(e.target.value)} placeholder="135" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-center outline-none focus:border-primary" />
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  Exercise
+                </label>
+                <select
+                  value={sExercise}
+                  onChange={e => setSExercise(e.target.value)}
+                  className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-[#F5F5F5] font-semibold outline-none"
+                >
+                  {EXERCISES.map(ex => (
+                    <option key={ex} value={ex}>
+                      {ex}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Reps</label>
-                <input type="number" value={sReps} onChange={e => setSReps(e.target.value)} placeholder="8" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-center outline-none focus:border-primary" />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                    Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    value={sWeight}
+                    onChange={e => setSWeight(e.target.value)}
+                    placeholder="135"
+                    className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-[#F5F5F5] font-bold text-center outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                    Reps
+                  </label>
+                  <input
+                    type="number"
+                    value={sReps}
+                    onChange={e => setSReps(e.target.value)}
+                    placeholder="8"
+                    className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-[#F5F5F5] font-bold text-center outline-none font-mono"
+                  />
+                </div>
               </div>
             </div>
-            <button onClick={handleLogStrength} className="w-full bg-primary text-black py-4 rounded-2xl font-bold text-sm active:scale-95 transition-transform">Save Entry</button>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowStrengthModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#1E1E20] text-[#F5F5F5] font-semibold text-xs border border-[#2A2A2D]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogStrength}
+                className="flex-1 py-2.5 rounded-xl bg-[#FF8A00] text-black font-headline font-bold text-xs shadow-md"
+              >
+                Save Entry
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* ═══ Body Measurement Modal ═══ */}
       {showBodyModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center" onClick={() => setShowBodyModal(false)}>
-          <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-t-[2rem] p-8 space-y-5 animate-[slideUp_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-            <h3 className="font-headline font-bold text-xl text-center">Log Body Measurement</h3>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Measurement</label>
-              <select value={bLabel} onChange={e => setBLabel(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-primary">
-                {BODY_LABELS.map(b => <option key={b.label} value={b.label}>{b.label} ({b.unit === '%' ? '%' : 'inches'})</option>)}
-              </select>
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowBodyModal(false)}
+        >
+          <div
+            className="bg-[#151517] w-full max-w-sm rounded-3xl p-6 space-y-4 border border-[#2A2A2D]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-headline font-bold text-lg text-[#F5F5F5]">Log Body Metric</h3>
+              <button
+                type="button"
+                onClick={() => setShowBodyModal(false)}
+                className="w-8 h-8 rounded-full bg-[#1E1E20] text-[#A1A1A6] hover:text-[#F5F5F5] flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Value</label>
-              <input type="number" step="0.1" value={bValue} onChange={e => setBValue(e.target.value)} placeholder="42" className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-center outline-none focus:border-primary" />
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  Measurement Site
+                </label>
+                <select
+                  value={bLabel}
+                  onChange={e => setBLabel(e.target.value)}
+                  className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-[#F5F5F5] font-semibold outline-none"
+                >
+                  {BODY_LABELS.map(b => (
+                    <option key={b.label} value={b.label}>
+                      {b.label} ({b.unit === '%' ? '%' : 'inches'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1A6] font-bold block mb-1">
+                  Value
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={bValue}
+                  onChange={e => setBValue(e.target.value)}
+                  placeholder="34.5"
+                  className="w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl px-3 py-2.5 text-[#F5F5F5] font-bold text-center outline-none font-mono"
+                />
+              </div>
             </div>
-            <button onClick={handleLogBody} className="w-full bg-secondary text-black py-4 rounded-2xl font-bold text-sm active:scale-95 transition-transform">Save Measurement</button>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBodyModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#1E1E20] text-[#F5F5F5] font-semibold text-xs border border-[#2A2A2D]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogBody}
+                className="flex-1 py-2.5 rounded-xl bg-[#30D158] text-black font-headline font-bold text-xs shadow-md"
+              >
+                Save Metric
+              </button>
+            </div>
           </div>
         </div>
       )}
