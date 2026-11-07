@@ -1,7 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  Sparkles,
+  RotateCcw,
+  Send,
+  Activity,
+  Utensils,
+  Compass,
+  Dumbbell,
+  BatteryCharging,
+  Brain,
+  Flame,
+  type LucideIcon,
+} from 'lucide-react';
 import { useFitnessContext } from '../context/FitnessContext';
 import { useActivity } from '../context/ActivityContext';
 import { useNutrition } from '../context/NutritionContext';
+import { useHealth } from '../context/HealthContext';
+import { formatMinutesToHours, formatHealthSourceLabel } from '../engine/healthCalculations';
 import { sendToGemini, type GeminiMessage, type UserContext } from '../services/gemini';
 import { db } from '../utils/db';
 import { computeMuscleTrainingMetrics } from '../engine/muscleRecoveryEngine';
@@ -15,20 +30,27 @@ interface Message {
   isError?: boolean;
 }
 
-const QUICK_ACTIONS = [
-  { label: 'Check muscle recovery status', icon: 'vital_signs', color: '#6FFB85' },
-  { label: 'Review today\'s nutrition & macros', icon: 'restaurant', color: '#38BDF8' },
-  { label: 'Analyze my running & territory', icon: 'explore', color: '#10B981' },
-  { label: 'Optimize my workout', icon: 'fitness_center', color: '#FF7A00' },
-  { label: 'Recovery advice', icon: 'battery_charging_full', color: '#00b4d8' },
-  { label: 'Motivate me', icon: 'psychology', color: '#FF4D4D' },
-  { label: 'Form check tips', icon: 'sports_gymnastics', color: '#fab0ff' },
+interface QuickAction {
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: 'Check muscle recovery status', icon: Activity, color: '#30D158' },
+  { label: 'Review today\'s nutrition & macros', icon: Utensils, color: '#F5C542' },
+  { label: 'Analyze my running & territory', icon: Compass, color: '#4F9CF9' },
+  { label: 'Optimize my workout', icon: Dumbbell, color: '#FF8A00' },
+  { label: 'Recovery advice', icon: BatteryCharging, color: '#30D158' },
+  { label: 'Motivate me', icon: Brain, color: '#A78BFA' },
+  { label: 'Form check tips', icon: Flame, color: '#FF453A' },
 ];
 
 export default function AICoach() {
   const { profile, dailyStats } = useFitnessContext();
   const { activities, territoryStats } = useActivity();
   const { dailySummary, nutritionTarget } = useNutrition();
+  const { todayHealth } = useHealth();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
 
   useEffect(() => {
@@ -41,7 +63,7 @@ export default function AICoach() {
     {
       id: '0',
       sender: 'ai',
-      text: `Hey ${profile.name}! 👋 I'm your AI fitness coach powered by Gemini. I monitor your workouts, 30+ anatomical muscle recovery states, daily macros, and GPS territory activities. Ask me anything!`,
+      text: `Hey ${profile.name}! I'm your AI fitness coach powered by Gemini 3.8. I monitor your workouts, 30+ anatomical muscle recovery states, daily macros, and GPS territory activities. Ask me anything!`,
       timestamp: new Date(),
     },
   ]);
@@ -60,7 +82,12 @@ export default function AICoach() {
     const weeklyDistanceKm = recentWeekly.reduce((sum, a) => sum + (a.distanceMeters || 0), 0) / 1000;
 
     const muscleMetrics = computeMuscleTrainingMetrics(sessions);
-    const muscleRecoveryStats = Object.values(muscleMetrics)
+    const muscleMetricsArr = Object.values(muscleMetrics);
+    const avgMuscleRecovery = muscleMetricsArr.length > 0
+      ? Math.round(muscleMetricsArr.reduce((s, m) => s + m.recoveryPercentage, 0) / muscleMetricsArr.length)
+      : 85;
+
+    const muscleRecoveryStats = muscleMetricsArr
       .sort((a, b) => a.recoveryPercentage - b.recoveryPercentage)
       .slice(0, 8)
       .map(m => ({
@@ -85,6 +112,18 @@ export default function AICoach() {
       fatGoal: nutritionTarget?.fatGrams || 65,
     } : undefined;
 
+    const healthSummary = todayHealth ? {
+      steps: todayHealth.steps,
+      stepGoal: todayHealth.stepGoal,
+      sleepFormatted: formatMinutesToHours(todayHealth.sleepDurationMinutes),
+      sleepGoalHours: profile.dailySleepGoal || 8,
+      sleepScore: todayHealth.sleepScore,
+      readinessScore: todayHealth.readinessScore,
+      sourceLabel: formatHealthSourceLabel(todayHealth.source),
+      yesterdayWorkout: sessions[0]?.templateName || undefined,
+      muscleRecovery: avgMuscleRecovery,
+    } : undefined;
+
     return {
       name: profile.name,
       age: profile.age,
@@ -96,6 +135,7 @@ export default function AICoach() {
       dailyStats,
       muscleRecoveryStats,
       nutritionSummary,
+      healthSummary,
       activityStats: {
         weeklyDistanceKm,
         weeklyActivityCount: recentWeekly.length,
@@ -108,9 +148,9 @@ export default function AICoach() {
           durationMin: Math.round((a.durationSeconds || 0) / 60),
           pace: a.averagePaceSecondsPerKm ? `${Math.floor(a.averagePaceSecondsPerKm / 60)}:${(Math.round(a.averagePaceSecondsPerKm % 60)).toString().padStart(2, '0')}` : '0:00',
           date: new Date(a.startTime).toLocaleDateString(),
-          elevationGainM: a.elevationGainMeters
-        }))
-      }
+          elevationGainM: a.elevationGainMeters,
+        })),
+      },
     };
   };
 
@@ -130,7 +170,6 @@ export default function AICoach() {
     try {
       const response = await sendToGemini(text, conversationHistory, getUserContext());
 
-      // Update conversation history for context
       setConversationHistory(prev => [
         ...prev,
         { role: 'user', parts: [{ text }] },
@@ -167,7 +206,7 @@ export default function AICoach() {
       {
         id: Date.now().toString(),
         sender: 'ai',
-        text: `Fresh start! 🔥 How can I help you, ${profile.name}?`,
+        text: `Fresh session started. How can I help you today, ${profile.name}?`,
         timestamp: new Date(),
       },
     ]);
@@ -175,56 +214,54 @@ export default function AICoach() {
   };
 
   return (
-    <main className="flex flex-col h-[calc(100dvh-140px)] max-w-2xl mx-auto">
+    <main className="flex flex-col h-[calc(100dvh-140px)] max-w-2xl mx-auto bg-[#080808]">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex-shrink-0">
+      <div className="px-4 sm:px-6 pt-4 pb-3 flex-shrink-0 border-b border-[#2A2A2D]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-[#CC5F00] flex items-center justify-center shadow-[0_8px_30px_rgba(255,122,0,0.3)]">
-                <span className="material-symbols-outlined text-black text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <div className="w-10 h-10 rounded-xl bg-[#A78BFA]/10 border border-[#A78BFA]/20 flex items-center justify-center text-[#A78BFA]">
+                <Sparkles className="w-5 h-5" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-secondary rounded-full border-2 border-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#30D158] rounded-full border-2 border-[#080808]" />
             </div>
             <div>
-              <h1 className="font-headline font-black text-2xl tracking-tight">AI Coach</h1>
-              <p className="text-[10px] text-secondary font-bold uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                Powered by Gemini
+              <h1 className="font-bold text-base text-[#F5F5F5] tracking-tight">AI Athletic Coach</h1>
+              <p className="text-[10px] text-[#30D158] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+                Gemini 3.8 Telemetry Engine
               </p>
             </div>
           </div>
           <button
             onClick={clearChat}
-            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all active:scale-90"
+            className="w-9 h-9 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] hover:border-[#30D158]/40 transition-all active:scale-95"
             title="New conversation"
           >
-            <span className="material-symbols-outlined text-lg">refresh</span>
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-4 [scrollbar-width:none]">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 space-y-4 py-4 [scrollbar-width:none]">
         {messages.map(msg => {
           const isAI = msg.sender === 'ai';
           return (
-            <div key={msg.id} className={`flex ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+            <div key={msg.id} className={`flex ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in duration-200`}>
               <div className="max-w-[88%]">
-                <div className={`rounded-[1.5rem] p-4 ${
-                  isAI
-                    ? msg.isError
-                      ? 'bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 rounded-tl-lg'
-                      : 'bg-[var(--color-surface-container)] border border-white/5 rounded-tl-lg'
-                    : 'bg-gradient-to-r from-primary to-[#CC5F00] text-black rounded-tr-lg shadow-[0_4px_20px_rgba(255,122,0,0.2)]'
-                }`}>
-                  <p className={`text-[13px] leading-relaxed whitespace-pre-wrap ${
+                <div
+                  className={`rounded-2xl p-4 text-xs leading-relaxed ${
                     isAI
-                      ? msg.isError ? 'text-[#FF4D4D]' : 'text-white/90'
-                      : 'font-medium'
-                  }`}>{msg.text}</p>
+                      ? msg.isError
+                        ? 'bg-[#FF453A]/10 border border-[#FF453A]/20 text-[#FF453A] rounded-tl-sm'
+                        : 'bg-[#151517] border border-[#2A2A2D] text-[#F5F5F5] rounded-tl-sm'
+                      : 'bg-[#30D158] text-black font-semibold rounded-tr-sm shadow-sm'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
-                <p className={`text-[9px] text-white/20 mt-1.5 ${isAI ? '' : 'text-right'}`}>
+                <p className={`text-[10px] text-[#A1A1A6]/50 mt-1.5 font-mono tabular-nums ${isAI ? '' : 'text-right'}`}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -234,13 +271,13 @@ export default function AICoach() {
 
         {isTyping && (
           <div className="flex justify-start animate-in fade-in duration-200">
-            <div className="bg-[var(--color-surface-container)] border border-white/5 rounded-[1.5rem] rounded-tl-lg px-5 py-4 flex items-center gap-2">
+            <div className="bg-[#151517] border border-[#2A2A2D] rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
               <div className="flex gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-2 h-2 rounded-full bg-[#30D158] animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-[#30D158] animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-[#30D158] animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-[10px] text-on-surface-variant/50 ml-1">Thinking...</span>
+              <span className="text-[10px] text-[#A1A1A6] font-medium ml-1">Analyzing Biomechanics...</span>
             </div>
           </div>
         )}
@@ -248,20 +285,28 @@ export default function AICoach() {
         {/* Quick actions shown when few messages */}
         {messages.length <= 2 && !isTyping && (
           <div className="pt-2">
-            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-3">Quick actions</p>
+            <p className="text-[10px] text-[#A1A1A6] font-bold uppercase tracking-wider mb-2.5">Suggested Prompts</p>
             <div className="grid grid-cols-2 gap-2">
-              {QUICK_ACTIONS.map((a, i) => (
-                <button
-                  key={i}
-                  onClick={() => sendMessage(a.label)}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all active:scale-95 text-left group"
-                >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ backgroundColor: `${a.color}15`, color: a.color }}>
-                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{a.icon}</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-white/80 group-hover:text-white transition-colors leading-tight">{a.label}</span>
-                </button>
-              ))}
+              {QUICK_ACTIONS.map((a, i) => {
+                const IconComponent = a.icon;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => sendMessage(a.label)}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-[#151517] border border-[#2A2A2D] hover:border-[#30D158]/40 hover:bg-[#1E1E20] transition-all active:scale-[0.98] text-left group"
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${a.color}15`, color: a.color }}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-medium text-[#A1A1A6] group-hover:text-[#F5F5F5] transition-colors leading-tight">
+                      {a.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -270,22 +315,22 @@ export default function AICoach() {
       </div>
 
       {/* Input */}
-      <div className="px-6 py-4 flex-shrink-0 border-t border-white/5 bg-[var(--color-surface-container-low)]">
-        <form onSubmit={e => { e.preventDefault(); sendMessage(input); }} className="relative flex items-center gap-3">
+      <div className="px-3 sm:px-6 py-3 flex-shrink-0 border-t border-[#2A2A2D] bg-[#151517]">
+        <form onSubmit={e => { e.preventDefault(); sendMessage(input); }} className="relative flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Ask your AI coach anything..."
+            placeholder="Ask your coach anything..."
             disabled={isTyping}
-            className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-4 text-sm text-white placeholder:text-white/25 outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
+            className="flex-1 bg-[#1E1E20] border border-[#2A2A2D] rounded-xl py-3 px-4 text-xs text-[#F5F5F5] placeholder-[#A1A1A6]/50 outline-none focus:border-[#30D158] transition-colors disabled:opacity-50 min-h-[44px]"
           />
           <button
             type="submit"
             disabled={!input.trim() || isTyping}
-            className="w-12 h-12 rounded-2xl bg-gradient-to-r from-primary to-[#CC5F00] flex items-center justify-center text-black disabled:opacity-30 disabled:bg-white/10 disabled:bg-none disabled:text-white/30 transition-all hover:scale-105 active:scale-95 shadow-[0_4px_20px_rgba(255,122,0,0.3)] disabled:shadow-none flex-shrink-0"
+            className="w-11 h-11 rounded-xl bg-[#FF8A00] hover:bg-[#FF8A00]/90 flex items-center justify-center text-black disabled:opacity-40 transition-all active:scale-95 flex-shrink-0 shadow-sm"
           >
-            <span className="material-symbols-outlined text-lg">send</span>
+            <Send className="w-4 h-4" />
           </button>
         </form>
       </div>

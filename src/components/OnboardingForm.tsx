@@ -1,19 +1,40 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Athlete Onboarding & Profile Configuration Modal
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import { usePreferences } from '../context/PreferencesContext';
 import type { FitnessGoal } from '../context/FitnessContext';
+import {
+  X,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Dumbbell,
+  Flame,
+  Activity,
+  Scale,
+  RefreshCw,
+} from 'lucide-react';
 
 const STEPS = ['basics', 'body', 'goals', 'lifestyle', 'complete'] as const;
 type Step = typeof STEPS[number];
 
-export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { profile, updateProfile } = useFitnessContext();
   const { weightUnit, heightUnit, updatePreferences } = usePreferences();
   const [step, setStep] = useState<Step>('basics');
-  
-  const initialWeight = weightUnit === 'kg' ? Math.round(profile.weight / 2.20462 * 10) / 10 : profile.weight;
-  const initialTargetWeight = weightUnit === 'kg' ? Math.round(profile.targetWeight / 2.20462 * 10) / 10 : profile.targetWeight;
-  const initialHeight = heightUnit === 'cm' ? Math.round(profile.height * 2.54) : profile.height;
+
+  const initialWeight =
+    weightUnit === 'kg' ? Math.round((profile.weight / 2.20462) * 10) / 10 : profile.weight;
+  const initialTargetWeight =
+    weightUnit === 'kg'
+      ? Math.round((profile.targetWeight / 2.20462) * 10) / 10
+      : profile.targetWeight;
+  const initialHeight =
+    heightUnit === 'cm' ? Math.round(profile.height * 2.54) : profile.height;
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -56,10 +77,18 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
   };
 
   const handleSubmit = () => {
-    // Convert back to lbs/inches for internal storage if user selected metric
-    const finalWeight = weightUnit === 'kg' && typeof formData.weight === 'number' ? formData.weight * 2.20462 : Number(formData.weight);
-    const finalTargetWeight = weightUnit === 'kg' && typeof formData.targetWeight === 'number' ? formData.targetWeight * 2.20462 : Number(formData.targetWeight);
-    const finalHeight = heightUnit === 'cm' && typeof formData.height === 'number' ? formData.height / 2.54 : Number(formData.height);
+    const finalWeight =
+      weightUnit === 'kg' && typeof formData.weight === 'number'
+        ? formData.weight * 2.20462
+        : Number(formData.weight);
+    const finalTargetWeight =
+      weightUnit === 'kg' && typeof formData.targetWeight === 'number'
+        ? formData.targetWeight * 2.20462
+        : Number(formData.targetWeight);
+    const finalHeight =
+      heightUnit === 'cm' && typeof formData.height === 'number'
+        ? formData.height / 2.54
+        : Number(formData.height);
 
     updateProfile({
       name: formData.name,
@@ -71,68 +100,118 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
       goal: formData.goal as FitnessGoal,
     });
     setStep('complete');
-    setTimeout(() => { onClose(); setStep('basics'); }, 2000);
+    setTimeout(() => {
+      onClose();
+      setStep('basics');
+    }, 2000);
   };
 
   const currentIdx = STEPS.indexOf(step);
-  const progressPct = step === 'complete' ? 100 : ((currentIdx) / (STEPS.length - 1)) * 100;
+  const progressPct = step === 'complete' ? 100 : (currentIdx / (STEPS.length - 1)) * 100;
 
-  const inputClass = "w-full bg-[var(--color-surface)] outline-none rounded-xl px-4 py-3.5 border border-white/10 focus:border-primary transition-all text-sm font-medium";
-  const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2";
-  const chipClass = (selected: boolean) => `px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer border active:scale-95 ${selected ? 'bg-primary text-black border-primary shadow-[0_0_15px_rgba(255,122,0,0.3)]' : 'bg-[var(--color-surface)] text-on-surface-variant border-white/10 hover:border-white/30'}`;
+  const inputClass =
+    'w-full bg-[#1E1E20] outline-none rounded-xl px-4 py-3 border border-[#2A2A2D] focus:border-[#30D158] transition-colors text-sm font-semibold text-[#F5F5F5] placeholder:text-[#6B6B70]';
+  const labelClass =
+    'block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5';
+  const chipClass = (selected: boolean) =>
+    `px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer border active:scale-95 ${
+      selected
+        ? 'bg-[#30D158] text-black border-[#30D158] shadow-sm'
+        : 'bg-[#1E1E20] text-[#A1A1A6] border-[#2A2A2D] hover:text-[#F5F5F5] hover:border-[#3A3A3D]'
+    }`;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-      <div className="bg-[var(--color-surface-container)] w-full max-w-lg rounded-[2rem] shadow-2xl relative border border-white/10 overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-[#151517] w-full max-w-lg rounded-3xl shadow-2xl relative border border-[#2A2A2D] overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Progress Bar */}
-        <div className="h-1 bg-[#252528] w-full">
-          <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+        <div className="h-1 bg-[#1E1E20] w-full">
+          <div
+            className="h-full bg-[#30D158] transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
 
-        <div className="p-8">
+        <div className="p-6 sm:p-7">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              {step !== 'complete' && <p className="text-[9px] font-bold uppercase tracking-widest text-primary mb-1">Step {currentIdx + 1} of {STEPS.length - 1}</p>}
-              <h2 className="font-headline text-2xl font-bold tracking-tight">
-                {step === 'basics' && 'Who Are You?'}
-                {step === 'body' && 'Body Metrics'}
-                {step === 'goals' && 'Your Goals'}
-                {step === 'lifestyle' && 'Lifestyle & Preferences'}
-                {step === 'complete' && 'You\'re All Set! 🎉'}
+              {step !== 'complete' && (
+                <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#30D158] mb-0.5">
+                  Phase {currentIdx + 1} of {STEPS.length - 1}
+                </p>
+              )}
+              <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+                {step === 'basics' && 'Athlete Identity'}
+                {step === 'body' && 'Biometric Measures'}
+                {step === 'goals' && 'Training Targets'}
+                {step === 'lifestyle' && 'Lifestyle & Routine'}
+                {step === 'complete' && 'Configuration Initialized'}
               </h2>
             </div>
-            <button onClick={() => { onClose(); setStep('basics'); }} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-white transition-colors">
-              <span className="material-symbols-outlined text-lg">close</span>
+            <button
+              onClick={() => {
+                onClose();
+                setStep('basics');
+              }}
+              className="w-9 h-9 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Step 1: Basics */}
           {step === 'basics' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className={labelClass}>Full Name</label>
-                <input value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClass} placeholder="Enter your name" />
+                <label className={labelClass}>Athlete Full Name</label>
+                <input
+                  value={formData.name}
+                  onChange={e => handleChange('name', e.target.value)}
+                  className={inputClass}
+                  placeholder="e.g. Mohamed Najib"
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>Age</label>
-                  <input type="number" value={formData.age} onChange={e => handleChange('age', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <label className={labelClass}>Chronological Age</label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={e =>
+                      handleChange('age', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
                 <div>
-                  <label className={labelClass}>Gender</label>
+                  <label className={labelClass}>Biological Sex</label>
                   <div className="flex gap-2">
                     {['Male', 'Female', 'Other'].map(g => (
-                      <button key={g} onClick={() => handleChange('gender', g)} className={chipClass(formData.gender === g)}>{g}</button>
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => handleChange('gender', g)}
+                        className={chipClass(formData.gender === g)}
+                      >
+                        {g}
+                      </button>
                     ))}
                   </div>
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Fitness Level</label>
+                <label className={labelClass}>Experience Level</label>
                 <div className="grid grid-cols-3 gap-2">
                   {['Beginner', 'Intermediate', 'Advanced'].map(l => (
-                    <button key={l} onClick={() => handleChange('fitnessLevel', l)} className={chipClass(formData.fitnessLevel === l)}>{l}</button>
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => handleChange('fitnessLevel', l)}
+                      className={chipClass(formData.fitnessLevel === l)}
+                    >
+                      {l}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -141,47 +220,109 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
 
           {/* Step 2: Body */}
           {step === 'body' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Height</label>
-                    <button onClick={() => updatePreferences({ heightUnit: heightUnit === 'in' ? 'cm' : 'in' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
-                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {heightUnit}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Height</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updatePreferences({ heightUnit: heightUnit === 'in' ? 'cm' : 'in' })
+                      }
+                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#30D158] hover:underline"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {heightUnit}
                     </button>
                   </div>
-                  <input type="number" value={formData.height} onChange={e => handleChange('height', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <input
+                    type="number"
+                    value={formData.height}
+                    onChange={e =>
+                      handleChange('height', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Current Weight</label>
-                    <button onClick={() => updatePreferences({ weightUnit: weightUnit === 'lbs' ? 'kg' : 'lbs' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
-                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {weightUnit}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Current Weight</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updatePreferences({ weightUnit: weightUnit === 'lbs' ? 'kg' : 'lbs' })
+                      }
+                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#30D158] hover:underline"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {weightUnit}
                     </button>
                   </div>
-                  <input type="number" step="0.1" value={formData.weight} onChange={e => handleChange('weight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.weight}
+                    onChange={e =>
+                      handleChange('weight', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
               </div>
+
               <div>
                 <label className={labelClass}>Target Weight ({weightUnit})</label>
-                <input type="number" step="0.1" value={formData.targetWeight} onChange={e => handleChange('targetWeight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.targetWeight}
+                  onChange={e =>
+                    handleChange('targetWeight', e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  className={inputClass}
+                />
               </div>
-              <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between">
+
+              <div className="p-4 bg-[#1E1E20] border border-[#2A2A2D] rounded-2xl flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Current BMI</span>
-                  <p className="text-[10px] text-on-surface-variant mt-0.5">{formData.weight > formData.targetWeight ? 'Fat loss phase' : 'Lean bulk phase'}</p>
+                  <span className="text-[10px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">
+                    Calculated BMI
+                  </span>
+                  <p className="text-[11px] text-[#30D158] font-mono mt-0.5 font-semibold">
+                    {Number(formData.weight) > Number(formData.targetWeight)
+                      ? 'Caloric deficit protocol'
+                      : 'Hypertrophy surplus protocol'}
+                  </p>
                 </div>
-                <span className="font-headline font-black text-3xl text-primary">
-                  {typeof formData.height === 'number' && typeof formData.weight === 'number' && formData.height > 0 
-                    ? ((703 * (weightUnit === 'kg' ? formData.weight * 2.20462 : formData.weight)) / Math.pow((heightUnit === 'cm' ? formData.height / 2.54 : formData.height), 2)).toFixed(1) 
+                <span className="font-headline font-black text-3xl text-[#F5F5F5] font-mono tabular-nums">
+                  {typeof formData.height === 'number' &&
+                  typeof formData.weight === 'number' &&
+                  formData.height > 0
+                    ? (
+                        (703 *
+                          (weightUnit === 'kg' ? formData.weight * 2.20462 : formData.weight)) /
+                        Math.pow(
+                          heightUnit === 'cm' ? formData.height / 2.54 : formData.height,
+                          2
+                        )
+                      ).toFixed(1)
                     : '—'}
                 </span>
               </div>
+
               <div>
-                <label className={labelClass}>Any Injuries?</label>
+                <label className={labelClass}>Known Structural Injuries</label>
                 <div className="flex flex-wrap gap-2">
                   {['None', 'Lower Back', 'Knee', 'Shoulder', 'Wrist', 'Neck', 'Ankle'].map(inj => (
-                    <button key={inj} onClick={() => handleChange('injuries', inj)} className={chipClass(formData.injuries === inj)}>{inj}</button>
+                    <button
+                      key={inj}
+                      type="button"
+                      onClick={() => handleChange('injuries', inj)}
+                      className={chipClass(formData.injuries === inj)}
+                    >
+                      {inj}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -190,33 +331,79 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
 
           {/* Step 3: Goals */}
           {step === 'goals' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className={labelClass}>Primary Goal</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className={labelClass}>Primary Focus</label>
+                <div className="grid grid-cols-2 gap-2.5">
                   {[
-                    { val: 'Fat Loss', icon: 'local_fire_department', color: '#FF4D4D' },
-                    { val: 'Hypertrophy Phase', icon: 'fitness_center', color: '#FF7A00' },
-                    { val: 'Endurance', icon: 'directions_run', color: '#6FFB85' },
-                    { val: 'Maintenance', icon: 'balance', color: '#fab0ff' },
-                  ].map(g => (
-                    <button key={g.val} onClick={() => handleChange('goal', g.val)} className={`p-4 rounded-2xl border transition-all text-left active:scale-95 ${formData.goal === g.val ? 'bg-primary/10 border-primary/50 shadow-[0_0_20px_rgba(255,122,0,0.15)]' : 'bg-[var(--color-surface)] border-white/10 hover:border-white/30'}`}>
-                      <span className="material-symbols-outlined text-2xl mb-2 block" style={{ color: g.color, fontVariationSettings: "'FILL' 1" }}>{g.icon}</span>
-                      <p className="font-headline font-bold text-sm">{g.val}</p>
-                    </button>
-                  ))}
+                    { val: 'Hypertrophy Phase', icon: Dumbbell, color: '#30D158' },
+                    { val: 'Fat Loss', icon: Flame, color: '#FF8A00' },
+                    { val: 'Endurance', icon: Activity, color: '#4F9CF9' },
+                    { val: 'Maintenance', icon: Scale, color: '#A78BFA' },
+                  ].map(g => {
+                    const Icon = g.icon;
+                    const isSelected = formData.goal === g.val;
+                    return (
+                      <button
+                        key={g.val}
+                        type="button"
+                        onClick={() => handleChange('goal', g.val)}
+                        className={`p-3.5 rounded-2xl border transition-all text-left active:scale-95 space-y-1.5 ${
+                          isSelected
+                            ? 'bg-[#30D158]/10 border-[#30D158] shadow-[0_0_16px_rgba(48,209,88,0.15)]'
+                            : 'bg-[#1E1E20] border-[#2A2A2D] hover:border-[#3A3A3D]'
+                        }`}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center border"
+                          style={{
+                            backgroundColor: `${g.color}15`,
+                            borderColor: `${g.color}30`,
+                            color: g.color,
+                          }}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <p className="font-headline font-bold text-xs text-[#F5F5F5]">{g.val}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
               <div>
-                <label className={labelClass}>Available Workout Days: <span className="text-primary">{formData.workoutDays}</span></label>
-                <input type="range" min="2" max="7" value={formData.workoutDays} onChange={e => handleChange('workoutDays', Number(e.target.value))} className="w-full accent-primary h-2 bg-[#252528] rounded-full appearance-none cursor-pointer" />
-                <div className="flex justify-between text-[9px] text-on-surface-variant font-bold mt-1"><span>2 days</span><span>7 days</span></div>
+                <label className={labelClass}>
+                  Weekly Training Frequency:{' '}
+                  <span className="text-[#30D158] font-bold font-mono">
+                    {formData.workoutDays} Days / Week
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min="2"
+                  max="7"
+                  value={formData.workoutDays}
+                  onChange={e => handleChange('workoutDays', Number(e.target.value))}
+                  className="w-full accent-[#30D158] h-2 bg-[#1E1E20] rounded-full appearance-none cursor-pointer border border-[#2A2A2D]"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-[#6B6B70] font-bold mt-1">
+                  <span>2 Days</span>
+                  <span>7 Days</span>
+                </div>
               </div>
+
               <div>
-                <label className={labelClass}>Motivation Level</label>
+                <label className={labelClass}>Motivation & Drive</label>
                 <div className="flex gap-2">
-                  {['Low', 'Medium', 'High', 'Beast Mode'].map(m => (
-                    <button key={m} onClick={() => handleChange('motivationLevel', m)} className={`flex-1 ${chipClass(formData.motivationLevel === m)}`}>{m}</button>
+                  {['Low', 'Medium', 'High', 'Maximum'].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => handleChange('motivationLevel', m)}
+                      className={`flex-1 ${chipClass(formData.motivationLevel === m)}`}
+                    >
+                      {m}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -225,36 +412,69 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
 
           {/* Step 4: Lifestyle */}
           {step === 'lifestyle' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className={labelClass}>Activity Level</label>
+                <label className={labelClass}>Activity Baseline</label>
                 <div className="grid grid-cols-2 gap-2">
                   {['Sedentary', 'Light', 'Moderate', 'Very Active'].map(a => (
-                    <button key={a} onClick={() => handleChange('activityLevel', a)} className={chipClass(formData.activityLevel === a)}>{a}</button>
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => handleChange('activityLevel', a)}
+                      className={chipClass(formData.activityLevel === a)}
+                    >
+                      {a}
+                    </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className={labelClass}>Workout Environment</label>
+                <label className={labelClass}>Training Environment</label>
                 <div className="flex gap-2">
                   {['Gym', 'Home', 'Both', 'Outdoor'].map(w => (
-                    <button key={w} onClick={() => handleChange('workoutPreference', w)} className={`flex-1 ${chipClass(formData.workoutPreference === w)}`}>{w}</button>
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleChange('workoutPreference', w)}
+                      className={`flex-1 ${chipClass(formData.workoutPreference === w)}`}
+                    >
+                      {w}
+                    </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className={labelClass}>Diet Preference</label>
+                <label className={labelClass}>Dietary Preference</label>
                 <div className="flex flex-wrap gap-2">
-                  {['Standard', 'Vegetarian', 'Vegan', 'Keto', 'Paleo', 'Indian', 'Mediterranean'].map(d => (
-                    <button key={d} onClick={() => handleChange('dietPreference', d)} className={chipClass(formData.dietPreference === d)}>{d}</button>
-                  ))}
+                  {['Standard', 'Vegetarian', 'Vegan', 'Keto', 'Paleo', 'Indian', 'Mediterranean'].map(
+                    d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleChange('dietPreference', d)}
+                        className={chipClass(formData.dietPreference === d)}
+                      >
+                        {d}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
+
               <div>
-                <label className={labelClass}>Sleep Quality</label>
+                <label className={labelClass}>Sleep Quality Assessment</label>
                 <div className="flex gap-2">
-                  {['Poor', 'Fair', 'Good', 'Excellent'].map(s => (
-                    <button key={s} onClick={() => handleChange('sleepQuality', s)} className={`flex-1 ${chipClass(formData.sleepQuality === s)}`}>{s}</button>
+                  {['Poor', 'Fair', 'Good', 'Restorative'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleChange('sleepQuality', s)}
+                      className={`flex-1 ${chipClass(formData.sleepQuality === s)}`}
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -264,32 +484,43 @@ export default function OnboardingForm({ isOpen, onClose }: { isOpen: boolean, o
           {/* Step: Complete */}
           {step === 'complete' && (
             <div className="text-center py-8 space-y-4">
-              <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center mx-auto border border-secondary/40 shadow-[0_0_40px_rgba(111,251,133,0.3)]">
-                <span className="material-symbols-outlined text-secondary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <div className="w-16 h-16 bg-[#30D158]/15 rounded-2xl flex items-center justify-center mx-auto border border-[#30D158]/30 text-[#30D158] shadow-[0_4px_24px_rgba(48,209,88,0.25)]">
+                <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
               </div>
-              <p className="text-on-surface-variant text-sm">Your personalized AI fitness plan is being generated...</p>
-              <div className="w-32 h-1 bg-[#252528] rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-secondary rounded-full animate-pulse" style={{ width: '100%' }}></div>
+              <div className="space-y-1">
+                <h3 className="font-headline font-black text-xl text-[#F5F5F5] uppercase">
+                  Profile Calibrated
+                </h3>
+                <p className="text-[#A1A1A6] text-xs">
+                  Your personalized biomechanical parameters have been synthesized.
+                </p>
               </div>
             </div>
           )}
 
           {/* Navigation */}
           {step !== 'complete' && (
-            <div className="flex gap-3 mt-8">
+            <div className="flex gap-3 mt-6 pt-4 border-t border-[#2A2A2D]">
               {currentIdx > 0 && (
-                <button onClick={() => setStep(STEPS[currentIdx - 1])} className="px-6 py-3.5 rounded-xl border border-white/10 text-on-surface-variant font-headline font-bold text-sm hover:bg-white/5 transition-all">
-                  Back
+                <button
+                  type="button"
+                  onClick={() => setStep(STEPS[currentIdx - 1])}
+                  className="px-5 py-3 rounded-xl border border-[#2A2A2D] bg-[#1E1E20] text-[#A1A1A6] hover:text-[#F5F5F5] font-headline font-bold text-xs uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => {
                   if (currentIdx < STEPS.length - 2) setStep(STEPS[currentIdx + 1]);
                   else handleSubmit();
                 }}
-                className="flex-1 bg-primary text-black font-headline font-bold text-sm py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_4px_20px_rgba(255,122,0,0.3)]"
+                className="flex-1 bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black font-headline font-black text-xs uppercase tracking-wider py-3.5 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,138,0,0.25)]"
               >
-                {currentIdx < STEPS.length - 2 ? 'Continue' : 'Generate My Plan'}
+                <span>{currentIdx < STEPS.length - 2 ? 'Continue' : 'Initialize Plan'}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}

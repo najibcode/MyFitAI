@@ -1,25 +1,75 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Athlete Target & Nutrition Goals Editor
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useState, useMemo } from 'react';
 import { useFitnessContext } from '../context/FitnessContext';
 import type { FitnessGoal } from '../context/FitnessContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Dumbbell,
+  Flame,
+  Activity,
+  Scale,
+  Sparkles,
+  RotateCcw,
+  Info,
+  Footprints,
+  Clock,
+  Moon,
+  Droplets,
+  Check,
+} from 'lucide-react';
 
-const GOALS: { value: FitnessGoal; label: string; icon: string; color: string; desc: string }[] = [
-  { value: 'Hypertrophy Phase', label: 'Muscle Gain', icon: 'fitness_center', color: '#FF7A00', desc: 'Build lean muscle mass' },
-  { value: 'Fat Loss', label: 'Fat Loss', icon: 'local_fire_department', color: '#FF4D4D', desc: 'Burn fat & cut weight' },
-  { value: 'Endurance', label: 'Endurance', icon: 'directions_run', color: '#6FFB85', desc: 'Boost stamina & cardio' },
-  { value: 'Maintenance', label: 'Maintenance', icon: 'balance', color: '#60A5FA', desc: 'Maintain current physique' },
+const GOALS: {
+  value: FitnessGoal;
+  label: string;
+  icon: typeof Dumbbell;
+  color: string;
+  desc: string;
+}[] = [
+  {
+    value: 'Hypertrophy Phase',
+    label: 'Muscle Hypertrophy',
+    icon: Dumbbell,
+    color: '#30D158',
+    desc: 'Progressive overload for lean muscular tissue accretion',
+  },
+  {
+    value: 'Fat Loss',
+    label: 'Fat Loss',
+    icon: Flame,
+    color: '#FF8A00',
+    desc: 'Targeted caloric deficit maintaining lean muscle',
+  },
+  {
+    value: 'Endurance',
+    label: 'Cardiovascular Endurance',
+    icon: Activity,
+    color: '#4F9CF9',
+    desc: 'VO2 max conditioning, pacing, and mitochondrial density',
+  },
+  {
+    value: 'Maintenance',
+    label: 'Maintenance',
+    icon: Scale,
+    color: '#A78BFA',
+    desc: 'Physiological homeostasis and neurological adaptation',
+  },
 ];
 
-// Macro split presets: { proteinPerLb, carbPct, fatPct }
-// proteinPerLb = grams of protein per lb of bodyweight
-// carbPct / fatPct = percentage of remaining calories after protein
-const MACRO_PRESETS: Record<FitnessGoal, { proteinPerLb: number; carbPct: number; fatPct: number }> = {
+const MACRO_PRESETS: Record<
+  FitnessGoal,
+  { proteinPerLb: number; carbPct: number; fatPct: number }
+> = {
   'Hypertrophy Phase': { proteinPerLb: 1.0, carbPct: 0.55, fatPct: 0.45 },
-  'Fat Loss':          { proteinPerLb: 1.2, carbPct: 0.45, fatPct: 0.55 },
-  'Endurance':         { proteinPerLb: 0.8, carbPct: 0.65, fatPct: 0.35 },
-  'Maintenance':       { proteinPerLb: 0.9, carbPct: 0.55, fatPct: 0.45 },
+  'Fat Loss': { proteinPerLb: 1.2, carbPct: 0.45, fatPct: 0.55 },
+  'Endurance': { proteinPerLb: 0.8, carbPct: 0.65, fatPct: 0.35 },
+  'Maintenance': { proteinPerLb: 0.9, carbPct: 0.55, fatPct: 0.45 },
 };
 
 function getSuggestedMacros(goal: FitnessGoal, weightLbs: number, calories: number) {
@@ -32,28 +82,55 @@ function getSuggestedMacros(goal: FitnessGoal, weightLbs: number, calories: numb
   return { protein, carbs, fat };
 }
 
-// Input row component for consistent styling
-function GoalInput({ 
-  icon, iconColor, label, value, onChange, unit, step, min, max, suggested 
-}: { 
-  icon: string; iconColor: string; label: string; value: string; 
-  onChange: (v: string) => void; unit: string; step?: string; min?: number; max?: number;
+function GoalInput({
+  icon: Icon,
+  iconColor,
+  label,
+  value,
+  onChange,
+  unit,
+  step,
+  min,
+  max,
+  suggested,
+}: {
+  icon: typeof Dumbbell;
+  iconColor: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  unit: string;
+  step?: string;
+  min?: number;
+  max?: number;
   suggested?: number;
 }) {
   const numVal = Number(value);
-  const isInvalid = value !== '' && (isNaN(numVal) || (min !== undefined && numVal < min) || (max !== undefined && numVal > max));
+  const isInvalid =
+    value !== '' &&
+    (isNaN(numVal) || (min !== undefined && numVal < min) || (max !== undefined && numVal > max));
 
   return (
-    <div className={`bg-[var(--color-surface-container)] rounded-2xl p-4 border transition-all ${
-      isInvalid ? 'border-[#FF4D4D]/50 shadow-[0_0_12px_rgba(255,77,77,0.08)]' : 'border-white/5'
-    }`}>
+    <div
+      className={`bg-[#151517] rounded-2xl p-4 border transition-all ${
+        isInvalid ? 'border-[#FF453A]/50' : 'border-[#2A2A2D]'
+      }`}
+    >
       <div className="flex items-center gap-3">
-        <span 
-          className="material-symbols-outlined text-xl flex-shrink-0" 
-          style={{ color: iconColor, fontVariationSettings: "'FILL' 1" }}
-        >{icon}</span>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border"
+          style={{
+            backgroundColor: `${iconColor}15`,
+            borderColor: `${iconColor}33`,
+            color: iconColor,
+          }}
+        >
+          <Icon className="w-4 h-4" />
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">{label}</p>
+          <p className="text-[10px] uppercase font-mono tracking-wider text-[#A1A1A6] font-bold mb-0.5">
+            {label}
+          </p>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -62,24 +139,33 @@ function GoalInput({
               max={max}
               value={value}
               onChange={e => onChange(e.target.value)}
-              className="w-full bg-transparent outline-none font-headline font-bold text-lg text-on-surface [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full bg-transparent outline-none font-headline font-black text-xl text-[#F5F5F5] font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
-        <span className="text-on-surface-variant font-bold text-[11px] uppercase flex-shrink-0">{unit}</span>
+        <span className="text-[#6B6B70] font-mono font-bold text-xs uppercase shrink-0">
+          {unit}
+        </span>
       </div>
+
       {suggested !== undefined && (
-        <button 
+        <button
+          type="button"
           onClick={() => onChange(suggested.toString())}
-          className="mt-2 ml-9 text-[10px] text-primary/70 hover:text-primary transition-colors flex items-center gap-1"
+          className="mt-2 ml-12 text-[10px] font-mono text-[#30D158] hover:underline transition-colors flex items-center gap-1"
         >
-          <span className="material-symbols-outlined text-[12px]">auto_fix_high</span>
+          <Sparkles className="w-3 h-3" />
           Suggested: {suggested} {unit.toLowerCase()}
         </button>
       )}
+
       {isInvalid && (
-        <p className="mt-1.5 ml-9 text-[10px] text-[#FF4D4D] font-medium">
-          {min !== undefined && numVal < min ? `Minimum: ${min}` : max !== undefined && numVal > max ? `Maximum: ${max}` : 'Enter a valid number'}
+        <p className="mt-1.5 ml-12 text-[10px] font-mono text-[#FF453A]">
+          {min !== undefined && numVal < min
+            ? `Minimum: ${min}`
+            : max !== undefined && numVal > max
+            ? `Maximum: ${max}`
+            : 'Enter a valid number'}
         </p>
       )}
     </div>
@@ -92,10 +178,11 @@ export default function GoalsEditor() {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  // ── Local form state ──
   const [goal, setGoal] = useState<FitnessGoal>(profile.goal);
   const [targetWeight, setTargetWeight] = useState(
-    weightUnit === 'kg' ? (profile.targetWeight / 2.20462).toFixed(1) : profile.targetWeight.toString()
+    weightUnit === 'kg'
+      ? (profile.targetWeight / 2.20462).toFixed(1)
+      : profile.targetWeight.toString()
   );
   const [calorieGoal, setCalorieGoal] = useState(profile.dailyCalorieGoal.toString());
   const [proteinGoal, setProteinGoal] = useState(profile.dailyProteinGoal.toString());
@@ -104,16 +191,19 @@ export default function GoalsEditor() {
   const [waterGoal, setWaterGoal] = useState(profile.dailyWaterGoal.toString());
   const [stepGoal, setStepGoal] = useState(profile.dailyStepGoal.toString());
   const [sleepGoal, setSleepGoal] = useState(profile.dailySleepGoal.toString());
-  const [workoutDurationGoal, setWorkoutDurationGoal] = useState(profile.dailyWorkoutDurationGoal.toString());
+  const [workoutDurationGoal, setWorkoutDurationGoal] = useState(
+    profile.dailyWorkoutDurationGoal.toString()
+  );
 
-  // ── Suggested macros based on current goal + weight ──
   const suggested = useMemo(() => {
-    const wLbs = weightUnit === 'kg' ? Number(targetWeight) * 2.20462 : Number(targetWeight) || profile.weight;
+    const wLbs =
+      weightUnit === 'kg'
+        ? Number(targetWeight) * 2.20462
+        : Number(targetWeight) || profile.weight;
     const cals = Number(calorieGoal) || profile.dailyCalorieGoal;
     return getSuggestedMacros(goal, wLbs || profile.weight, cals);
   }, [goal, targetWeight, calorieGoal, weightUnit, profile.weight, profile.dailyCalorieGoal]);
 
-  // ── Macro breakdown bar ──
   const macroBreakdown = useMemo(() => {
     const p = Number(proteinGoal) || 0;
     const c = Number(carbsGoal) || 0;
@@ -131,17 +221,15 @@ export default function GoalsEditor() {
     };
   }, [proteinGoal, carbsGoal, fatGoal]);
 
-  // ── Reset to recommended ──
   const handleResetMacros = () => {
     setProteinGoal(suggested.protein.toString());
     setCarbsGoal(suggested.carbs.toString());
     setFatGoal(suggested.fat.toString());
   };
 
-  // ── Validation ──
   const isValid = useMemo(() => {
     const vals = [
-      { v: Number(targetWeight), min: 50, max: 500 },
+      { v: Number(targetWeight), min: 30, max: 500 },
       { v: Number(calorieGoal), min: 800, max: 10000 },
       { v: Number(proteinGoal), min: 20, max: 500 },
       { v: Number(carbsGoal), min: 0, max: 1000 },
@@ -152,9 +240,18 @@ export default function GoalsEditor() {
       { v: Number(workoutDurationGoal), min: 10, max: 300 },
     ];
     return vals.every(({ v, min, max }) => !isNaN(v) && v >= min && v <= max);
-  }, [targetWeight, calorieGoal, proteinGoal, carbsGoal, fatGoal, waterGoal, stepGoal, sleepGoal, workoutDurationGoal]);
+  }, [
+    targetWeight,
+    calorieGoal,
+    proteinGoal,
+    carbsGoal,
+    fatGoal,
+    waterGoal,
+    stepGoal,
+    sleepGoal,
+    workoutDurationGoal,
+  ]);
 
-  // ── Save ──
   const handleSave = () => {
     if (!isValid) return;
 
@@ -171,175 +268,260 @@ export default function GoalsEditor() {
       dailySleepGoal: Number(sleepGoal),
       dailyWorkoutDurationGoal: Number(workoutDurationGoal),
     });
-    showToast('Goals updated!', 'success');
+    showToast('Athletic goals synchronized', 'success');
     navigate(-1);
   };
 
   return (
-    <main className="max-w-lg mx-auto px-5 pt-6 pb-32 space-y-8">
+    <main className="max-w-xl mx-auto px-4 sm:px-6 pt-6 pb-28 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95">
-          <span className="material-symbols-outlined">arrow_back</span>
+      <div className="flex items-center gap-3 border-b border-[#2A2A2D] pb-5">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors active:scale-95"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="font-headline text-2xl font-bold tracking-tight">My Goals</h1>
-          <p className="text-on-surface-variant text-xs mt-0.5">Customize every target for your journey</p>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#30D158] block">
+            BIOMETRICS & TARGETS
+          </span>
+          <h1 className="font-headline font-black text-2xl sm:text-3xl text-[#F5F5F5] uppercase tracking-tight">
+            Athlete Goals
+          </h1>
+          <p className="text-xs text-[#A1A1A6]">
+            Configure mesocycle phase, caloric pacing, and hydration targets.
+          </p>
         </div>
       </div>
 
       {/* ═══ Section 1: Training Goal ═══ */}
-      <section>
-        <h2 className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">Training Goal</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {GOALS.map(g => (
-            <button
-              key={g.value}
-              onClick={() => setGoal(g.value)}
-              className={`p-5 rounded-2xl border text-left transition-all active:scale-[0.97] ${
-                goal === g.value
-                  ? 'bg-white/5 border-primary shadow-[0_0_20px_rgba(255,122,0,0.1)]'
-                  : 'bg-[var(--color-surface-container)] border-white/5 hover:border-white/10'
-              }`}
-            >
-              <span className="material-symbols-outlined text-2xl mb-2 block" style={{ color: g.color, fontVariationSettings: "'FILL' 1" }}>{g.icon}</span>
-              <p className="font-headline font-bold text-sm">{g.label}</p>
-              <p className="text-[10px] text-on-surface-variant mt-0.5">{g.desc}</p>
-            </button>
-          ))}
+      <section className="space-y-3">
+        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+          Current Training Phase
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {GOALS.map(g => {
+            const Icon = g.icon;
+            const isSelected = goal === g.value;
+            return (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => setGoal(g.value)}
+                className={`p-4 rounded-2xl border text-left transition-all active:scale-[0.98] space-y-2 ${
+                  isSelected
+                    ? 'bg-[#151517] border-[#30D158] shadow-[0_0_20px_rgba(48,209,88,0.12)]'
+                    : 'bg-[#151517] border-[#2A2A2D] hover:border-[#3A3A3D]'
+                }`}
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border"
+                  style={{
+                    backgroundColor: `${g.color}15`,
+                    borderColor: `${g.color}30`,
+                    color: g.color,
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-headline font-bold text-sm text-[#F5F5F5]">{g.label}</p>
+                  <p className="text-[11px] text-[#A1A1A6] mt-0.5 leading-snug">{g.desc}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {/* ═══ Section 2: Target Weight ═══ */}
-      <section>
-        <h2 className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">Target Weight</h2>
-        <div className="bg-[var(--color-surface-container)] rounded-2xl p-5 border border-white/5">
+      <section className="space-y-3">
+        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+          Target Athlete Weight
+        </h2>
+        <div className="bg-[#151517] rounded-2xl p-5 border border-[#2A2A2D] space-y-2">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-secondary text-xl">monitor_weight</span>
+            <Scale className="w-5 h-5 text-[#30D158]" />
             <input
               type="number"
               step="0.1"
               value={targetWeight}
               onChange={e => setTargetWeight(e.target.value)}
-              className="flex-1 bg-transparent outline-none font-headline font-bold text-2xl text-on-surface [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="flex-1 bg-transparent outline-none font-headline font-black text-3xl text-[#F5F5F5] font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="text-on-surface-variant font-bold text-sm uppercase">{weightUnit}</span>
+            <span className="text-[#30D158] font-mono font-bold text-sm uppercase">
+              {weightUnit}
+            </span>
           </div>
-          <div className="mt-2 ml-9 flex items-center gap-2 text-[10px] text-on-surface-variant">
-            <span className="material-symbols-outlined text-[12px]">info</span>
-            Current: {weightUnit === 'kg' ? (profile.weight / 2.20462).toFixed(1) : profile.weight} {weightUnit}
+          <div className="flex items-center gap-1.5 text-xs font-mono text-[#6B6B70] pt-1 border-t border-[#2A2A2D]">
+            <Info className="w-3.5 h-3.5" />
+            <span>
+              Current baseline: {weightUnit === 'kg' ? (profile.weight / 2.20462).toFixed(1) : profile.weight}{' '}
+              {weightUnit}
+            </span>
           </div>
         </div>
       </section>
 
       {/* ═══ Section 3: Daily Nutrition Goals ═══ */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Daily Nutrition</h2>
-          <button 
-            onClick={handleResetMacros} 
-            className="text-[10px] text-primary font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity active:scale-95"
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+            Daily Nutritional Targets
+          </h2>
+          <button
+            type="button"
+            onClick={handleResetMacros}
+            className="text-xs font-mono font-bold text-[#30D158] flex items-center gap-1 hover:underline"
           >
-            <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-            Reset to Recommended
+            <RotateCcw className="w-3.5 h-3.5" />
+            Recalculate Macros
           </button>
         </div>
 
         <div className="space-y-3">
           <GoalInput
-            icon="local_fire_department" iconColor="#FF4D4D"
-            label="Calorie Goal" value={calorieGoal} onChange={setCalorieGoal}
-            unit="KCAL" step="50" min={800} max={10000}
+            icon={Flame}
+            iconColor="#FF8A00"
+            label="Total Daily Calories"
+            value={calorieGoal}
+            onChange={setCalorieGoal}
+            unit="KCAL"
+            step="50"
+            min={800}
+            max={10000}
           />
           <GoalInput
-            icon="egg_alt" iconColor="#FF7A00"
-            label="Protein Goal" value={proteinGoal} onChange={setProteinGoal}
-            unit="G" min={20} max={500}
+            icon={Dumbbell}
+            iconColor="#30D158"
+            label="Target Protein"
+            value={proteinGoal}
+            onChange={setProteinGoal}
+            unit="G"
+            min={20}
+            max={500}
             suggested={suggested.protein}
           />
           <GoalInput
-            icon="grain" iconColor="#FBBF24"
-            label="Carbs Goal" value={carbsGoal} onChange={setCarbsGoal}
-            unit="G" min={0} max={1000}
+            icon={Activity}
+            iconColor="#F5C542"
+            label="Target Carbohydrates"
+            value={carbsGoal}
+            onChange={setCarbsGoal}
+            unit="G"
+            min={0}
+            max={1000}
             suggested={suggested.carbs}
           />
           <GoalInput
-            icon="water_drop" iconColor="#A78BFA"
-            label="Fat Goal" value={fatGoal} onChange={setFatGoal}
-            unit="G" min={10} max={400}
+            icon={Scale}
+            iconColor="#A78BFA"
+            label="Target Dietary Fat"
+            value={fatGoal}
+            onChange={setFatGoal}
+            unit="G"
+            min={10}
+            max={400}
             suggested={suggested.fat}
           />
 
           {/* Macro Breakdown Bar */}
-          <div className="bg-[var(--color-surface-container)] rounded-2xl p-4 border border-white/5">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Macro Split</p>
-              <p className="text-[10px] text-on-surface-variant font-medium">
-                {macroBreakdown.total} kcal from macros
-              </p>
+          <div className="bg-[#151517] rounded-2xl p-4 border border-[#2A2A2D] space-y-2">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-[#A1A1A6] font-bold uppercase">Macro Distribution</span>
+              <span className="text-[#F5F5F5]">{macroBreakdown.total} kcal total</span>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
-              <div 
-                className="rounded-l-full transition-all duration-500 ease-out" 
-                style={{ width: `${macroBreakdown.pPct}%`, backgroundColor: '#FF7A00' }} 
+            <div className="flex h-2.5 rounded-full overflow-hidden gap-0.5 bg-[#1E1E20]">
+              <div
+                className="transition-all duration-300"
+                style={{ width: `${macroBreakdown.pPct}%`, backgroundColor: '#30D158' }}
               />
-              <div 
-                className="transition-all duration-500 ease-out" 
-                style={{ width: `${macroBreakdown.cPct}%`, backgroundColor: '#FBBF24' }} 
+              <div
+                className="transition-all duration-300"
+                style={{ width: `${macroBreakdown.cPct}%`, backgroundColor: '#F5C542' }}
               />
-              <div 
-                className="rounded-r-full transition-all duration-500 ease-out" 
-                style={{ width: `${macroBreakdown.fPct}%`, backgroundColor: '#A78BFA' }} 
+              <div
+                className="transition-all duration-300"
+                style={{ width: `${macroBreakdown.fPct}%`, backgroundColor: '#A78BFA' }}
               />
             </div>
-            <div className="flex justify-between mt-2.5 text-[10px] font-semibold">
-              <span style={{ color: '#FF7A00' }}>Protein {macroBreakdown.pPct}%</span>
-              <span style={{ color: '#FBBF24' }}>Carbs {macroBreakdown.cPct}%</span>
-              <span style={{ color: '#A78BFA' }}>Fat {macroBreakdown.fPct}%</span>
+            <div className="flex justify-between text-[11px] font-mono font-bold pt-1">
+              <span className="text-[#30D158]">Protein {macroBreakdown.pPct}%</span>
+              <span className="text-[#F5C542]">Carbs {macroBreakdown.cPct}%</span>
+              <span className="text-[#A78BFA]">Fat {macroBreakdown.fPct}%</span>
             </div>
           </div>
 
           <GoalInput
-            icon="water_drop" iconColor="#60A5FA"
-            label="Water Goal" value={waterGoal} onChange={setWaterGoal}
-            unit="LITERS" step="0.1" min={0.5} max={10}
+            icon={Droplets}
+            iconColor="#4F9CF9"
+            label="Daily Hydration Target"
+            value={waterGoal}
+            onChange={setWaterGoal}
+            unit="LITERS"
+            step="0.1"
+            min={0.5}
+            max={10}
           />
         </div>
       </section>
 
       {/* ═══ Section 4: Activity Goals ═══ */}
-      <section>
-        <h2 className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">Activity & Recovery</h2>
+      <section className="space-y-3">
+        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+          Daily Movement & Recovery
+        </h2>
         <div className="space-y-3">
           <GoalInput
-            icon="steps" iconColor="#6FFB85"
-            label="Step Goal" value={stepGoal} onChange={setStepGoal}
-            unit="STEPS" step="500" min={1000} max={100000}
+            icon={Footprints}
+            iconColor="#4F9CF9"
+            label="Step Goal"
+            value={stepGoal}
+            onChange={setStepGoal}
+            unit="STEPS"
+            step="500"
+            min={1000}
+            max={100000}
           />
           <GoalInput
-            icon="timer" iconColor="#FF7A00"
-            label="Workout Duration" value={workoutDurationGoal} onChange={setWorkoutDurationGoal}
-            unit="MIN" step="5" min={10} max={300}
+            icon={Clock}
+            iconColor="#FF8A00"
+            label="Daily Workout Duration"
+            value={workoutDurationGoal}
+            onChange={setWorkoutDurationGoal}
+            unit="MIN"
+            step="5"
+            min={10}
+            max={300}
           />
           <GoalInput
-            icon="bedtime" iconColor="#C084FC"
-            label="Sleep Goal" value={sleepGoal} onChange={setSleepGoal}
-            unit="HOURS" step="0.5" min={3} max={12}
+            icon={Moon}
+            iconColor="#A78BFA"
+            label="Sleep Recovery Target"
+            value={sleepGoal}
+            onChange={setSleepGoal}
+            unit="HOURS"
+            step="0.5"
+            min={3}
+            max={12}
           />
         </div>
       </section>
 
       {/* Save Button */}
-      <button 
-        onClick={handleSave} 
+      <button
+        onClick={handleSave}
         disabled={!isValid}
-        className={`w-full py-4 rounded-2xl font-bold text-sm active:scale-[0.97] transition-all ${
-          isValid 
-            ? 'bg-primary text-black shadow-[0_4px_20px_rgba(255,122,0,0.2)]' 
-            : 'bg-white/5 text-on-surface-variant cursor-not-allowed'
+        className={`w-full py-4 rounded-xl font-headline font-black text-xs uppercase tracking-wider active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${
+          isValid
+            ? 'bg-[#30D158] hover:bg-[#30D158]/90 text-black shadow-[0_4px_16px_rgba(48,209,88,0.25)]'
+            : 'bg-[#1E1E20] text-[#6B6B70] border border-[#2A2A2D] cursor-not-allowed'
         }`}
       >
-        {isValid ? 'Save Goals' : 'Fix errors above to save'}
+        <Check className="w-4 h-4 stroke-[3]" />
+        <span>{isValid ? 'Save Athlete Targets' : 'Resolve input errors to save'}</span>
       </button>
     </main>
   );

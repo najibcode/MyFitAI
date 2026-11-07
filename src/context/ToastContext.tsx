@@ -1,5 +1,11 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Global Athlete Toast Notification System
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -51,26 +57,29 @@ const ToastItem = ({ toast, onRemove }: { toast: ToastMessage; onRemove: (id: st
     return () => clearTimeout(timer);
   }, [toast.id, onRemove]);
 
-  const iconMap = {
-    success: 'check_circle',
-    error: 'error',
-    info: 'info'
-  };
-
-  const colorMap = {
-    success: 'text-[#6FFB85]',
-    error: 'text-[#FF4D4D]',
-    info: 'text-primary'
+  const renderIcon = () => {
+    switch (toast.type) {
+      case 'success':
+        return <CheckCircle2 className="w-4 h-4 text-[#30D158] shrink-0" />;
+      case 'error':
+        return <AlertCircle className="w-4 h-4 text-[#FF453A] shrink-0" />;
+      default:
+        return <Info className="w-4 h-4 text-[#4F9CF9] shrink-0" />;
+    }
   };
 
   return (
-    <div className="bg-[rgba(25,25,28,0.95)] backdrop-blur-3xl border border-white/10 rounded-2xl py-3 px-4 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-auto w-fit max-w-full">
-      <span className={`material-symbols-outlined ${colorMap[toast.type]}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-        {iconMap[toast.type]}
-      </span>
-      <p className="text-sm font-semibold text-white flex-1 whitespace-normal">{toast.message}</p>
-      <button onClick={() => onRemove(toast.id)} className="text-on-surface-variant hover:text-white transition-colors ml-2 flex-shrink-0">
-        <span className="material-symbols-outlined text-sm">close</span>
+    <div className="bg-[#151517] border border-[#2A2A2D] rounded-2xl py-3 px-4 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto w-fit max-w-full">
+      {renderIcon()}
+      <p className="text-xs font-semibold text-[#F5F5F5] flex-1 whitespace-normal">
+        {toast.message}
+      </p>
+      <button
+        onClick={() => onRemove(toast.id)}
+        className="text-[#6B6B70] hover:text-[#F5F5F5] transition-colors ml-1 shrink-0 p-0.5"
+        aria-label="Dismiss toast"
+      >
+        <X className="w-3.5 h-3.5" />
       </button>
     </div>
   );

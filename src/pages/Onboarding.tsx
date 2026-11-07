@@ -1,8 +1,28 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Athlete Onboarding Experience
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useFitnessContext } from '../context/FitnessContext';
 import { usePreferences } from '../context/PreferencesContext';
 import type { FitnessGoal } from '../context/FitnessContext';
+import {
+  Activity,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Dumbbell,
+  Flame,
+  Scale,
+  RefreshCw,
+  Sparkles,
+  Zap,
+  Calendar,
+  TrendingUp,
+  Target,
+} from 'lucide-react';
 
 const STEPS = ['welcome', 'basics', 'body', 'goals', 'lifestyle', 'generating', 'ready'] as const;
 type Step = typeof STEPS[number];
@@ -70,10 +90,18 @@ export default function Onboarding() {
   }, [step]);
 
   const handleSubmit = () => {
-    // Convert back to lbs/inches for internal storage if user selected metric
-    const finalWeight = weightUnit === 'kg' && typeof formData.weight === 'number' ? formData.weight * 2.20462 : Number(formData.weight);
-    const finalTargetWeight = weightUnit === 'kg' && typeof formData.targetWeight === 'number' ? formData.targetWeight * 2.20462 : Number(formData.targetWeight);
-    const finalHeight = heightUnit === 'cm' && typeof formData.height === 'number' ? formData.height / 2.54 : Number(formData.height);
+    const finalWeight =
+      weightUnit === 'kg' && typeof formData.weight === 'number'
+        ? formData.weight * 2.20462
+        : Number(formData.weight);
+    const finalTargetWeight =
+      weightUnit === 'kg' && typeof formData.targetWeight === 'number'
+        ? formData.targetWeight * 2.20462
+        : Number(formData.targetWeight);
+    const finalHeight =
+      heightUnit === 'cm' && typeof formData.height === 'number'
+        ? formData.height / 2.54
+        : Number(formData.height);
 
     updateProfile({
       name: formData.name || 'Athlete',
@@ -88,9 +116,18 @@ export default function Onboarding() {
   };
 
   const handleFinish = () => {
-    const finalWeight = weightUnit === 'kg' && typeof formData.weight === 'number' ? formData.weight * 2.20462 : Number(formData.weight);
-    const finalTargetWeight = weightUnit === 'kg' && typeof formData.targetWeight === 'number' ? formData.targetWeight * 2.20462 : Number(formData.targetWeight);
-    const finalHeight = heightUnit === 'cm' && typeof formData.height === 'number' ? formData.height / 2.54 : Number(formData.height);
+    const finalWeight =
+      weightUnit === 'kg' && typeof formData.weight === 'number'
+        ? formData.weight * 2.20462
+        : Number(formData.weight);
+    const finalTargetWeight =
+      weightUnit === 'kg' && typeof formData.targetWeight === 'number'
+        ? formData.targetWeight * 2.20462
+        : Number(formData.targetWeight);
+    const finalHeight =
+      heightUnit === 'cm' && typeof formData.height === 'number'
+        ? formData.height / 2.54
+        : Number(formData.height);
 
     completeOnboarding({
       ...formData,
@@ -98,125 +135,167 @@ export default function Onboarding() {
       height: finalHeight || 70,
       weight: finalWeight || 170,
       targetWeight: finalTargetWeight || 165,
+      workoutDays: formData.workoutDays || 5,
     });
   };
 
   const nextStep = () => {
-    const idx = STEPS.indexOf(step);
-    if (step === 'lifestyle') handleSubmit();
-    else if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
+    const stepOrder: Step[] = ['basics', 'body', 'goals', 'lifestyle'];
+    const current = stepOrder.indexOf(step as any);
+    if (current < stepOrder.length - 1) {
+      setStep(stepOrder[current + 1]);
+    } else {
+      handleSubmit();
+    }
   };
 
   const prevStep = () => {
-    const idx = STEPS.indexOf(step);
-    if (idx > 1) setStep(STEPS[idx - 1]);
+    const stepOrder: Step[] = ['basics', 'body', 'goals', 'lifestyle'];
+    const current = stepOrder.indexOf(step as any);
+    if (current > 0) {
+      setStep(stepOrder[current - 1]);
+    } else {
+      setStep('welcome');
+    }
   };
 
   const chipClass = (selected: boolean) =>
-    `px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer border active:scale-95 ${
+    `px-3 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer border active:scale-95 ${
       selected
-        ? 'bg-primary text-black border-primary shadow-[0_0_20px_rgba(255,122,0,0.3)]'
-        : 'bg-white/5 text-on-surface-variant border-white/10 hover:border-white/30 hover:bg-white/10'
+        ? 'bg-[#30D158] text-black border-[#30D158] shadow-sm'
+        : 'bg-[#1E1E20] text-[#A1A1A6] border-[#2A2A2D] hover:text-[#F5F5F5] hover:border-[#3A3A3D]'
     }`;
 
   const inputClass =
-    'w-full bg-white/5 outline-none rounded-2xl px-5 py-4 border border-white/10 focus:border-primary/60 transition-all text-sm font-medium placeholder:text-white/20';
+    'w-full bg-[#1E1E20] border border-[#2A2A2D] rounded-xl py-3 px-4 text-sm font-semibold text-[#F5F5F5] placeholder:text-[#6B6B70] outline-none focus:border-[#30D158] transition-colors';
 
-  // WELCOME SCREEN
+  // 1. WELCOME SCREEN
   if (step === 'welcome') {
     return (
-      <div className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center px-8 overflow-hidden">
-        {/* Animated background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-1/4 left-1/3 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/3 right-1/4 w-[200px] h-[200px] bg-[#fab0ff]/10 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '2s' }} />
-        </div>
-
-        <div className="relative z-10 text-center max-w-sm animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {/* Logo */}
-          <div className="relative mx-auto mb-8 w-24 h-24">
-            <div className="absolute inset-0 bg-primary/20 rounded-3xl blur-xl animate-pulse" />
-            <div className="relative w-full h-full bg-gradient-to-br from-primary to-[#CC5F00] rounded-3xl flex items-center justify-center shadow-[0_16px_64px_rgba(255,122,0,0.4)]">
-              <span className="material-symbols-outlined text-black text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>exercise</span>
-            </div>
+      <div className="fixed inset-0 z-[300] bg-[#080808] flex flex-col items-center justify-center px-6 overflow-y-auto py-8">
+        <div className="relative z-10 text-center max-w-sm space-y-6">
+          {/* Logo Emblem */}
+          <div className="w-16 h-16 mx-auto bg-[#30D158] rounded-2xl flex items-center justify-center shadow-[0_4px_30px_rgba(48,209,88,0.3)]">
+            <Activity className="w-9 h-9 text-black stroke-[2.5]" />
           </div>
 
-          <h1 className="font-headline font-black text-5xl tracking-tighter mb-3 bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
-            MyFitAI
-          </h1>
-          <p className="text-on-surface-variant text-sm leading-relaxed mb-2">
-            Your AI-powered fitness ecosystem
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="font-headline font-black text-4xl text-[#F5F5F5] tracking-tight uppercase">
+                MyFitAI
+              </h1>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#30D158] px-2 py-0.5 rounded bg-[#30D158]/10 border border-[#30D158]/20">
+                OS
+              </span>
+            </div>
+            <p className="text-xs text-[#A1A1A6] leading-relaxed">
+              Personal Athletic Operating System
+            </p>
+            <p className="text-[11px] font-mono text-[#6B6B70] tracking-wide">
+              Workouts · Progressive Overload · Nutrition · GPS Territory · Telemetry
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-4">
+            <button
+              onClick={() => setStep('basics')}
+              className="w-full bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black font-headline font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(255,138,0,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4 fill-black" />
+              <span>Initialize Operating System</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFinish}
+              className="w-full py-2.5 text-[#A1A1A6] hover:text-[#F5F5F5] text-xs font-mono font-semibold transition-colors uppercase tracking-wider"
+            >
+              Skip setup & explore default baseline
+            </button>
+          </div>
+
+          <p className="text-[#6B6B70] text-[10px] font-mono uppercase tracking-widest">
+            Configuration takes ~60 seconds
           </p>
-          <p className="text-white/30 text-xs mb-12 max-w-xs mx-auto leading-relaxed">
-            Workouts • Nutrition • Recovery • Progress • AI Coaching
-          </p>
-
-          <button
-            onClick={() => setStep('basics')}
-            className="w-full bg-gradient-to-r from-primary to-[#CC5F00] text-black font-headline font-black py-5 rounded-2xl text-sm uppercase tracking-widest shadow-[0_12px_40px_rgba(255,122,0,0.35)] hover:shadow-[0_16px_60px_rgba(255,122,0,0.5)] active:scale-[0.97] transition-all flex items-center justify-center gap-3"
-          >
-            <span className="material-symbols-outlined text-lg">rocket_launch</span>
-            Get Started
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFinish}
-            className="w-full mt-3 py-3 text-on-surface-variant hover:text-on-surface text-xs font-bold uppercase tracking-wider transition-colors"
-          >
-            Skip for now & explore
-          </button>
-
-          <p className="text-white/20 text-[10px] mt-4 uppercase tracking-widest">Takes 60 seconds</p>
         </div>
       </div>
     );
   }
 
-  // GENERATING SCREEN
+  // 2. GENERATING SCREEN
   if (step === 'generating') {
     const stages = [
-      { label: 'Analyzing biometrics', icon: 'biotech', done: genProgress > 20 },
-      { label: 'Calibrating workout engine', icon: 'fitness_center', done: genProgress > 40 },
-      { label: 'Building nutrition plan', icon: 'restaurant', done: genProgress > 60 },
-      { label: 'Optimizing recovery model', icon: 'battery_charging_full', done: genProgress > 80 },
-      { label: 'Finalizing AI coach', icon: 'psychology', done: genProgress > 95 },
+      { label: 'Analyzing biometric parameters', done: genProgress > 20 },
+      { label: 'Calibrating progressive overload engine', done: genProgress > 40 },
+      { label: 'Formulating macronutrient pacing', done: genProgress > 60 },
+      { label: 'Synthesizing MEV/MRV recovery landmarks', done: genProgress > 80 },
+      { label: 'Finalizing algorithmic copilot', done: genProgress > 95 },
     ];
 
     return (
-      <div className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center px-8">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] animate-pulse" />
-        </div>
-        <div className="relative z-10 w-full max-w-sm text-center">
-          <div className="w-20 h-20 mx-auto mb-8 relative">
-            <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
+      <div className="fixed inset-0 z-[300] bg-[#080808] flex flex-col items-center justify-center px-6">
+        <div className="relative z-10 w-full max-w-sm text-center space-y-6">
+          <div className="w-20 h-20 mx-auto relative flex items-center justify-center">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="36" fill="transparent" stroke="rgba(255,122,0,0.15)" strokeWidth="4" />
-              <circle cx="40" cy="40" r="36" fill="transparent" stroke="#FF7A00" strokeWidth="4" strokeLinecap="round"
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="transparent"
+                stroke="#1E1E20"
+                strokeWidth="4"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="transparent"
+                stroke="#30D158"
+                strokeWidth="4"
+                strokeLinecap="round"
                 strokeDasharray={`${Math.PI * 72}`}
                 strokeDashoffset={`${Math.PI * 72 * (1 - Math.min(genProgress, 100) / 100)}`}
-                className="transition-all duration-300 drop-shadow-[0_0_10px_rgba(255,122,0,0.5)]"
+                className="transition-all duration-300"
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center font-headline font-black text-xl text-primary">{Math.min(100, Math.round(genProgress))}%</span>
+            <span className="absolute inset-0 flex items-center justify-center font-headline font-black text-xl text-[#30D158] font-mono tabular-nums">
+              {Math.min(100, Math.round(genProgress))}%
+            </span>
           </div>
 
-          <h2 className="font-headline font-black text-2xl tracking-tight mb-2">Building Your Plan</h2>
-          <p className="text-on-surface-variant text-xs mb-10">Personalizing every detail for {formData.name || 'you'}...</p>
+          <div className="space-y-1">
+            <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+              Synthesizing Plan
+            </h2>
+            <p className="text-xs text-[#A1A1A6]">
+              Calibrating mesocycle for {formData.name || 'you'}...
+            </p>
+          </div>
 
-          <div className="space-y-3 text-left">
+          <div className="space-y-2 text-left pt-2">
             {stages.map((s, i) => (
-              <div key={i} className={`flex items-center gap-3 py-2 px-4 rounded-xl transition-all duration-500 ${s.done ? 'bg-primary/5 border border-primary/20' : 'opacity-40'}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${s.done ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/30'}`}>
-                  {s.done ? (
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-sm">{s.icon}</span>
-                  )}
+              <div
+                key={i}
+                className={`flex items-center gap-3 py-2 px-3 rounded-xl border transition-all duration-300 ${
+                  s.done
+                    ? 'bg-[#151517] border-[#30D158]/30'
+                    : 'bg-[#151517]/40 border-[#2A2A2D] opacity-40'
+                }`}
+              >
+                <div
+                  className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                    s.done ? 'bg-[#30D158]/20 text-[#30D158]' : 'bg-[#1E1E20] text-[#6B6B70]'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${s.done ? 'text-white' : 'text-white/30'}`}>{s.label}</span>
+                <span
+                  className={`text-xs font-mono font-medium ${
+                    s.done ? 'text-[#F5F5F5]' : 'text-[#6B6B70]'
+                  }`}
+                >
+                  {s.label}
+                </span>
               </div>
             ))}
           </div>
@@ -225,101 +304,177 @@ export default function Onboarding() {
     );
   }
 
-  // READY SCREEN
+  // 3. READY SCREEN
   if (step === 'ready') {
     return (
-      <div className="fixed inset-0 z-[300] bg-background flex flex-col items-center justify-center px-8">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[120px]" />
-        </div>
-        <div className="relative z-10 text-center max-w-sm animate-in fade-in zoom-in-95 duration-500">
-          <div className="w-24 h-24 mx-auto mb-8 bg-secondary/20 rounded-full flex items-center justify-center border-2 border-secondary/40 shadow-[0_0_60px_rgba(111,251,133,0.3)]">
-            <span className="material-symbols-outlined text-secondary text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+      <div className="fixed inset-0 z-[300] bg-[#080808] flex flex-col items-center justify-center px-6">
+        <div className="relative z-10 text-center max-w-sm space-y-6">
+          <div className="w-20 h-20 mx-auto bg-[#30D158]/15 rounded-3xl flex items-center justify-center border border-[#30D158]/30 text-[#30D158] shadow-[0_4px_30px_rgba(48,209,88,0.25)]">
+            <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
           </div>
-          <h2 className="font-headline font-black text-4xl tracking-tighter mb-3">You're Ready!</h2>
-          <p className="text-on-surface-variant text-sm leading-relaxed mb-4">
-            Your personalized fitness ecosystem has been generated. Let's crush it, {formData.name || 'Athlete'}! 💪
-          </p>
 
-          <div className="grid grid-cols-3 gap-3 mb-10">
+          <div className="space-y-1">
+            <h2 className="font-headline font-black text-3xl text-[#F5F5F5] uppercase tracking-tight">
+              System Ready
+            </h2>
+            <p className="text-xs text-[#A1A1A6] leading-relaxed">
+              Your customized athletic personal operating system has been initialized.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 pt-2">
             {[
-              { label: 'Goal', value: formData.goal.split(' ')[0], icon: 'target', color: '#FF7A00' },
-              { label: 'Days', value: `${formData.workoutDays}/wk`, icon: 'calendar_month', color: '#6FFB85' },
-              { label: 'Level', value: formData.fitnessLevel.slice(0, 5), icon: 'trending_up', color: '#fab0ff' },
-            ].map((s, i) => (
-              <div key={i} className="bg-white/5 rounded-2xl p-4 border border-white/5 text-center">
-                <span className="material-symbols-outlined text-lg mb-1 block" style={{ color: s.color }}>{s.icon}</span>
-                <p className="font-headline font-bold text-sm">{s.value}</p>
-                <p className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-0.5">{s.label}</p>
-              </div>
-            ))}
+              {
+                label: 'Goal',
+                value: formData.goal.split(' ')[0],
+                icon: Target,
+                color: '#FF8A00',
+              },
+              {
+                label: 'Frequency',
+                value: `${formData.workoutDays}d / wk`,
+                icon: Calendar,
+                color: '#30D158',
+              },
+              {
+                label: 'Level',
+                value: formData.fitnessLevel.slice(0, 5),
+                icon: TrendingUp,
+                color: '#4F9CF9',
+              },
+            ].map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={i}
+                  className="bg-[#151517] rounded-2xl p-3.5 border border-[#2A2A2D] text-center space-y-1"
+                >
+                  <Icon className="w-4 h-4 mx-auto" style={{ color: s.color }} />
+                  <p className="font-headline font-bold text-sm text-[#F5F5F5]">{s.value}</p>
+                  <p className="text-[9px] font-mono uppercase tracking-wider text-[#A1A1A6]">
+                    {s.label}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           <button
             onClick={handleFinish}
-            className="w-full bg-gradient-to-r from-secondary to-[#00c853] text-[#004818] font-headline font-black py-5 rounded-2xl text-sm uppercase tracking-widest shadow-[0_12px_40px_rgba(111,251,133,0.35)] active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+            className="w-full bg-[#30D158] hover:bg-[#30D158]/90 text-black font-headline font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(48,209,88,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-lg">bolt</span>
-            Enter MyFitAI
+            <Zap className="w-4 h-4 fill-black" />
+            <span>Enter MyFitAI</span>
           </button>
         </div>
       </div>
     );
   }
 
-  // FORM STEPS
+  // 4. FORM STEPS
   const formStepIdx = ['basics', 'body', 'goals', 'lifestyle'].indexOf(step);
   const progressPct = ((formStepIdx + 1) / totalFormSteps) * 100;
 
   return (
-    <div className="fixed inset-0 z-[300] bg-background flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[300] bg-[#080808] flex flex-col overflow-hidden">
       {/* Progress bar */}
-      <div className="h-1 bg-white/5 w-full flex-shrink-0">
-        <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+      <div className="h-1 bg-[#151517] w-full flex-shrink-0">
+        <div
+          className="h-full bg-[#30D158] transition-all duration-300"
+          style={{ width: `${progressPct}%` }}
+        />
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 flex-shrink-0">
-        <button onClick={formStepIdx > 0 ? prevStep : undefined} className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white transition-colors ${formStepIdx > 0 ? 'hover:bg-white/10' : 'opacity-0 pointer-events-none'}`}>
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
+      <div className="flex items-center justify-between px-6 py-4 flex-shrink-0 border-b border-[#2A2A2D]">
+        <button
+          onClick={formStepIdx > 0 ? prevStep : undefined}
+          className={`w-9 h-9 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] transition-colors ${
+            formStepIdx > 0 ? 'hover:text-[#F5F5F5]' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-4 h-4" />
         </button>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Step {formStepIdx + 1} of {totalFormSteps}</p>
-        <div className="w-10" />
+        <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#30D158]">
+          Phase {formStepIdx + 1} of {totalFormSteps}
+        </p>
+        <div className="w-9" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 pb-32">
-        <div className="max-w-sm mx-auto">
+      <div className="flex-1 overflow-y-auto px-6 pb-28 pt-4 [scrollbar-width:none]">
+        <div className="max-w-md mx-auto space-y-6">
           {/* Step: Basics */}
           {step === 'basics' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4 animate-in fade-in duration-200">
               <div>
-                <h2 className="font-headline text-3xl font-black tracking-tight mb-1">Who Are You?</h2>
-                <p className="text-on-surface-variant text-sm">Let's start with the basics</p>
+                <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+                  Athlete Identity
+                </h2>
+                <p className="text-xs text-[#A1A1A6]">Personal credentials and training baseline</p>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Full Name</label>
-                <input value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClass} placeholder="What should we call you?" autoFocus />
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  value={formData.name}
+                  onChange={e => handleChange('name', e.target.value)}
+                  className={inputClass}
+                  placeholder="e.g. Mohamed Najib"
+                  autoFocus
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Age</label>
-                  <input type="number" value={formData.age} onChange={e => handleChange('age', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={e =>
+                      handleChange('age', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Gender</label>
+                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                    Gender
+                  </label>
                   <div className="flex gap-2">
                     {['Male', 'Female', 'Other'].map(g => (
-                      <button key={g} onClick={() => handleChange('gender', g)} className={`flex-1 ${chipClass(formData.gender === g)}`} style={{ padding: '10px 8px', fontSize: '10px' }}>{g}</button>
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => handleChange('gender', g)}
+                        className={`flex-1 ${chipClass(formData.gender === g)}`}
+                      >
+                        {g}
+                      </button>
                     ))}
                   </div>
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Fitness Level</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Training Experience
+                </label>
                 <div className="grid grid-cols-3 gap-2">
                   {['Beginner', 'Intermediate', 'Advanced'].map(l => (
-                    <button key={l} onClick={() => handleChange('fitnessLevel', l)} className={chipClass(formData.fitnessLevel === l)}>{l}</button>
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => handleChange('fitnessLevel', l)}
+                      className={chipClass(formData.fitnessLevel === l)}
+                    >
+                      {l}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -328,52 +483,124 @@ export default function Onboarding() {
 
           {/* Step: Body */}
           {step === 'body' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4 animate-in fade-in duration-200">
               <div>
-                <h2 className="font-headline text-3xl font-black tracking-tight mb-1">Body Metrics</h2>
-                <p className="text-on-surface-variant text-sm">Help us understand your physique</p>
+                <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+                  Biometrics
+                </h2>
+                <p className="text-xs text-[#A1A1A6]">Anthropometric measurements for caloric scaling</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Height</label>
-                    <button onClick={() => updatePreferences({ heightUnit: heightUnit === 'in' ? 'cm' : 'in' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
-                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {heightUnit}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+                      Height
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updatePreferences({ heightUnit: heightUnit === 'in' ? 'cm' : 'in' })
+                      }
+                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#30D158] hover:underline"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {heightUnit}
                     </button>
                   </div>
-                  <input type="number" value={formData.height} onChange={e => handleChange('height', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <input
+                    type="number"
+                    value={formData.height}
+                    onChange={e =>
+                      handleChange('height', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Current Weight</label>
-                    <button onClick={() => updatePreferences({ weightUnit: weightUnit === 'lbs' ? 'kg' : 'lbs' })} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors">
-                      <span className="material-symbols-outlined text-[12px]">sync_alt</span> {weightUnit}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+                      Weight
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updatePreferences({ weightUnit: weightUnit === 'lbs' ? 'kg' : 'lbs' })
+                      }
+                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#30D158] hover:underline"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                      {weightUnit}
                     </button>
                   </div>
-                  <input type="number" step="0.1" value={formData.weight} onChange={e => handleChange('weight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.weight}
+                    onChange={e =>
+                      handleChange('weight', e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className={inputClass}
+                  />
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Target Weight ({weightUnit})</label>
-                <input type="number" step="0.1" value={formData.targetWeight} onChange={e => handleChange('targetWeight', e.target.value === '' ? '' : Number(e.target.value))} className={inputClass} />
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Target Weight ({weightUnit})
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.targetWeight}
+                  onChange={e =>
+                    handleChange('targetWeight', e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  className={inputClass}
+                />
               </div>
-              {/* Live BMI */}
-              <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between">
+
+              <div className="p-4 bg-[#151517] border border-[#2A2A2D] rounded-2xl flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Current BMI</span>
-                  <p className="text-[10px] text-on-surface-variant mt-0.5">{formData.weight > formData.targetWeight ? 'Fat loss phase' : 'Lean bulk phase'}</p>
+                  <span className="text-[10px] font-mono font-bold text-[#A1A1A6] uppercase tracking-wider">
+                    Computed BMI
+                  </span>
+                  <p className="text-[11px] text-[#30D158] font-mono mt-0.5 font-semibold">
+                    {Number(formData.weight) > Number(formData.targetWeight)
+                      ? 'Caloric deficit protocol'
+                      : 'Hypertrophy surplus protocol'}
+                  </p>
                 </div>
-                <span className="font-headline font-black text-3xl text-primary">
-                  {typeof formData.height === 'number' && typeof formData.weight === 'number' && formData.height > 0 
-                    ? ((703 * (weightUnit === 'kg' ? formData.weight * 2.20462 : formData.weight)) / Math.pow((heightUnit === 'cm' ? formData.height / 2.54 : formData.height), 2)).toFixed(1) 
+                <span className="font-headline font-black text-3xl text-[#F5F5F5] font-mono tabular-nums">
+                  {typeof formData.height === 'number' &&
+                  typeof formData.weight === 'number' &&
+                  formData.height > 0
+                    ? (
+                        (703 *
+                          (weightUnit === 'kg' ? formData.weight * 2.20462 : formData.weight)) /
+                        Math.pow(
+                          heightUnit === 'cm' ? formData.height / 2.54 : formData.height,
+                          2
+                        )
+                      ).toFixed(1)
                     : '—'}
                 </span>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Any Injuries?</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Any Structural Injuries?
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {['None', 'Lower Back', 'Knee', 'Shoulder', 'Wrist', 'Neck'].map(inj => (
-                    <button key={inj} onClick={() => handleChange('injuries', inj)} className={chipClass(formData.injuries === inj)}>{inj}</button>
+                    <button
+                      key={inj}
+                      type="button"
+                      onClick={() => handleChange('injuries', inj)}
+                      className={chipClass(formData.injuries === inj)}
+                    >
+                      {inj}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -382,48 +609,108 @@ export default function Onboarding() {
 
           {/* Step: Goals */}
           {step === 'goals' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4 animate-in fade-in duration-200">
               <div>
-                <h2 className="font-headline text-3xl font-black tracking-tight mb-1">Your Goals</h2>
-                <p className="text-on-surface-variant text-sm">What are you training for?</p>
+                <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+                  Training Focus
+                </h2>
+                <p className="text-xs text-[#A1A1A6]">Primary outcome for this mesocycle</p>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">Primary Goal</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { val: 'Fat Loss', icon: 'local_fire_department', color: '#FF4D4D', desc: 'Shed body fat' },
-                    { val: 'Hypertrophy Phase', icon: 'fitness_center', color: '#FF7A00', desc: 'Build muscle' },
-                    { val: 'Endurance', icon: 'directions_run', color: '#6FFB85', desc: 'Go longer' },
-                    { val: 'Maintenance', icon: 'balance', color: '#fab0ff', desc: 'Stay consistent' },
-                  ].map(g => (
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  {
+                    val: 'Fat Loss',
+                    icon: Flame,
+                    color: '#FF8A00',
+                    desc: 'Caloric deficit and conditioning',
+                  },
+                  {
+                    val: 'Hypertrophy Phase',
+                    icon: Dumbbell,
+                    color: '#30D158',
+                    desc: 'Progressive overload for muscle',
+                  },
+                  {
+                    val: 'Endurance',
+                    icon: Activity,
+                    color: '#4F9CF9',
+                    desc: 'Aerobic threshold and stamina',
+                  },
+                  {
+                    val: 'Maintenance',
+                    icon: Scale,
+                    color: '#A78BFA',
+                    desc: 'Physiological balance',
+                  },
+                ].map(g => {
+                  const Icon = g.icon;
+                  const isSelected = formData.goal === g.val;
+                  return (
                     <button
                       key={g.val}
+                      type="button"
                       onClick={() => handleChange('goal', g.val)}
-                      className={`p-5 rounded-2xl border transition-all text-left active:scale-95 ${
-                        formData.goal === g.val
-                          ? 'bg-primary/10 border-primary/50 shadow-[0_0_25px_rgba(255,122,0,0.15)]'
-                          : 'bg-white/5 border-white/10 hover:border-white/30'
+                      className={`p-3.5 rounded-2xl border transition-all text-left active:scale-95 space-y-1.5 ${
+                        isSelected
+                          ? 'bg-[#151517] border-[#30D158] shadow-[0_0_16px_rgba(48,209,88,0.15)]'
+                          : 'bg-[#151517] border-[#2A2A2D] hover:border-[#3A3A3D]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-2xl mb-2 block" style={{ color: g.color, fontVariationSettings: "'FILL' 1" }}>{g.icon}</span>
-                      <p className="font-headline font-bold text-sm">{g.val === 'Hypertrophy Phase' ? 'Muscle Gain' : g.val}</p>
-                      <p className="text-[10px] text-on-surface-variant mt-0.5">{g.desc}</p>
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center border"
+                        style={{
+                          backgroundColor: `${g.color}15`,
+                          borderColor: `${g.color}30`,
+                          color: g.color,
+                        }}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <p className="font-headline font-bold text-xs text-[#F5F5F5]">
+                        {g.val === 'Hypertrophy Phase' ? 'Hypertrophy' : g.val}
+                      </p>
+                      <p className="text-[10px] text-[#A1A1A6] leading-snug">{g.desc}</p>
                     </button>
-                  ))}
+                  );
+                })}
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Workout Days:{' '}
+                  <span className="text-[#30D158] font-bold font-mono">
+                    {formData.workoutDays} Days / Week
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min="2"
+                  max="7"
+                  value={formData.workoutDays}
+                  onChange={e => handleChange('workoutDays', Number(e.target.value))}
+                  className="w-full accent-[#30D158] h-2 bg-[#151517] rounded-full appearance-none cursor-pointer border border-[#2A2A2D]"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-[#6B6B70] font-bold mt-1">
+                  <span>2 Days</span>
+                  <span>7 Days</span>
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">
-                  Workout Days: <span className="text-primary">{formData.workoutDays}</span>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Motivation Level
                 </label>
-                <input type="range" min="2" max="7" value={formData.workoutDays} onChange={e => handleChange('workoutDays', Number(e.target.value))} className="w-full accent-primary h-2 bg-white/10 rounded-full appearance-none cursor-pointer" />
-                <div className="flex justify-between text-[9px] text-on-surface-variant font-bold mt-1"><span>2 days</span><span>7 days</span></div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Motivation Level</label>
                 <div className="flex gap-2">
-                  {['Low', 'Medium', 'High', 'Beast Mode'].map(m => (
-                    <button key={m} onClick={() => handleChange('motivationLevel', m)} className={`flex-1 ${chipClass(formData.motivationLevel === m)}`}>{m}</button>
+                  {['Low', 'Medium', 'High', 'Maximum'].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => handleChange('motivationLevel', m)}
+                      className={`flex-1 ${chipClass(formData.motivationLevel === m)}`}
+                    >
+                      {m}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -432,40 +719,82 @@ export default function Onboarding() {
 
           {/* Step: Lifestyle */}
           {step === 'lifestyle' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4 animate-in fade-in duration-200">
               <div>
-                <h2 className="font-headline text-3xl font-black tracking-tight mb-1">Lifestyle</h2>
-                <p className="text-on-surface-variant text-sm">Final details to personalize everything</p>
+                <h2 className="font-headline font-black text-2xl text-[#F5F5F5] uppercase tracking-tight">
+                  Lifestyle Routine
+                </h2>
+                <p className="text-xs text-[#A1A1A6]">Environment and recovery habits</p>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Activity Level</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Activity Level
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   {['Sedentary', 'Light', 'Moderate', 'Very Active'].map(a => (
-                    <button key={a} onClick={() => handleChange('activityLevel', a)} className={chipClass(formData.activityLevel === a)}>{a}</button>
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => handleChange('activityLevel', a)}
+                      className={chipClass(formData.activityLevel === a)}
+                    >
+                      {a}
+                    </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Workout Environment</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Workout Environment
+                </label>
                 <div className="flex gap-2">
                   {['Gym', 'Home', 'Both', 'Outdoor'].map(w => (
-                    <button key={w} onClick={() => handleChange('workoutPreference', w)} className={`flex-1 ${chipClass(formData.workoutPreference === w)}`}>{w}</button>
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleChange('workoutPreference', w)}
+                      className={`flex-1 ${chipClass(formData.workoutPreference === w)}`}
+                    >
+                      {w}
+                    </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Diet Preference</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Diet Preference
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {['Standard', 'Vegetarian', 'Vegan', 'Keto', 'Indian', 'Mediterranean'].map(d => (
-                    <button key={d} onClick={() => handleChange('dietPreference', d)} className={chipClass(formData.dietPreference === d)}>{d}</button>
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => handleChange('dietPreference', d)}
+                      className={chipClass(formData.dietPreference === d)}
+                    >
+                      {d}
+                    </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Sleep Quality</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6] mb-1.5">
+                  Sleep Quality
+                </label>
                 <div className="flex gap-2">
-                  {['Poor', 'Fair', 'Good', 'Excellent'].map(s => (
-                    <button key={s} onClick={() => handleChange('sleepQuality', s)} className={`flex-1 ${chipClass(formData.sleepQuality === s)}`}>{s}</button>
+                  {['Poor', 'Fair', 'Good', 'Restorative'].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleChange('sleepQuality', s)}
+                      className={`flex-1 ${chipClass(formData.sleepQuality === s)}`}
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -476,16 +805,22 @@ export default function Onboarding() {
 
       {/* Bottom CTA */}
       {['basics', 'body', 'goals', 'lifestyle'].includes(step) && (
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background to-transparent">
-          <div className="max-w-sm mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 p-5 bg-[#080808]/95 backdrop-blur-md border-t border-[#2A2A2D]">
+          <div className="max-w-md mx-auto">
             <button
               onClick={nextStep}
-              className="w-full bg-gradient-to-r from-primary to-[#CC5F00] text-black font-headline font-black py-5 rounded-2xl text-sm uppercase tracking-widest shadow-[0_12px_40px_rgba(255,122,0,0.3)] active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+              className="w-full bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black font-headline font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(255,138,0,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               {step === 'lifestyle' ? (
-                <><span className="material-symbols-outlined text-lg">auto_awesome</span> Generate My Plan</>
+                <>
+                  <Sparkles className="w-4 h-4 fill-black" />
+                  <span>Generate Personalized Mesocycle</span>
+                </>
               ) : (
-                <><span>Continue</span><span className="material-symbols-outlined text-sm">arrow_forward</span></>
+                <>
+                  <span>Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
           </div>

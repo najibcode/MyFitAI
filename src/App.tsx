@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ProfileSettings from './pages/ProfileSettings';
 import Settings from './pages/Settings';
@@ -12,6 +12,10 @@ import Feedback from './pages/Feedback';
 import AICoach from './pages/AICoach';
 import GoalsEditor from './pages/GoalsEditor';
 import BottomNavBar from './components/BottomNavBar';
+import DesktopSidebar from './components/DesktopSidebar';
+import MyFitAILogo from './components/brand/MyFitAILogo';
+import { Sun, Moon, Bell, Plus, Compass } from 'lucide-react';
+
 import { FitnessProvider } from './context/FitnessContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { GamificationProvider } from './context/GamificationContext';
@@ -30,6 +34,7 @@ import WeightCheckIn from './components/WeightCheckIn';
 import { ToastProvider } from './context/ToastContext';
 import { NutritionProvider } from './context/NutritionContext';
 import { ActivityProvider } from './context/ActivityContext';
+import { HealthProvider } from './context/HealthContext';
 
 // ── Lazy-loaded heavy modules (code-split for faster initial load) ──
 // These pages import large data bundles (indianDishes: 81KB, nutritionFoods: 15KB,
@@ -61,17 +66,19 @@ function RouteFallback() {
 // ── 404 Not Found page ──
 function NotFoundPage() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-      <div className="w-24 h-24 rounded-[2rem] bg-primary/10 flex items-center justify-center mb-6">
-        <span className="material-symbols-outlined text-primary text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>explore_off</span>
+    <main className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center space-y-4">
+      <div className="w-20 h-20 rounded-3xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#30D158] shadow-[0_4px_24px_rgba(48,209,88,0.15)]">
+        <Compass className="w-10 h-10 stroke-[1.75]" />
       </div>
-      <h1 className="font-headline font-black text-5xl tracking-tighter mb-2">404</h1>
-      <p className="text-on-surface-variant text-sm leading-relaxed max-w-xs mb-8">
-        The page you're looking for doesn't exist or has been moved.
-      </p>
+      <div className="space-y-1">
+        <h1 className="font-headline font-black text-5xl text-[#F5F5F5] tracking-tight">404</h1>
+        <p className="text-[#A1A1A6] text-xs leading-relaxed max-w-xs mx-auto">
+          The requested route was not found in the personal athletic operating system.
+        </p>
+      </div>
       <Link
         to="/"
-        className="px-8 py-4 bg-primary text-black rounded-2xl font-headline font-bold text-sm uppercase tracking-widest active:scale-95 transition-all shadow-[0_8px_24px_rgba(255,122,0,0.3)]"
+        className="px-6 py-3 bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black rounded-xl font-headline font-bold text-xs uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(255,138,0,0.25)]"
       >
         Back to Dashboard
       </Link>
@@ -114,92 +121,128 @@ function PageTitleUpdater() {
   return null;
 }
 
-function AppContent() {
+function MainAppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogger, setShowLogger] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { theme, toggleTheme } = useTheme();
-  const { isOnboarded } = useOnboarding();
-  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Unread notification count — conditionally render badge
-  // In production this would come from a notifications context/Firestore listener.
+  // Unread notification count
   const unreadCount = 0;
 
-  // Simulate initial load for premium feel
+  // Native Android hardware/gesture Back Button handling via Capacitor
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+    let removeListener: (() => void) | undefined;
+    const setupBackButton = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        const listener = await CapApp.addListener('backButton', () => {
+          // Priority 1: Dismiss notifications panel if active
+          if (showNotifications) {
+            setShowNotifications(false);
+            return;
+          }
+          // Priority 2: Dismiss activity logger modal if active
+          if (showLogger) {
+            setShowLogger(false);
+            return;
+          }
+          // Priority 3: Navigate back in React Router history if on sub-route
+          if (location.pathname !== '/') {
+            navigate(-1);
+            return;
+          }
+          // Priority 4: At root view, minimize/exit application
+          CapApp.exitApp();
+        });
+
+        removeListener = () => {
+          listener.remove();
+        };
+      } catch {
+        // Ignored in non-Capacitor web environments
+      }
+    };
+
+    setupBackButton();
+    return () => {
+      removeListener?.();
+    };
+  }, [showNotifications, showLogger, location.pathname, navigate]);
+
+  // Native Android Status Bar configuration via Capacitor
+  useEffect(() => {
+    const initStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setBackgroundColor({ color: '#080808' });
+        await StatusBar.setStyle({ style: Style.Dark });
+      } catch {
+        // Ignored in non-Capacitor web environments
+      }
+    };
+    initStatusBar();
   }, []);
 
-  // Show authentication page if not logged in
-  if (!user) {
-    return <AuthPage />;
-  }
-
-  // Show onboarding if not completed
-  if (!isOnboarded) {
-    return <Onboarding />;
-  }
-
-  // Show skeleton during initial load
-  if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <header className="bg-[var(--color-header-bg)] w-full top-0 sticky z-[100] flex justify-between items-center px-6 py-4 backdrop-blur-xl border-b border-white/[0.04]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-container-highest)] animate-pulse" />
-            <div className="w-20 h-5 bg-[var(--color-surface-container-highest)] rounded-lg animate-pulse" />
-          </div>
-          <div className="flex items-center gap-2">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="w-9 h-9 rounded-full bg-white/[0.03] animate-pulse" />
-            ))}
-          </div>
-        </header>
-        <SkeletonDashboard />
-      </div>
-    );
-  }
-
   return (
-    <BrowserRouter>
-      <PageTitleUpdater />
-      <div className="min-h-screen pb-28 relative">
-        {/* Header — clean, minimal, no gradient logo */}
-        <header className="bg-[var(--color-header-bg)] w-full top-0 sticky z-[100] flex justify-between items-center px-6 py-3.5 backdrop-blur-xl border-b border-white/[0.04]">
+    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-on-surface)] flex flex-col lg:flex-row w-full max-w-full overflow-x-clip">
+      {/* Desktop Sidebar (hidden on mobile) */}
+      <DesktopSidebar />
+
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full pb-20 lg:pb-8 relative overflow-x-clip">
+        {/* Header — mobile safe area aware, athletic branding, opaque to prevent bleed */}
+        <header className="bg-[#080808] w-full top-0 sticky z-[100] flex justify-between items-center px-4 sm:px-6 py-2.5 sm:py-3 pt-[max(env(safe-area-inset-top),0.75rem)] border-b border-[var(--color-border)] select-none shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-black text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>exercise</span>
+            <Link to="/" className="lg:hidden flex items-center gap-2 group">
+              <MyFitAILogo size={28} variant="mark" className="transition-transform group-hover:scale-105" />
+              <span className="text-base font-black tracking-tight font-headline text-[var(--color-on-surface)]">
+                MyFit<span className="text-[var(--color-primary)]">AI</span>
+              </span>
+            </Link>
+            <div className="hidden lg:flex items-center gap-2 text-xs font-semibold text-[var(--color-on-surface-variant)]">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
+              <span>Athletic Performance OS</span>
             </div>
-            <span className="text-lg font-black tracking-tight font-headline text-on-surface">MyFitAI</span>
           </div>
-          <div className="flex items-center gap-1">
+
+          <div className="flex items-center gap-1.5">
             <button
               onClick={toggleTheme}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-on-surface/[0.04] transition-colors active:scale-95"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-white/[0.04] transition-colors active:scale-95"
               title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              aria-label="Toggle theme"
             >
-              <span className="material-symbols-outlined text-[20px]">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+              {theme === 'dark' ? (
+                <Sun className="w-[18px] h-[18px] stroke-[2]" />
+              ) : (
+                <Moon className="w-[18px] h-[18px] stroke-[2]" />
+              )}
             </button>
+
             <button 
               onClick={() => setShowNotifications(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-on-surface/[0.04] transition-colors active:scale-95 relative"
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-white/[0.04] transition-colors active:scale-95 relative"
+              title="Notifications"
+              aria-label="Notifications"
             >
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              {/* Conditionally render badge only when unread > 0 */}
+              <Bell className="w-[18px] h-[18px] stroke-[2]" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-primary rounded-full text-[9px] font-bold text-black flex items-center justify-center px-1">
+                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-[var(--color-primary)] rounded-full text-[9px] font-bold text-black flex items-center justify-center px-1">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
+
             <button 
               onClick={() => setShowLogger(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-on-surface/[0.04] transition-colors active:scale-95"
+              className="h-10 px-3.5 flex items-center gap-1.5 rounded-xl bg-[var(--color-action)] text-white hover:brightness-110 transition-all active:scale-95 text-xs font-headline font-bold uppercase tracking-wider shadow-sm"
               title="Log Activity"
+              aria-label="Quick Log"
             >
-              <span className="material-symbols-outlined text-[20px]">add_circle</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span className="hidden sm:inline">Log</span>
             </button>
           </div>
         </header>
@@ -242,6 +285,55 @@ function AppContent() {
 
         <BottomNavBar />
       </div>
+    </div>
+  );
+}
+
+function AppContent() {
+  const [isLoading, setIsLoading] = useState(true);
+  const { isOnboarded } = useOnboarding();
+  const { user } = useAuth();
+
+  // Simulate initial load for premium feel
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show authentication page if not logged in
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Show onboarding if not completed
+  if (!isOnboarded) {
+    return <Onboarding />;
+  }
+
+  // Show skeleton during initial load
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <header className="bg-[var(--color-header-bg)] w-full top-0 sticky z-[100] flex justify-between items-center px-6 py-4 backdrop-blur-xl border-b border-white/[0.04]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-container-highest)] animate-pulse" />
+            <div className="w-20 h-5 bg-[var(--color-surface-container-highest)] rounded-lg animate-pulse" />
+          </div>
+          <div className="flex items-center gap-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="w-9 h-9 rounded-full bg-white/[0.03] animate-pulse" />
+            ))}
+          </div>
+        </header>
+        <SkeletonDashboard />
+      </div>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <PageTitleUpdater />
+      <MainAppShell />
     </BrowserRouter>
   );
 }
@@ -261,19 +353,21 @@ function UserSpecificProviders({ children }: { children: React.ReactNode }) {
     <div key={user?.uid || 'guest'} className="contents">
       <ToastProvider>
         <FitnessProvider>
-          <GamificationProvider>
-            <PreferencesProvider>
-              <WorkoutBuilderProvider>
-                <NutritionProvider>
-                  <ActivityProvider>
-                    <OnboardingProvider>
-                      {children}
-                    </OnboardingProvider>
-                  </ActivityProvider>
-                </NutritionProvider>
-              </WorkoutBuilderProvider>
-            </PreferencesProvider>
-          </GamificationProvider>
+          <HealthProvider>
+            <GamificationProvider>
+              <PreferencesProvider>
+                <WorkoutBuilderProvider>
+                  <NutritionProvider>
+                    <ActivityProvider>
+                      <OnboardingProvider>
+                        {children}
+                      </OnboardingProvider>
+                    </ActivityProvider>
+                  </NutritionProvider>
+                </WorkoutBuilderProvider>
+              </PreferencesProvider>
+            </GamificationProvider>
+          </HealthProvider>
         </FitnessProvider>
       </ToastProvider>
     </div>

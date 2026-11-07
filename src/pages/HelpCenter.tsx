@@ -1,16 +1,47 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../context/ToastContext';
+import {
+  ArrowLeft,
+  Search,
+  Dumbbell,
+  Utensils,
+  TrendingUp,
+  Settings,
+  ChevronDown,
+  SearchX,
+  MessageSquare,
+} from 'lucide-react';
 
 const FAQ_DATA = [
-  { q: 'How does the AI workout generator work?', a: 'Our AI analyzes your fitness level, goals, available equipment, recovery status, and training history to generate scientifically optimized workout programs. It adapts as you progress.' },
-  { q: 'Can I use MyFitAI without equipment?', a: 'Absolutely! During onboarding, select "Bodyweight" as your equipment preference. The AI will generate effective calisthenics and bodyweight routines.' },
-  { q: 'How accurate is the calorie tracking?', a: 'Our nutrition database contains 500,000+ foods with verified nutritional data. Calorie estimates are within 5-10% accuracy for logged meals.' },
-  { q: 'Does MyFitAI work with wearables?', a: 'Pro subscribers can sync with Apple Watch, WHOOP, Garmin, Fitbit, and Samsung Galaxy Watch for automatic heart rate, sleep, and activity data.' },
-  { q: 'How do I track my progress?', a: 'Navigate to the Progress tab to view weight trends, strength charts, consistency heatmaps, body measurements, and AI-generated monthly reports.' },
-  { q: 'Can I customize my meal plan?', a: 'Yes! The Nutrition tab supports multiple diet preferences including Standard, Vegetarian, Vegan, Keto, Indian, Mediterranean, and Paleo options.' },
-  { q: 'What is the readiness score?', a: 'The readiness score (0-100) combines your sleep quality, recovery status, stress levels, and training load to suggest optimal workout intensity for the day.' },
-  { q: 'How do streaks work?', a: 'Complete at least one logged activity (workout, meal log, or health metric) each day to maintain your streak. Streaks earn bonus XP and unlock achievements.' },
+  {
+    q: 'How does the progressive overload engine calculate weight jumps?',
+    a: 'MyFitAI monitors your logged working sets and rep performance across consecutive sessions. When you hit your target repetition ceiling across all working sets (e.g. 3 × 10), the system recommends an evidence-based micro-load increase (typically +2.5 kg for compound upper lifts, +5 kg for lower body).',
+  },
+  {
+    q: 'Can I train without commercial gym equipment?',
+    a: 'Yes. During onboarding or in Settings, select "Calisthenics / Bodyweight" or "Home Dumbbells". The workout generator will construct effective volume progressions using bodyweight leverage, tempo variations, and available loads.',
+  },
+  {
+    q: 'How does the muscle training heatmap calculate fatigue?',
+    a: 'Each completed set is mapped to primary and secondary anatomical muscle groups with scientifically calibrated volume weights (1.0 for primary agonist, 0.5 for synergist). Recovery is calculated from session completion time, volume landmarks (MEV, MAV, MRV), and reported sleep quality.',
+  },
+  {
+    q: 'How does GPS territory capture work in Activity Hub?',
+    a: 'When you record an outdoor run, walk, or cycling session, your GPS path is discretized into spatial grid tiles. Any tile traversed for the first time is captured for your territory. Running past previously captured tiles maintains their defense status and awards bonus XP.',
+  },
+  {
+    q: 'Does MyFitAI connect to Health Connect and Apple Health?',
+    a: 'Yes. In the Health Hub, tap "Connect Health Services" to grant read permissions for native pedometer steps, resting heart rate, active energy, and sleep duration.',
+  },
+  {
+    q: 'How do streak multipliers and XP work?',
+    a: 'Logging at least one verified athletic session, nutritional meal, or biometric check-in each day advances your consecutive streak. Streaks unlock higher athlete tier badges and contribute to territory defense efficiency.',
+  },
+  {
+    q: 'How can I export my workout logs and GPX tracks?',
+    a: 'Open the Activity Hub or Settings page and tap "Export Data". You can download standard RFC-compliant CSV summaries of all logged sets and standard GPX 1.1 tracks compatible with Strava and Garmin Connect.',
+  },
 ];
 
 export default function HelpCenter() {
@@ -20,83 +51,150 @@ export default function HelpCenter() {
   const { showToast } = useToast();
 
   const filtered = searchQuery
-    ? FAQ_DATA.filter(f => f.q.toLowerCase().includes(searchQuery.toLowerCase()) || f.a.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? FAQ_DATA.filter(
+        f =>
+          f.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.a.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     : FAQ_DATA;
 
+  const quickLinks = [
+    { icon: Dumbbell, label: 'Workout Tracking', color: '#30D158' },
+    { icon: Utensils, label: 'Macro Nutrition', color: '#F5C542' },
+    { icon: TrendingUp, label: 'Progress & PRs', color: '#4F9CF9' },
+    { icon: Settings, label: 'Sensor & Wearables', color: '#A78BFA' },
+  ];
+
   return (
-    <main className="max-w-lg mx-auto px-6 pt-8 pb-32 space-y-8">
-      <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
-        <span className="material-symbols-outlined">arrow_back</span>
+    <main className="max-w-xl mx-auto px-4 sm:px-6 pt-6 pb-28 space-y-6">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors"
+        aria-label="Back"
+      >
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
-      <header>
-        <p className="text-primary font-label font-bold tracking-widest uppercase text-[10px] mb-2">Support</p>
-        <h1 className="font-headline font-extrabold text-4xl tracking-tighter">Help Center</h1>
+      {/* Header */}
+      <header className="space-y-1">
+        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#30D158] block">
+          DOCUMENTATION & ATHLETE SUPPORT
+        </span>
+        <h1 className="font-headline font-black text-3xl sm:text-4xl text-[#F5F5F5] tracking-tight uppercase">
+          Help Center
+        </h1>
+        <p className="text-xs text-[#A1A1A6]">
+          Search knowledge base articles, training methodology guides, and sensor setups.
+        </p>
       </header>
 
-      {/* Search */}
+      {/* Search Input */}
       <div className="relative">
-        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B6B70]" />
         <input
           type="text"
-          placeholder="Search help articles..."
+          placeholder="Search topics: overload, recovery, GPS, macros..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-[var(--color-surface-container)] rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder:text-white/30 outline-none border border-white/5 focus:border-primary/40 transition-colors"
+          className="w-full bg-[#151517] border border-[#2A2A2D] rounded-xl py-3 pl-10 pr-4 text-sm text-[#F5F5F5] placeholder:text-[#6B6B70] focus:outline-none focus:border-[#30D158] transition-colors"
         />
       </div>
 
-      {/* Quick Links */}
+      {/* Quick Category Links */}
       <div className="grid grid-cols-2 gap-3">
-        {[
-          { icon: 'fitness_center', label: 'Workout Guide', color: '#FF7A00' },
-          { icon: 'restaurant', label: 'Nutrition Help', color: '#6FFB85' },
-          { icon: 'analytics', label: 'Progress Tips', color: '#fab0ff' },
-          { icon: 'settings', label: 'Account Help', color: '#ff9800' },
-        ].map((link, i) => (
-          <button key={i} onClick={() => showToast(`${link.label} feature coming soon!`, 'info')} className="flex items-center gap-3 p-4 rounded-2xl bg-[var(--color-surface-container)] border border-white/5 hover:border-white/20 transition-colors active:scale-95 group">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${link.color}15`, color: link.color }}>
-              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>{link.icon}</span>
-            </div>
-            <span className="font-headline font-bold text-sm text-white/80 group-hover:text-white transition-colors">{link.label}</span>
-          </button>
-        ))}
+        {quickLinks.map((link, i) => {
+          const Icon = link.icon;
+          return (
+            <button
+              key={i}
+              onClick={() => showToast(`Opening ${link.label} documentation...`, 'info')}
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#151517] border border-[#2A2A2D] hover:border-[#3A3A3D] transition-all text-left active:scale-[0.98] group"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center border shrink-0"
+                style={{
+                  backgroundColor: `${link.color}15`,
+                  borderColor: `${link.color}33`,
+                  color: link.color,
+                }}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="font-headline font-bold text-xs text-[#F5F5F5] group-hover:text-[#30D158] transition-colors truncate">
+                {link.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* FAQ */}
-      <div className="space-y-3">
-        <h3 className="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant px-2">Frequently Asked Questions</h3>
-        {filtered.map((faq, i) => (
-          <div key={i} className="bg-[var(--color-surface-container)] rounded-2xl border border-white/5 overflow-hidden">
-            <button
-              onClick={() => setOpenIdx(openIdx === i ? null : i)}
-              className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
+      {/* FAQ Accordion */}
+      <div className="space-y-3 pt-2">
+        <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-[#A1A1A6] px-1">
+          Frequently Answered Questions
+        </h3>
+
+        {filtered.map((faq, i) => {
+          const isOpen = openIdx === i;
+          return (
+            <div
+              key={i}
+              className="bg-[#151517] rounded-2xl border border-[#2A2A2D] overflow-hidden transition-colors"
             >
-              <span className="font-headline font-bold text-sm pr-4">{faq.q}</span>
-              <span className={`material-symbols-outlined text-on-surface-variant text-sm transition-transform flex-shrink-0 ${openIdx === i ? 'rotate-180' : ''}`}>expand_more</span>
-            </button>
-            {openIdx === i && (
-              <div className="px-5 pb-5 pt-0 border-t border-white/5">
-                <p className="text-sm text-on-surface-variant leading-relaxed pt-4">{faq.a}</p>
-              </div>
-            )}
-          </div>
-        ))}
+              <button
+                onClick={() => setOpenIdx(isOpen ? null : i)}
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-[#1E1E20] transition-colors gap-3"
+              >
+                <span className="font-headline font-bold text-xs sm:text-sm text-[#F5F5F5] leading-snug">
+                  {faq.q}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#A1A1A6] shrink-0 transition-transform duration-200 ${
+                    isOpen ? 'rotate-180 text-[#30D158]' : ''
+                  }`}
+                />
+              </button>
+              {isOpen && (
+                <div className="px-4 pb-4 pt-1 border-t border-[#2A2A2D]">
+                  <p className="text-xs text-[#A1A1A6] leading-relaxed">
+                    {faq.a}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
         {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <span className="material-symbols-outlined text-4xl text-white/10 mb-3 block">search_off</span>
-            <p className="text-on-surface-variant text-sm">No results found</p>
+          <div className="text-center py-12 bg-[#151517] rounded-2xl border border-[#2A2A2D] p-6 space-y-2">
+            <SearchX className="w-8 h-8 text-[#6B6B70] mx-auto" />
+            <p className="text-sm font-bold text-[#F5F5F5]">No matching articles</p>
+            <p className="text-xs text-[#A1A1A6]">
+              Try searching with broader terms or contact athlete support directly.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Contact */}
-      <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-[2rem] p-6 border border-primary/20 text-center">
-        <span className="material-symbols-outlined text-primary text-3xl mb-3 block" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
-        <h3 className="font-headline font-bold text-lg mb-2">Still need help?</h3>
-        <p className="text-on-surface-variant text-sm mb-4">Our support team typically responds within 2 hours</p>
-        <button onClick={() => showToast('Live chat is currently offline. Please check back later.', 'info')} className="px-6 py-3 bg-primary text-black rounded-xl font-headline font-bold text-sm uppercase tracking-widest active:scale-95 transition-all">
-          Contact Support
+      {/* Support Direct Contact Card */}
+      <div className="bg-[#151517] rounded-2xl p-6 border border-[#2A2A2D] text-center space-y-3">
+        <div className="w-11 h-11 rounded-xl bg-[#30D158]/10 border border-[#30D158]/25 flex items-center justify-center mx-auto text-[#30D158]">
+          <MessageSquare className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="font-headline font-bold text-sm uppercase tracking-wide text-[#F5F5F5]">
+            Direct Athlete Support
+          </h3>
+          <p className="text-xs text-[#A1A1A6] mt-1">
+            Questions regarding biomechanics, progressive overload rules, or sensor calibration?
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/feedback')}
+          className="px-5 py-2.5 rounded-xl bg-[#30D158] hover:bg-[#30D158]/90 text-black font-headline font-bold text-xs uppercase tracking-wider transition-transform active:scale-[0.98]"
+        >
+          Send Inquiry / Feedback
         </button>
       </div>
     </main>

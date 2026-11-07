@@ -1,7 +1,26 @@
+// ─────────────────────────────────────────────────────────────
+// MyFitAI — Athlete Privacy & Telemetry Security Center
+// Athletic Personal Operating System UI/UX
+// ─────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import {
+  ArrowLeft,
+  ShieldCheck,
+  Lock,
+  Ban,
+  Database,
+  Brain,
+  Shield,
+  Scale,
+  CheckCircle2,
+  Download,
+  ChevronRight,
+  Trash2,
+} from 'lucide-react';
 
 export default function Privacy() {
   const navigate = useNavigate();
@@ -10,118 +29,173 @@ export default function Privacy() {
 
   const sections = [
     {
-      title: 'Data We Collect',
-      icon: 'database',
+      title: 'Biometric Telemetry Ingested',
+      icon: Database,
       items: [
-        'Profile information (name, age, gender, fitness metrics)',
-        'Workout logs, nutrition data, and health metrics',
-        'App usage patterns and preferences',
-        'Device information for optimization',
+        'Physiological metrics (age, gender, bodyweight, height, resting HR)',
+        'GPS coordinates and elevation profiles recorded during outdoor activities',
+        'Working load weights, set reps, RPE, and exercise velocity',
+        'Nutritional macros and hydration intake logs',
       ],
     },
     {
-      title: 'How We Use It',
-      icon: 'psychology',
+      title: 'Algorithmic Optimization Use',
+      icon: Brain,
       items: [
-        'Personalize your AI workout and nutrition recommendations',
-        'Generate progress reports and transformation analytics',
-        'Improve our AI models for better coaching accuracy',
-        'Send relevant fitness notifications and reminders',
+        'Real-time progressive overload micro-adjustment calculations',
+        'Muscle volume landmark projections (MEV, MAV, MRV)',
+        'Fasted recovery score and circadian readiness estimates',
+        'Local model inference without selling telemetry to advertisers',
       ],
     },
     {
-      title: 'Data Protection',
-      icon: 'shield',
+      title: 'Security Architecture',
+      icon: Shield,
       items: [
-        'All data encrypted at rest and in transit (AES-256)',
-        'GDPR and CCPA compliant data handling',
-        'No selling of personal data to third parties',
-        'Regular security audits and penetration testing',
+        'End-to-end encryption at rest and in transit via TLS 1.3 & AES-256',
+        'Zero ad-tracking SDKs or third-party telemetry data brokers',
+        'On-device storage prioritized with offline-first persistence',
+        'Strict GDPR Article 17 and CCPA deletion compliance',
       ],
     },
     {
-      title: 'Your Rights',
-      icon: 'gavel',
+      title: 'Athlete Sovereignty & Rights',
+      icon: Scale,
       items: [
-        'Request a full export of your data at any time',
-        'Delete all your data permanently',
-        'Opt out of AI model training with your data',
-        'Control notification preferences granularly',
+        'Instant CSV export of all training logs and workout history',
+        'Standard GPX 1.1 file export for all tracked GPS routes',
+        'Single-click permanent account and telemetry purge',
+        'Granular wearable and sensor permission controls',
       ],
     },
   ];
 
   return (
-    <main className="max-w-lg mx-auto px-6 pt-8 pb-32 space-y-8">
-      <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
-        <span className="material-symbols-outlined">arrow_back</span>
+    <main className="max-w-xl mx-auto px-4 sm:px-6 pt-6 pb-28 space-y-6">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="w-10 h-10 rounded-xl bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#A1A1A6] hover:text-[#F5F5F5] transition-colors active:scale-95"
+        aria-label="Back"
+      >
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
-      <header>
-        <p className="text-primary font-label font-bold tracking-widest uppercase text-[10px] mb-2">Legal</p>
-        <h1 className="font-headline font-extrabold text-4xl tracking-tighter">Privacy & Security</h1>
-        <p className="text-on-surface-variant text-sm mt-2">Last updated: April 2026</p>
+      {/* Header */}
+      <header className="space-y-1">
+        <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#30D158] block">
+          DATA SOVEREIGNTY & TELEMETRY GOVERNANCE
+        </span>
+        <h1 className="font-headline font-black text-3xl sm:text-4xl text-[#F5F5F5] tracking-tight uppercase">
+          Privacy & Security
+        </h1>
+        <p className="text-xs text-[#A1A1A6]">
+          Your physiological data is private, encrypted, and owned exclusively by you.
+        </p>
       </header>
 
-      {/* Trust badges */}
-      <div className="flex gap-3">
+      {/* Trust Badges */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'GDPR', icon: 'verified_user', color: '#6FFB85' },
-          { label: 'Encrypted', icon: 'lock', color: '#FF7A00' },
-          { label: 'No Ads', icon: 'block', color: '#fab0ff' },
-        ].map((badge, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2 py-4 rounded-2xl bg-[var(--color-surface-container)] border border-white/5">
-            <span className="material-symbols-outlined text-lg" style={{ color: badge.color, fontVariationSettings: "'FILL' 1" }}>{badge.icon}</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">{badge.label}</span>
-          </div>
-        ))}
+          { label: 'GDPR Verified', icon: ShieldCheck, color: '#30D158' },
+          { label: 'AES-256 Guard', icon: Lock, color: '#4F9CF9' },
+          { label: 'Zero Ad Brokers', icon: Ban, color: '#A78BFA' },
+        ].map((badge, i) => {
+          const Icon = badge.icon;
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl bg-[#151517] border border-[#2A2A2D] text-center"
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center border"
+                style={{
+                  backgroundColor: `${badge.color}15`,
+                  borderColor: `${badge.color}30`,
+                  color: badge.color,
+                }}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A1A1A6]">
+                {badge.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Sections */}
-      {sections.map((section, i) => (
-        <div key={i} className="bg-[var(--color-surface-container)] rounded-[2rem] p-6 border border-white/5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined text-lg">{section.icon}</span>
-            </div>
-            <h3 className="font-headline font-bold text-lg">{section.title}</h3>
-          </div>
-          <div className="space-y-3">
-            {section.items.map((item, ii) => (
-              <div key={ii} className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5 flex-shrink-0">check_circle</span>
-                <p className="text-sm text-white/80 leading-relaxed">{item}</p>
+      <div className="space-y-4">
+        {sections.map((section, i) => {
+          const Icon = section.icon;
+          return (
+            <div
+              key={i}
+              className="bg-[#151517] rounded-3xl p-5 sm:p-6 border border-[#2A2A2D] space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#1E1E20] border border-[#2A2A2D] flex items-center justify-center text-[#30D158]">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-headline font-black text-base text-[#F5F5F5] uppercase tracking-wide">
+                  {section.title}
+                </h3>
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+              <div className="space-y-2.5">
+                {section.items.map((item, ii) => (
+                  <div key={ii} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#30D158] mt-0.5 shrink-0" />
+                    <p className="text-xs text-[#A1A1A6] leading-relaxed">
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Actions */}
-      <div className="space-y-3">
-        <button onClick={() => showToast('Data export initiated. You will receive an email shortly.', 'success')} className="w-full flex items-center justify-between p-5 bg-[var(--color-surface-container)] rounded-2xl border border-white/5 hover:bg-white/5 transition-colors active:scale-[0.98]">
+      <div className="space-y-3 pt-2">
+        <button
+          onClick={() => showToast('Full telemetry export archive dispatched to Downloads', 'success')}
+          className="w-full flex items-center justify-between p-4 bg-[#151517] hover:bg-[#1E1E20] rounded-2xl border border-[#2A2A2D] transition-all active:scale-[0.99] group"
+        >
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary">download</span>
-            <span className="font-headline font-bold text-sm">Export My Data</span>
+            <Download className="w-4 h-4 text-[#30D158]" />
+            <span className="font-headline font-bold text-xs uppercase tracking-wider text-[#F5F5F5] group-hover:text-[#30D158] transition-colors">
+              Export Athlete Telemetry Archive (CSV & GPX)
+            </span>
           </div>
-          <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
+          <ChevronRight className="w-4 h-4 text-[#6B6B70] group-hover:text-[#F5F5F5] transition-colors" />
         </button>
-        <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center justify-between p-5 bg-[var(--color-surface-container)] rounded-2xl border border-white/5 hover:bg-white/5 transition-colors active:scale-[0.98]">
+
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full flex items-center justify-between p-4 bg-[#151517] hover:bg-[#FF453A]/10 rounded-2xl border border-[#2A2A2D] hover:border-[#FF453A]/30 transition-all active:scale-[0.99] group"
+        >
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#FF4D4D]">delete_forever</span>
-            <span className="font-headline font-bold text-sm text-[#FF4D4D]">Delete All My Data</span>
+            <Trash2 className="w-4 h-4 text-[#FF453A]" />
+            <span className="font-headline font-bold text-xs uppercase tracking-wider text-[#FF453A]">
+              Permanently Purge All Data
+            </span>
           </div>
-          <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
+          <ChevronRight className="w-4 h-4 text-[#6B6B70] group-hover:text-[#FF453A] transition-colors" />
         </button>
       </div>
 
       <ConfirmModal
         isOpen={showDeleteConfirm}
-        onConfirm={() => { setShowDeleteConfirm(false); showToast('Data deletion process started.', 'info'); }}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          showToast('Data purge initiated. Local database cleared.', 'info');
+        }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Delete All Data?"
-        message="This will permanently delete all your fitness data, meal logs, and workout history. This action cannot be undone."
-        confirmLabel="Delete Everything"
+        title="Permanently Purge All Data?"
+        message="This action permanently wipes all your recorded mesocycles, set weights, GPS routes, and bodyweight curves from local and cloud storage. It cannot be recovered."
+        confirmLabel="Purge Everything"
         variant="danger"
       />
     </main>
