@@ -570,6 +570,17 @@ export const db = {
     },
   },
 
+  syncQueue: {
+    getAll: () =>
+      getAll<{ id: string; action: string; payload: unknown; createdAt: string }>(
+        STORES.activitySyncQueue
+      ),
+    enqueue: (item: { id: string; action: string; payload: unknown; createdAt: string }) =>
+      save(STORES.activitySyncQueue, item),
+    dequeue: (id: string) => deleteById(STORES.activitySyncQueue, id),
+    clear: () => clearStore(STORES.activitySyncQueue),
+  },
+
   /** Export all data (workout + nutrition + activity) for backup */
   exportAll: async () => {
     const [

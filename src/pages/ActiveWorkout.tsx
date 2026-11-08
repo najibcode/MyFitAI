@@ -23,6 +23,7 @@ import { createDefaultLoggedSet } from '../types/workout';
 import { playRestChime, playCountdownTick, playSuccessChime } from '../utils/audioFeedback';
 import { Dumbbell, Link2, ArrowUp, ArrowDown, Trash2, Plus, Search, X, Sparkles } from 'lucide-react';
 import { QUICK_SPLIT_PRESETS, lookupExerciseMedia } from '../data/quickWorkoutSplits';
+import OfflineStatusIndicator from '../components/OfflineStatusIndicator';
 
 export default function ActiveWorkout() {
   const navigate = useNavigate();
@@ -323,6 +324,11 @@ export default function ActiveWorkout() {
         onEnd={() => setShowEndConfirm(true)}
         onOpenPlateCalc={() => setShowPlateCalc(true)}
         onRename={updateWorkoutName}
+      />
+
+      <OfflineStatusIndicator
+        variant="banner"
+        workoutMediaUrls={activeSession.exercises.flatMap(e => [e.gifUrl, e.imageUrl].filter(Boolean) as string[])}
       />
 
       <main className="w-full max-w-2xl mx-auto px-3.5 sm:px-4 pt-4 pb-44 space-y-4 min-w-0 box-border">

@@ -32,6 +32,7 @@ interface RestTimerState {
   remaining: number;
   total: number;
   paused: boolean;
+  targetEndTime?: number;
 }
 
 interface WorkoutBuilderContextType {
@@ -160,12 +161,62 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Clock Synchronization & Timer Drift Prevention ───────
+
+  const syncWithWallClock = useCallback(() => {
+    // 1. Exact session elapsed time from activeSession.startedAt
+    if (activeSession?.startedAt) {
+      const elapsed = Math.max(0, Math.floor((Date.now() - new Date(activeSession.startedAt).getTime()) / 1000));
+      setSessionElapsed(elapsed);
+    }
+
+    // 2. Exact rest timer remaining from targetEndTime
+    setRestTimer(prev => {
+      if (!prev || prev.paused || !prev.targetEndTime) return prev;
+      const diffMs = prev.targetEndTime - Date.now();
+      if (diffMs <= 0) {
+        audioFeedback.playTimerComplete();
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        return null;
+      }
+      const remainingSeconds = Math.ceil(diffMs / 1000);
+      if (remainingSeconds <= 4 && remainingSeconds !== prev.remaining) {
+        audioFeedback.playCountdownTick();
+      }
+      return { ...prev, remaining: remainingSeconds };
+    });
+
+    // 3. Re-acquire Wake Lock if active session and document visible
+    if (activeSession && typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      acquireWakeLock();
+    }
+  }, [activeSession]);
+
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => syncWithWallClock();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.addEventListener('focus', handleVisibilityOrFocus);
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+        window.removeEventListener('focus', handleVisibilityOrFocus);
+      }
+    };
+  }, [syncWithWallClock]);
+
   // ─── Session Timer ────────────────────────────────────────
 
   useEffect(() => {
     if (isSessionActive) {
       timerRef.current = setInterval(() => {
-        setSessionElapsed(prev => prev + 1);
+        if (activeSession?.startedAt) {
+          const elapsed = Math.max(0, Math.floor((Date.now() - new Date(activeSession.startedAt).getTime()) / 1000));
+          setSessionElapsed(elapsed);
+        } else {
+          setSessionElapsed(prev => prev + 1);
+        }
       }, 1000);
     } else {
       if (timerRef.current) {
@@ -176,7 +227,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isSessionActive]);
+  }, [isSessionActive, activeSession?.startedAt]);
 
   // ─── Rest Timer ───────────────────────────────────────────
 
@@ -184,17 +235,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     const isRunning = restTimer && restTimer.remaining > 0 && !restTimer.paused;
     if (isRunning) {
       restTimerRef.current = setInterval(() => {
-        setRestTimer(prev => {
-          if (!prev || prev.remaining <= 1) {
-            audioFeedback.playTimerComplete();
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            return null;
-          }
-          if (prev.remaining <= 4) {
-            audioFeedback.playCountdownTick();
-          }
-          return { ...prev, remaining: prev.remaining - 1 };
-        });
+        syncWithWallClock();
       }, 1000);
     } else {
       if (restTimerRef.current) {
@@ -205,7 +246,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     return () => {
       if (restTimerRef.current) clearInterval(restTimerRef.current);
     };
-  }, [restTimer?.remaining, restTimer?.paused]);
+  }, [restTimer?.paused, restTimer?.remaining, syncWithWallClock]);
 
   // ─── Crash Recovery — save active session every 10s ───────
 
@@ -665,15 +706,20 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   // ─── Rest Timer ───────────────────────────────────────────
 
   const startRestTimer = useCallback((seconds: number) => {
-    setRestTimer({ remaining: seconds, total: seconds, paused: false });
+    const targetEndTime = Date.now() + seconds * 1000;
+    setRestTimer({ remaining: seconds, total: seconds, paused: false, targetEndTime });
   }, []);
 
   const pauseRestTimer = useCallback(() => {
-    setRestTimer(prev => prev ? { ...prev, paused: true } : prev);
+    setRestTimer(prev => (prev ? { ...prev, paused: true, targetEndTime: undefined } : prev));
   }, []);
 
   const resumeRestTimer = useCallback(() => {
-    setRestTimer(prev => prev ? { ...prev, paused: false } : prev);
+    setRestTimer(prev => {
+      if (!prev) return prev;
+      const targetEndTime = Date.now() + prev.remaining * 1000;
+      return { ...prev, paused: false, targetEndTime };
+    });
   }, []);
 
   const skipRest = useCallback(() => {
@@ -681,7 +727,13 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   }, []);
 
   const addRestTime = useCallback((seconds: number) => {
-    setRestTimer(prev => prev ? { ...prev, remaining: prev.remaining + seconds, total: prev.total + seconds } : prev);
+    setRestTimer(prev => {
+      if (!prev) return prev;
+      const newRemaining = prev.remaining + seconds;
+      const newTotal = prev.total + seconds;
+      const targetEndTime = prev.targetEndTime ? prev.targetEndTime + seconds * 1000 : Date.now() + newRemaining * 1000;
+      return { ...prev, remaining: newRemaining, total: newTotal, targetEndTime };
+    });
   }, []);
 
   // ─── PR Detection ────────────────────────────────────────

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { formatDuration } from '../../types/workout';
 import { Calculator, X, Edit3, Check } from 'lucide-react';
+import OfflineStatusIndicator from '../OfflineStatusIndicator';
 
 interface SessionHeaderProps {
   workoutName: string;
@@ -93,6 +94,7 @@ export default function SessionHeader({
 
         {/* Right — Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          <OfflineStatusIndicator variant="compact" />
           <button
             onClick={onOpenPlateCalc}
             className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#151517] text-[#A1A1A6] hover:text-[#F5F5F5] hover:bg-[#1E1E20] transition-colors border border-[#2A2A2D] active:scale-95"

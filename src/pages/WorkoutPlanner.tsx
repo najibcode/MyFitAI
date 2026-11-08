@@ -16,6 +16,7 @@ import SessionDetail from '../components/WorkoutHistory/SessionDetail';
 import LogPastWorkoutModal from '../components/WorkoutSession/LogPastWorkoutModal';
 import QuickStartWorkoutModal from '../components/WorkoutSession/QuickStartWorkoutModal';
 import { QUICK_SPLIT_PRESETS, buildQuickTemplate } from '../data/quickWorkoutSplits';
+import OfflineStatusIndicator from '../components/OfflineStatusIndicator';
 import { 
   Play, 
   Calendar, 
@@ -1746,6 +1747,7 @@ Rules:
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
+            <OfflineStatusIndicator variant="pill" />
             <button
               onClick={() => handleOpenQuickStart()}
               className="flex-1 sm:flex-initial h-11 px-5 rounded-2xl bg-[var(--color-action)] hover:brightness-110 text-white font-headline font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[var(--color-action)]/20 active:scale-95 transition-all"
