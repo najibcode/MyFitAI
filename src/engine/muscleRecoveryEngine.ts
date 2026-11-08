@@ -508,6 +508,66 @@ export interface VolumeBenchmarkStatus {
   progressPercent: number; // 0 to 100 relative to MRV
 }
 
+export interface RecencyBenchmarkStatus {
+  tier: 'today' | 'recent' | 'optimal' | 'decaying' | 'untrained';
+  label: string;
+  description: string;
+  color: string;
+  fillOpacity: number;
+}
+
+export function evaluateRecencyBenchmark(hoursSinceLastTrained: number | null): RecencyBenchmarkStatus {
+  if (hoursSinceLastTrained === null) {
+    return {
+      tier: 'untrained',
+      label: 'Not Trained',
+      description: 'No recorded session in tracking window. Ready for training stimulus.',
+      color: 'rgba(255, 255, 255, 0.05)',
+      fillOpacity: 0.15,
+    };
+  }
+
+  const days = hoursSinceLastTrained / 24;
+
+  if (days <= 1) {
+    return {
+      tier: 'today',
+      label: 'Trained Today / Yesterday',
+      description: `Trained ${Math.round(hoursSinceLastTrained)}h ago. Peak protein synthesis active.`,
+      color: '#FF8A00', // vibrant action orange
+      fillOpacity: 0.95,
+    };
+  }
+
+  if (days <= 3) {
+    return {
+      tier: 'recent',
+      label: 'Trained 2–3 Days Ago',
+      description: `Trained ${Math.round(days)} days ago. Entering recovery window.`,
+      color: '#10B981', // emerald
+      fillOpacity: 0.88,
+    };
+  }
+
+  if (days <= 5) {
+    return {
+      tier: 'optimal',
+      label: 'Optimal Retraining Window',
+      description: `Trained ${Math.round(days)} days ago. Prime window to stimulate again.`,
+      color: '#38BDF8', // sky blue
+      fillOpacity: 0.82,
+    };
+  }
+
+  return {
+    tier: 'decaying',
+    label: 'Overdue / 6+ Days Ago',
+    description: `Trained ${Math.round(days)} days ago. Adaptation decaying; priority to target soon.`,
+    color: '#94A3B8', // slate
+    fillOpacity: 0.5,
+  };
+}
+
 export function evaluateVolumeBenchmark(sets: number, mev: number, mav: number, mrv: number): VolumeBenchmarkStatus {
   if (sets === 0) {
     return {

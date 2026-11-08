@@ -262,5 +262,57 @@ describe('6. Legacy Adapter & Path Integrity', () => {
         `Back path ID '${path.id}' (${path.name}) must exist in ANATOMICAL_MUSCLES registry`
       );
     }
+
+    // Bidirectional check: every anatomical muscle has at least one front or back SVG representation
+    const allSvgIds = new Set([
+      ...FRONT_MUSCLE_PATHS.map(p => p.id),
+      ...BACK_MUSCLE_PATHS.map(p => p.id),
+    ]);
+    for (const id of Object.keys(ANATOMICAL_MUSCLES)) {
+      assert.ok(
+        allSvgIds.has(id),
+        `Anatomical muscle '${id}' (${ANATOMICAL_MUSCLES[id].commonName}) must have an SVG representation`
+      );
+    }
+  });
+});
+
+describe('7. Recency & Frequency Benchmark Evaluation', () => {
+  test('evaluates trained today / within 24h as peak synthesis tier', async () => {
+    const { evaluateRecencyBenchmark } = await import('../muscleRecoveryEngine');
+    const t0 = evaluateRecencyBenchmark(0);
+    assert.equal(t0.tier, 'today');
+    assert.equal(t0.color, '#FF8A00');
+
+    const t18 = evaluateRecencyBenchmark(18);
+    assert.equal(t18.tier, 'today');
+  });
+
+  test('evaluates 2-3 days ago as active recovery tier', async () => {
+    const { evaluateRecencyBenchmark } = await import('../muscleRecoveryEngine');
+    const t48 = evaluateRecencyBenchmark(48);
+    assert.equal(t48.tier, 'recent');
+    assert.equal(t48.color, '#10B981');
+  });
+
+  test('evaluates 4-5 days ago as optimal retraining window', async () => {
+    const { evaluateRecencyBenchmark } = await import('../muscleRecoveryEngine');
+    const t96 = evaluateRecencyBenchmark(96);
+    assert.equal(t96.tier, 'optimal');
+    assert.equal(t96.color, '#38BDF8');
+  });
+
+  test('evaluates 6+ days ago as decaying / overdue stimulus', async () => {
+    const { evaluateRecencyBenchmark } = await import('../muscleRecoveryEngine');
+    const t168 = evaluateRecencyBenchmark(168); // 7 days
+    assert.equal(t168.tier, 'decaying');
+    assert.equal(t168.color, '#94A3B8');
+  });
+
+  test('handles null as untrained and stimulus-ready', async () => {
+    const { evaluateRecencyBenchmark } = await import('../muscleRecoveryEngine');
+    const untrained = evaluateRecencyBenchmark(null);
+    assert.equal(untrained.tier, 'untrained');
+    assert.ok(untrained.description.includes('Ready for training'));
   });
 });

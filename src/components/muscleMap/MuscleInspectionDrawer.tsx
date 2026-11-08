@@ -326,7 +326,27 @@ export default function MuscleInspectionDrawer({
 
           {/* Recommended Exercises to Target */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6] flex items-center gap-1.5">
+            {/* 1-Tap Quick Start Workout Split */}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                let focus = 'freestyle';
+                const grp = info.canonicalGroup;
+                if (grp === 'chest' || grp === 'triceps') focus = 'chest_triceps';
+                else if (grp === 'back' || grp === 'lats' || grp === 'biceps') focus = 'back_biceps';
+                else if (grp === 'quads' || grp === 'hamstrings' || grp === 'glutes' || grp === 'calves') focus = 'legs';
+                else if (grp === 'shoulders') focus = 'shoulders_arms';
+                else if (grp === 'core') focus = 'core_abs';
+                navigate(`/workout?quick=true&focus=${focus}`);
+              }}
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#FF8A00] hover:brightness-110 text-black font-headline font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#FF8A00]/20 active:scale-[0.98] transition-all"
+            >
+              <Zap className="w-4 h-4 fill-black stroke-none" />
+              <span>Target {info.commonName} In Quick Workout</span>
+            </button>
+
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A1A1A6] flex items-center gap-1.5 pt-2">
               <Sparkles className="w-4 h-4 text-[#F5C542]" />
               Recommended Exercises to Stimulate
             </h4>

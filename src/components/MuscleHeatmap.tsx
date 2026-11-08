@@ -29,9 +29,22 @@ import AnatomicalBackBody from './muscleMap/AnatomicalBackBody';
 import MuscleInspectionDrawer from './muscleMap/MuscleInspectionDrawer';
 import ShareableMuscleCardModal from './share/ShareableMuscleCardModal';
 import { triggerHaptic } from '../utils/audioFeedback';
-import { Zap, Layers, BatteryCharging, Share2, Scale, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import {
+  Zap,
+  Layers,
+  BatteryCharging,
+  Share2,
+  Scale,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Clock,
+  Search,
+  X,
+  ChevronRight,
+} from 'lucide-react';
 
-export type HeatmapMode = 'target' | 'volume' | 'fatigue';
+export type HeatmapMode = 'target' | 'volume' | 'fatigue' | 'recency';
 export type HeatmapView = 'both' | 'front' | 'back';
 export type HeatmapTimeframe = 'session' | '7d' | '30d' | 'all';
 
@@ -81,6 +94,8 @@ export default function MuscleHeatmap({
   const [dbSessions, setDbSessions] = useState<WorkoutSession[]>([]);
   const [symmetryOpen, setSymmetryOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // If no muscles and no propSessions were passed, fetch completed sessions from IndexedDB
   const hasPropsData = (muscles && muscles.length > 0) || Object.keys(muscleVolumes).length > 0;
@@ -210,13 +225,17 @@ export default function MuscleHeatmap({
                 { id: 'target', label: 'Load', Icon: Zap },
                 { id: 'volume', label: 'Volume', Icon: Layers },
                 { id: 'fatigue', label: 'Recovery', Icon: BatteryCharging },
+                { id: 'recency', label: 'Frequency', Icon: Clock },
               ] as const
             ).map(m => {
               const ModeIcon = m.Icon;
               return (
                 <button
                   key={m.id}
-                  onClick={() => setCurrentMode(m.id)}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setCurrentMode(m.id);
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
                     currentMode === m.id
                       ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 shadow-sm'
@@ -248,20 +267,114 @@ export default function MuscleHeatmap({
         </div>
       )}
 
-      {/* ── Active Hover / Target Pill ── */}
-      <div className="h-6 flex items-center justify-center text-xs font-mono text-on-surface-variant mb-1">
-        {hoveredInfo ? (
-          <span className="px-2.5 py-0.5 rounded-full bg-surface-container border border-outline-variant/40 text-on-surface flex items-center gap-1.5 animate-in fade-in">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="font-semibold text-primary">{hoveredInfo.commonName}</span>
-            <span className="text-[10px] text-on-surface-variant/70 italic hidden sm:inline">
-              ({hoveredInfo.anatomicalName})
+      {/* ── Region Focus Filter & Quick Search Bar ── */}
+      {showControls && (
+        <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mb-3 px-1">
+          {/* Region Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--color-muted)] mr-1 shrink-0">
+              Region:
             </span>
-          </span>
-        ) : (
-          <span className="text-[11px] text-on-surface-variant/50">
-            {interactive ? 'Tap any muscle to inspect recovery & landmarks' : ''}
-          </span>
+            {[
+              { id: 'all', label: 'All Body' },
+              { id: 'chest', label: 'Chest' },
+              { id: 'back', label: 'Back & Lats' },
+              { id: 'shoulders', label: 'Delts' },
+              { id: 'arms', label: 'Arms' },
+              { id: 'core', label: 'Core / Abs' },
+              { id: 'quadriceps', label: 'Quads' },
+              { id: 'hamstrings', label: 'Hamstrings' },
+              { id: 'glutes', label: 'Glutes' },
+              { id: 'calves', label: 'Calves' },
+            ].map(reg => (
+              <button
+                key={reg.id}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setSelectedRegion(reg.id);
+                }}
+                className={`px-2.5 py-1 rounded-xl text-[10px] font-mono font-bold uppercase transition-all shrink-0 border ${
+                  selectedRegion === reg.id
+                    ? 'bg-[var(--color-primary)] text-black border-[var(--color-primary)] shadow-sm'
+                    : 'bg-[#151517] text-[var(--color-muted)] hover:text-white border-[#2A2A2D]'
+                }`}
+              >
+                {reg.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Muscle Search Input */}
+          <div className="relative shrink-0 flex items-center">
+            <Search className="w-3.5 h-3.5 text-[#7A7A85] absolute left-2.5 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Highlight muscle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-[#151517] border border-[#2A2A2D] focus:border-[var(--color-primary)] rounded-xl pl-7 pr-7 py-1 text-[11px] text-white placeholder-[#7A7A85] outline-none w-full sm:w-44 transition-all font-sans"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 text-[#7A7A85] hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Active Hover / Target Real-Time Biomechanical HUD ── */}
+      <div className="min-h-12 w-full max-w-md flex items-center justify-center mb-2 px-2">
+        {hoveredInfo || (selectedMuscleId && ANATOMICAL_MUSCLES[selectedMuscleId]) ? (() => {
+          const activeInfo = hoveredInfo || ANATOMICAL_MUSCLES[selectedMuscleId!];
+          const activeMetric = metrics[activeInfo.id];
+          const sets = activeMetric?.effectiveSets || 0;
+          const hoursAgo = activeMetric?.hoursSinceLastTrained;
+          const rec = activeMetric?.recoveryPercentage || 100;
+
+          return (
+            <div
+              onClick={() => handleSelectMuscle(activeInfo.id)}
+              className="w-full bg-[#151517] border border-[var(--color-primary)]/40 hover:border-[var(--color-primary)] rounded-2xl p-2.5 px-4 flex items-center justify-between gap-3 shadow-lg shadow-black/50 transition-all cursor-pointer animate-in fade-in select-none group"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse shrink-0" />
+                  <span className="font-headline font-black text-sm text-white truncate">
+                    {activeInfo.commonName}
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--color-muted)] uppercase hidden sm:inline">
+                    {activeInfo.region}
+                  </span>
+                </div>
+                <p className="text-[10px] text-[var(--color-on-surface-variant)] italic truncate mt-0.5">
+                  {activeInfo.anatomicalName}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <span className="text-xs font-mono font-bold text-white block">
+                    {sets} {sets === 1 ? 'set' : 'sets'}
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">
+                    {rec}% fresh {hoursAgo !== null ? `· ${Math.round(hoursAgo / 24)}d ago` : ''}
+                  </span>
+                </div>
+                <div className="w-6 h-6 rounded-lg bg-white/[0.05] group-hover:bg-[var(--color-primary)] group-hover:text-black flex items-center justify-center text-[var(--color-muted)] transition-colors">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="text-[11px] font-mono text-[var(--color-muted)]/70 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+            <span>Hover or tap any anatomical muscle to inspect load, volume & recovery</span>
+          </div>
         )}
       </div>
 
@@ -276,6 +389,8 @@ export default function MuscleHeatmap({
               mode={currentMode}
               hoveredMuscleId={hoveredMuscleId}
               onHoverMuscle={setHoveredMuscleId}
+              highlightRegion={selectedRegion}
+              searchQuery={searchQuery}
             />
           </div>
         )}
@@ -289,6 +404,8 @@ export default function MuscleHeatmap({
               mode={currentMode}
               hoveredMuscleId={hoveredMuscleId}
               onHoverMuscle={setHoveredMuscleId}
+              highlightRegion={selectedRegion}
+              searchQuery={searchQuery}
             />
           </div>
         )}
@@ -355,6 +472,27 @@ export default function MuscleHeatmap({
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
                 <span className="text-[10px] font-bold text-on-surface-variant">Fatigued (&lt;55%)</span>
+              </div>
+            </div>
+          )}
+
+          {currentMode === 'recency' && (
+            <div className="flex items-center gap-3.5 mx-auto sm:mx-0">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF8A00] animate-pulse" />
+                <span className="text-[10px] font-bold text-on-surface-variant">Today (≤24h)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+                <span className="text-[10px] text-on-surface-variant font-semibold">2–3d Ago</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#38BDF8]" />
+                <span className="text-[10px] text-on-surface-variant">4–5d Ago</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8]" />
+                <span className="text-[10px] text-on-surface-variant">6d+ Overdue</span>
               </div>
             </div>
           )}

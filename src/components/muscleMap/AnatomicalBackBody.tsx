@@ -6,6 +6,7 @@
 
 import type { MuscleTrainingMetric } from '../../types/anatomicalMuscle';
 import type { HeatmapMode } from '../MuscleHeatmap';
+import { evaluateVolumeBenchmark, evaluateRecencyBenchmark } from '../../engine/muscleRecoveryEngine';
 
 export interface AnatomicalBackBodyProps {
   metrics: Record<string, MuscleTrainingMetric>;
@@ -14,6 +15,8 @@ export interface AnatomicalBackBodyProps {
   mode: HeatmapMode;
   hoveredMuscleId: string | null;
   onHoverMuscle: (muscleId: string | null) => void;
+  highlightRegion?: string | null;
+  searchQuery?: string;
 }
 
 interface PathDef {
@@ -263,49 +266,91 @@ export default function AnatomicalBackBody({
   mode,
   hoveredMuscleId,
   onHoverMuscle,
+  highlightRegion,
+  searchQuery,
 }: AnatomicalBackBodyProps) {
   const getStyleForMuscle = (muscleId: string) => {
     const isSelected = selectedMuscleId === muscleId;
     const isHovered = hoveredMuscleId === muscleId;
     const metric = metrics[muscleId];
 
+    // Check region highlight & search query filters
+    const matchesRegion = !highlightRegion || highlightRegion === 'all' || metric?.info?.region === highlightRegion;
+    const matchesSearch = !searchQuery || searchQuery.trim() === '' || 
+      (metric?.info?.commonName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       metric?.info?.canonicalGroup.toLowerCase().includes(searchQuery.toLowerCase()));
+
     // Stroke definition
     const stroke = isSelected
       ? '#FFFFFF'
       : isHovered
       ? '#38BDF8'
+      : matchesSearch && searchQuery
+      ? '#F5C542'
       : 'rgba(255, 255, 255, 0.12)';
-    const strokeWidth = isSelected ? '2' : isHovered ? '1.5' : '0.6';
+    const strokeWidth = isSelected ? '2' : isHovered ? '1.5' : matchesSearch && searchQuery ? '1.5' : '0.6';
     const filter = isSelected
       ? 'url(#glow-back-selected)'
       : isHovered
       ? 'url(#glow-back-hover)'
+      : matchesSearch && searchQuery
+      ? 'url(#glow-back-primary)'
       : undefined;
+
+    // Dim non-matching region
+    const baseOpacity = matchesRegion ? 1 : 0.2;
 
     // 1. RECOVERY STATUS MODE
     if (mode === 'fatigue') {
       if (!metric || (metric.recoveryPercentage === 100 && metric.hoursSinceLastTrained === null)) {
-        return { fill: 'rgba(255, 255, 255, 0.05)', stroke, strokeWidth, filter };
+        return { fill: 'rgba(255, 255, 255, 0.05)', stroke, strokeWidth, filter, opacity: baseOpacity };
       }
       const rec = metric.recoveryPercentage;
-      if (rec >= 90) return { fill: '#10B981', fillOpacity: 0.88, stroke, strokeWidth, filter }; // Fresh
-      if (rec >= 55) return { fill: '#F59E0B', fillOpacity: 0.9, stroke, strokeWidth, filter };  // Recovering
-      return { fill: '#EF4444', fillOpacity: 0.95, stroke, strokeWidth, filter };               // Fatigued
+      if (rec >= 90) return { fill: '#10B981', fillOpacity: 0.88, stroke, strokeWidth, filter, opacity: baseOpacity }; // Fresh
+      if (rec >= 55) return { fill: '#F59E0B', fillOpacity: 0.9, stroke, strokeWidth, filter, opacity: baseOpacity };  // Recovering
+      return { fill: '#EF4444', fillOpacity: 0.95, stroke, strokeWidth, filter, opacity: baseOpacity };               // Fatigued
     }
 
-    // 2. VOLUME MODE
+    // 2. VOLUME MODE (Per-Muscle Scientific Landmark Resolution)
     if (mode === 'volume') {
-      const sets = metric?.effectiveSets || 0;
-      if (sets === 0) return { fill: 'rgba(255, 255, 255, 0.04)', stroke, strokeWidth, filter };
-      if (sets < 6) return { fill: '#38BDF8', fillOpacity: 0.8, stroke, strokeWidth, filter };   // Under MEV
-      if (sets <= 14) return { fill: '#10B981', fillOpacity: 0.88, stroke, strokeWidth, filter }; // Optimal MAV
-      if (sets <= 20) return { fill: '#F59E0B', fillOpacity: 0.92, stroke, strokeWidth, filter }; // High volume
-      return { fill: '#EF4444', fillOpacity: 0.98, stroke, strokeWidth, filter };                // Overreached
+      if (!metric || metric.effectiveSets === 0) {
+        return { fill: 'rgba(255, 255, 255, 0.04)', stroke, strokeWidth, filter, opacity: baseOpacity };
+      }
+      const benchmark = evaluateVolumeBenchmark(
+        metric.effectiveSets,
+        metric.info.minEffectiveVolume,
+        metric.info.maxAdaptiveVolume,
+        metric.info.maxRecoverableVolume
+      );
+      return {
+        fill: benchmark.color,
+        fillOpacity: isSelected || isHovered ? 1 : 0.88,
+        stroke,
+        strokeWidth,
+        filter,
+        opacity: baseOpacity,
+      };
     }
 
-    // 3. TARGET / LOAD MODE (Default)
+    // 3. RECENCY / FREQUENCY DECAY MODE
+    if (mode === 'recency') {
+      if (!metric || metric.hoursSinceLastTrained === null) {
+        return { fill: 'rgba(255, 255, 255, 0.04)', stroke, strokeWidth, filter, opacity: baseOpacity };
+      }
+      const recency = evaluateRecencyBenchmark(metric.hoursSinceLastTrained);
+      return {
+        fill: recency.color,
+        fillOpacity: isSelected || isHovered ? 1 : recency.fillOpacity,
+        stroke,
+        strokeWidth,
+        filter,
+        opacity: baseOpacity,
+      };
+    }
+
+    // 4. TARGET / LOAD MODE (Default)
     if (!metric || (!metric.targetRole && metric.effectiveSets === 0)) {
-      return { fill: 'rgba(255, 255, 255, 0.05)', stroke, strokeWidth, filter };
+      return { fill: 'rgba(255, 255, 255, 0.05)', stroke, strokeWidth, filter, opacity: baseOpacity };
     }
 
     if (metric.targetRole === 'primary') {
@@ -315,6 +360,7 @@ export default function AnatomicalBackBody({
         stroke,
         strokeWidth: isSelected ? '2.5' : '1.2',
         filter: isSelected ? 'url(#glow-back-selected)' : 'url(#glow-back-primary)',
+        opacity: baseOpacity,
       };
     }
 
@@ -325,6 +371,7 @@ export default function AnatomicalBackBody({
       stroke,
       strokeWidth: isSelected ? '2' : '1',
       filter: isSelected ? 'url(#glow-back-selected)' : undefined,
+      opacity: baseOpacity,
     };
   };
 
