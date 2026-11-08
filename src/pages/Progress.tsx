@@ -8,6 +8,7 @@ import { useGamification } from '../context/GamificationContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useState, useMemo, useCallback } from 'react';
 import MuscleHeatmap from '../components/MuscleHeatmap';
+import VolumeLandmarksDashboard from '../components/muscleMap/VolumeLandmarksDashboard';
 import ShareableMuscleCardModal from '../components/share/ShareableMuscleCardModal';
 import { triggerHaptic } from '../utils/audioFeedback';
 import {
@@ -625,6 +626,9 @@ export default function Progress() {
               showSymmetryCard={true}
             />
           </div>
+
+          {/* Hypertrophy Volume Landmarks (MEV / MAV / MRV) Dashboard */}
+          <VolumeLandmarksDashboard />
         </div>
       )}
 
