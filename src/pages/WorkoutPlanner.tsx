@@ -1,11 +1,54 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFitnessContext } from '../context/FitnessContext';
+import { useWorkoutBuilder } from '../context/WorkoutBuilderContext';
+import type { WorkoutTemplate, WorkoutSession } from '../types/workout';
+import { formatDuration, formatVolume } from '../types/workout';
+import type { MuscleGroup } from '../types/exercise';
 import { quickPrompt, type UserContext } from '../services/gemini';
 import MuscleHeatmap from '../components/MuscleHeatmap';
+import ExerciseMedia from '../components/media/ExerciseMedia';
 import { storage } from '../utils/storage';
 import ConfirmModal from '../components/ConfirmModal';
 import { EXERCISE_LIBRARY as GLOBAL_EXERCISE_LIBRARY } from '../data/exerciseLibrary';
+import HistoryCalendar from '../components/WorkoutHistory/HistoryCalendar';
+import SessionDetail from '../components/WorkoutHistory/SessionDetail';
+import LogPastWorkoutModal from '../components/WorkoutSession/LogPastWorkoutModal';
+import QuickStartWorkoutModal from '../components/WorkoutSession/QuickStartWorkoutModal';
+import { QUICK_SPLIT_PRESETS, buildQuickTemplate } from '../data/quickWorkoutSplits';
+import { 
+  Play, 
+  Calendar, 
+  PlusSquare, 
+  History, 
+  ChevronRight, 
+  ChevronUp, 
+  ChevronDown,
+  RotateCcw, 
+  RotateCw,
+  CheckCircle2, 
+  Check,
+  Copy, 
+  Trash2, 
+  Edit3, 
+  Lightbulb, 
+  Plus,
+  BedDouble,
+  Info,
+  Dumbbell,
+  Sparkles,
+  Search,
+  Clock,
+  Flame,
+  Trophy,
+  Repeat,
+  Activity,
+  X,
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  Image as ImageIcon
+} from 'lucide-react';
 
 interface Exercise {
   id: string;
@@ -20,6 +63,7 @@ interface Exercise {
 }
 
 interface DailyWorkout {
+  id?: string;
   dayStr: string;
   title: string;
   duration: number;
@@ -98,6 +142,256 @@ const resolveValidVideo = (url?: string) => {
   const idMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=))?([\w-]{8,15})/);
   return idMatch ? idMatch[1] : url;
 };
+
+const STARTER_BLUEPRINTS: WorkoutTemplate[] = [
+  {
+    id: 'starter_push',
+    name: 'Push Power (Chest, Shoulders, Triceps)',
+    description: 'Hypertrophy-focused pressing protocol for upper body pushing development.',
+    type: 'strength',
+    targetMuscles: ['chest', 'shoulders', 'triceps'],
+    exercises: [
+      {
+        exerciseId: 'barbell_bench_press',
+        exerciseName: 'Barbell Bench Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['chest', 'triceps', 'shoulders'],
+        sets: [
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+        ],
+        restSeconds: 120,
+        notes: '',
+      },
+      {
+        exerciseId: 'incline_dumbbell_press',
+        exerciseName: 'Incline Dumbbell Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['chest', 'shoulders'],
+        sets: [
+          { targetReps: 10, targetWeight: 50, setType: 'normal' },
+          { targetReps: 10, targetWeight: 50, setType: 'normal' },
+          { targetReps: 10, targetWeight: 50, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'overhead_press',
+        exerciseName: 'Standing Overhead Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['shoulders', 'triceps'],
+        sets: [
+          { targetReps: 8, targetWeight: 95, setType: 'normal' },
+          { targetReps: 8, targetWeight: 95, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'lateral_raise',
+        exerciseName: 'Dumbbell Lateral Raise',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['shoulders'],
+        sets: [
+          { targetReps: 15, targetWeight: 20, setType: 'normal' },
+          { targetReps: 15, targetWeight: 20, setType: 'normal' },
+          { targetReps: 15, targetWeight: 20, setType: 'normal' },
+        ],
+        restSeconds: 60,
+        notes: '',
+      },
+      {
+        exerciseId: 'tricep_rope_pushdown',
+        exerciseName: 'Triceps Rope Pushdown',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['triceps'],
+        sets: [
+          { targetReps: 12, targetWeight: 45, setType: 'normal' },
+          { targetReps: 12, targetWeight: 45, setType: 'normal' },
+        ],
+        restSeconds: 60,
+        notes: '',
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'starter_pull',
+    name: 'Pull & Width (Back & Biceps)',
+    description: 'V-taper vertical & horizontal pulling protocol for back density and arm strength.',
+    type: 'strength',
+    targetMuscles: ['back', 'lats', 'biceps'],
+    exercises: [
+      {
+        exerciseId: 'lat_pulldown',
+        exerciseName: 'Lat Pulldown / Pull-Ups',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['back', 'lats', 'biceps'],
+        sets: [
+          { targetReps: 10, targetWeight: 120, setType: 'normal' },
+          { targetReps: 10, targetWeight: 120, setType: 'normal' },
+          { targetReps: 10, targetWeight: 120, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'barbell_row',
+        exerciseName: 'Barbell Bent-Over Row',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['back', 'lats'],
+        sets: [
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+          { targetReps: 8, targetWeight: 135, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'dumbbell_curl',
+        exerciseName: 'Incline Dumbbell Bicep Curl',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['biceps'],
+        sets: [
+          { targetReps: 12, targetWeight: 30, setType: 'normal' },
+          { targetReps: 12, targetWeight: 30, setType: 'normal' },
+          { targetReps: 12, targetWeight: 30, setType: 'normal' },
+        ],
+        restSeconds: 60,
+        notes: '',
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'starter_legs',
+    name: 'Leg Hypertrophy & Posterior Chain',
+    description: 'Complete lower body development balancing quad loading, hamstrings, and calves.',
+    type: 'strength',
+    targetMuscles: ['quads', 'hamstrings', 'glutes', 'calves'],
+    exercises: [
+      {
+        exerciseId: 'barbell_squat',
+        exerciseName: 'Barbell Back Squat',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['quads', 'glutes'],
+        sets: [
+          { targetReps: 6, targetWeight: 185, setType: 'normal' },
+          { targetReps: 6, targetWeight: 185, setType: 'normal' },
+          { targetReps: 6, targetWeight: 185, setType: 'normal' },
+        ],
+        restSeconds: 120,
+        notes: '',
+      },
+      {
+        exerciseId: 'romanian_deadlift',
+        exerciseName: 'Romanian Deadlift (RDL)',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['hamstrings', 'glutes'],
+        sets: [
+          { targetReps: 10, targetWeight: 145, setType: 'normal' },
+          { targetReps: 10, targetWeight: 145, setType: 'normal' },
+          { targetReps: 10, targetWeight: 145, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'leg_press',
+        exerciseName: 'Leg Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['quads'],
+        sets: [
+          { targetReps: 12, targetWeight: 270, setType: 'normal' },
+          { targetReps: 12, targetWeight: 270, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'standing_calf_raise',
+        exerciseName: 'Standing Calf Raise',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['calves'],
+        sets: [
+          { targetReps: 15, targetWeight: 100, setType: 'normal' },
+          { targetReps: 15, targetWeight: 100, setType: 'normal' },
+          { targetReps: 15, targetWeight: 100, setType: 'normal' },
+        ],
+        restSeconds: 45,
+        notes: '',
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'starter_upper_power',
+    name: 'Upper Body Power & Hypertrophy',
+    description: 'High-yield compound movements combining chest, back, and arm stimulus in one session.',
+    type: 'strength',
+    targetMuscles: ['chest', 'back', 'shoulders', 'biceps', 'triceps'],
+    exercises: [
+      {
+        exerciseId: 'barbell_bench_press',
+        exerciseName: 'Barbell Bench Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['chest', 'triceps'],
+        sets: [
+          { targetReps: 6, targetWeight: 155, setType: 'normal' },
+          { targetReps: 6, targetWeight: 155, setType: 'normal' },
+          { targetReps: 6, targetWeight: 155, setType: 'normal' },
+        ],
+        restSeconds: 120,
+        notes: '',
+      },
+      {
+        exerciseId: 'barbell_row',
+        exerciseName: 'Barbell Bent-Over Row',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['back'],
+        sets: [
+          { targetReps: 8, targetWeight: 145, setType: 'normal' },
+          { targetReps: 8, targetWeight: 145, setType: 'normal' },
+          { targetReps: 8, targetWeight: 145, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'overhead_press',
+        exerciseName: 'Overhead Barbell Press',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['shoulders'],
+        sets: [
+          { targetReps: 8, targetWeight: 95, setType: 'normal' },
+          { targetReps: 8, targetWeight: 95, setType: 'normal' },
+        ],
+        restSeconds: 90,
+        notes: '',
+      },
+      {
+        exerciseId: 'hammer_curl',
+        exerciseName: 'Dumbbell Hammer Curl',
+        exerciseType: 'weight_reps',
+        primaryMuscles: ['biceps', 'forearms'],
+        sets: [
+          { targetReps: 12, targetWeight: 30, setType: 'normal' },
+          { targetReps: 12, targetWeight: 30, setType: 'normal' },
+        ],
+        restSeconds: 60,
+        notes: '',
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 /* 
  * 75+ PROFESSIONAL EXERCISE LIBRARY 
@@ -434,7 +728,7 @@ export default function WorkoutPlanner() {
     return saved && saved.length > 0 ? saved : [];
   });
   
-  const [mode, setMode] = useState<string>(workouts.length > 0 ? 'planner' : 'gateway');
+  const [mode, setMode] = useState<string>('planner');
   
   // Wizard State
   const [wizardStep, setWizardStep] = useState(1);
@@ -445,6 +739,143 @@ export default function WorkoutPlanner() {
     frequency: 4,
     splitId: 'ppl'
   });
+
+  const { startSession, sessions, deleteSession, templates, duplicateTemplate, deleteTemplate } = useWorkoutBuilder();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Tab State: 'plan' | 'history' | 'templates'
+  const [workoutTab, setWorkoutTab] = useState<'plan' | 'history' | 'templates'>(() => {
+    const t = searchParams.get('tab');
+    if (t === 'history' || t === 'past') return 'history';
+    if (t === 'templates') return 'templates';
+    return 'plan';
+  });
+
+  const handleTabChange = (tab: 'plan' | 'history' | 'templates') => {
+    setWorkoutTab(tab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'plan') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    });
+  };
+
+  // History State
+  const [historyCurrentMonth, setHistoryCurrentMonth] = useState(new Date());
+  const [historySelectedDate, setHistorySelectedDate] = useState<string | null>(null);
+  const [historyDetailId, setHistoryDetailId] = useState<string | null>(null);
+  const [historyDeleteTarget, setHistoryDeleteTarget] = useState<string | null>(null);
+  const [templateDeleteTarget, setTemplateDeleteTarget] = useState<string | null>(null);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [showLogPastModal, setShowLogPastModal] = useState(false);
+  const [quickStartModalOpen, setQuickStartModalOpen] = useState(() => {
+    return searchParams.get('quick') === 'true' || searchParams.get('tab') === 'quick';
+  });
+  const [quickStartDefaultFocus, setQuickStartDefaultFocus] = useState<string>(() => {
+    return searchParams.get('focus') || 'legs';
+  });
+
+  useEffect(() => {
+    if (searchParams.get('quick') === 'true' || searchParams.get('tab') === 'quick') {
+      const focus = searchParams.get('focus');
+      if (focus) setQuickStartDefaultFocus(focus);
+      setQuickStartModalOpen(true);
+    }
+  }, [searchParams]);
+
+  // Filtered History
+  const filteredHistorySessions = useMemo(() => {
+    return sessions.filter(s => {
+      if (historySelectedDate && !s.startedAt.startsWith(historySelectedDate)) return false;
+      if (historySearchQuery.trim()) {
+        const q = historySearchQuery.toLowerCase().trim();
+        const nameMatch = s.templateName.toLowerCase().includes(q);
+        const exMatch = s.exercises.some(e => e.exerciseName.toLowerCase().includes(q));
+        if (!nameMatch && !exMatch) return false;
+      }
+      return true;
+    });
+  }, [sessions, historySelectedDate, historySearchQuery]);
+
+  const historyStats = useMemo(() => {
+    const totalVol = sessions.reduce((acc, s) => acc + s.totalVolume, 0);
+    const totalSecs = sessions.reduce((acc, s) => acc + s.duration, 0);
+    const totalPRs = sessions.reduce((acc, s) => acc + s.prsHit.length, 0);
+    return {
+      totalSessions: sessions.length,
+      totalVolume: totalVol,
+      totalHours: (totalSecs / 3600).toFixed(1),
+      totalPRs,
+    };
+  }, [sessions]);
+
+  const historyDetailSession = useMemo(() => {
+    return historyDetailId ? sessions.find(s => s.id === historyDetailId) || null : null;
+  }, [sessions, historyDetailId]);
+
+  const handleStartFreestyle = (customName?: string) => {
+    startSession(undefined, customName || 'Freestyle Workout');
+    navigate('/workout/active');
+  };
+
+  const handleOpenQuickStart = (focusId?: string) => {
+    if (focusId) setQuickStartDefaultFocus(focusId);
+    setQuickStartModalOpen(true);
+  };
+
+  const handleInstantStartSplit = (presetId: string) => {
+    const preset = QUICK_SPLIT_PRESETS.find(p => p.id === presetId);
+    if (preset) {
+      const template = buildQuickTemplate(preset);
+      startSession(template, template.name);
+      navigate('/workout/active');
+    } else {
+      handleStartFreestyle();
+    }
+  };
+
+  const handleRepeatSession = (session: WorkoutSession) => {
+    const template: WorkoutTemplate = {
+      id: crypto.randomUUID(),
+      name: session.templateName,
+      description: `Repeat of session from ${new Date(session.startedAt).toLocaleDateString()}`,
+      type: session.type,
+      targetMuscles: session.musclesWorked,
+      exercises: session.exercises.map(ex => ({
+        exerciseId: ex.exerciseId,
+        exerciseName: ex.exerciseName,
+        exerciseType: ex.exerciseType || 'weight_reps',
+        thumbnailEmoji: ex.thumbnailEmoji,
+        primaryMuscles: ex.primaryMuscles,
+        sets: ex.sets.map(s => ({
+          targetReps: s.reps || 10,
+          targetWeight: s.weight || 0,
+          setType: s.setType || 'normal',
+        })),
+        restSeconds: ex.restSeconds || 90,
+        notes: ex.notes || '',
+        gifUrl: ex.gifUrl,
+        imageUrl: ex.imageUrl,
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    startSession(template);
+    navigate('/workout/active');
+  };
+
+  const handleConfirmDeleteHistory = async () => {
+    if (historyDeleteTarget) {
+      await deleteSession(historyDeleteTarget);
+      if (historyDetailId === historyDeleteTarget) setHistoryDetailId(null);
+      setHistoryDeleteTarget(null);
+    }
+  };
 
   // Flow State
   const [activeDay, setActiveDay] = useState(() => {
@@ -748,56 +1179,50 @@ Rules:
   };
 
   const startWorkoutSession = () => {
-    const wk = workouts[activeDay];
-    const initialSets: Record<number, LiveSet[]> = {};
-    if (wk && !wk.isRest) {
-      wk.exercises.forEach((ex, i) => {
-        const match = ex.reps.match(/^(\d+)\s*?[xX]/);
+    const wk = workouts[selectedDay] || workouts[activeDay];
+    if (!wk || wk.isRest) return;
+
+    const template: WorkoutTemplate = {
+      id: wk.id || crypto.randomUUID(),
+      name: wk.title,
+      description: wk.description || '',
+      type: 'strength',
+      targetMuscles: (wk.targetMuscles || []) as MuscleGroup[],
+      exercises: wk.exercises.map((ex, i) => {
+        const match = ex.reps.match(/^(\d+)\s*?[xX]\s*?(\d+)?/);
         const numSets = match ? parseInt(match[1]) : 3;
-        initialSets[i] = Array.from({length: numSets}).map(() => ({ reps: '', weight: '', completed: false, rpe: '', setType: 'N' }));
-      });
-    }
-    setLiveSetsData(initialSets);
-    setRestTimer(null);
-    setMode('active');
-    setElapsed(0);
+        const targetReps = match && match[2] ? parseInt(match[2]) : 10;
+        return {
+          exerciseId: `ex_${i}_${ex.name.toLowerCase().replace(/\s+/g, '_')}`,
+          exerciseName: ex.name,
+          exerciseType: 'weight_reps',
+          primaryMuscles: (ex.muscles || wk.targetMuscles || []) as MuscleGroup[],
+          sets: Array.from({ length: numSets }).map(() => ({
+            targetReps,
+            setType: 'normal' as const,
+          })),
+          restSeconds: 90,
+          notes: ex.tips || '',
+          gifUrl: ex.gifUrl,
+          imageUrl: ex.imageUrl,
+        };
+      }),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    startSession(template);
+    navigate('/workout/active');
   };
 
   // RENDER BLOCKS: Same structured logic
-  // (Gateway -> Wizard -> Active -> Planner -> Edit -> Analyze)
-
-  if (mode === 'gateway') {
-    return (
-      <main className="max-w-md mx-auto px-6 pt-12 pb-32 flex flex-col items-center justify-center min-h-[85vh]">
-        <div className="relative mb-6">
-           <div className="absolute inset-0 bg-primary opacity-20 blur-[40px] rounded-full"></div>
-           <span className="material-symbols-outlined text-[80px] text-primary drop-shadow-[0_0_20px_rgba(255,122,0,0.3)] relative z-10">route</span>
-        </div>
-        <h1 className="font-headline text-4xl font-black mb-3 text-center tracking-tighter">Get Started</h1>
-        <p className="text-on-surface-variant text-center text-sm mb-12 mx-4 leading-relaxed font-light">No workout plan yet. Let's build one that fits your goals!</p>
-
-        <div className="space-y-4 w-full">
-           <button onClick={() => setMode('wizard')} className="w-full relative overflow-hidden group bg-[var(--color-surface-container)] border border-primary/20 rounded-[2rem] p-6 text-left hover:border-primary/60 transition-all shadow-xl active:scale-95">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-[100px] blur-2xl group-hover:bg-primary/20 transition-all"></div>
-             <span className="material-symbols-outlined text-primary text-3xl mb-3 block">psychology</span>
-             <h3 className="font-headline font-black text-xl text-on-surface mb-1 uppercase tracking-wider group-hover:text-primary transition-colors">Smart Plan</h3>
-             <p className="text-xs text-on-surface-variant leading-relaxed">Answer a few questions and get a personalized workout plan in seconds.</p>
-           </button>
-           <button onClick={startBlankCanvas} className="w-full relative overflow-hidden group bg-[var(--color-surface-container)] border border-[var(--color-outline)] rounded-[2rem] p-6 text-left hover:border-on-surface-variant transition-all shadow-xl active:scale-95">
-             <span className="material-symbols-outlined text-on-surface-variant text-3xl mb-3 block">architecture</span>
-             <h3 className="font-headline font-black text-xl text-on-surface mb-1 uppercase tracking-wider">Build My Own</h3>
-             <p className="text-xs text-on-surface-variant leading-relaxed">Create your own workouts from scratch using our 75+ exercise library.</p>
-           </button>
-        </div>
-      </main>
-    );
-  }
+  // (Wizard -> Edit -> Analyze -> Main Hub)
 
   if (mode === 'wizard') {
     return (
       <main className="max-w-md mx-auto px-6 mt-12 pb-32 flex flex-col min-h-[90vh]">
         <div className="mb-8">
-           <button onClick={() => setMode('gateway')} className="w-10 h-10 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface hover:bg-[var(--color-surface-container-high)] transition-colors mb-6"><span className="material-symbols-outlined">arrow_back</span></button>
+           <button onClick={() => setMode('planner')} className="w-10 h-10 rounded-full bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#F5F5F5] hover:bg-[#1E1E20] transition-colors mb-6 min-h-[44px]"><ArrowLeft className="w-4 h-4" /></button>
            <h1 className="font-headline text-3xl font-black text-on-surface italic uppercase tracking-tighter">Plan Builder</h1>
            <p className="text-primary text-xs font-bold uppercase tracking-widest mt-1">Step {wizardStep} of 4</p>
            <div className="flex gap-2 mt-4">{[1,2,3,4].map(s => (<div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${wizardStep >= s ? 'bg-primary shadow-[0_0_10px_rgba(255,122,0,0.4)]' : 'bg-white/10'}`}></div>))}</div>
@@ -806,8 +1231,8 @@ Rules:
         {wizardStep === 1 && (
           <div className="space-y-6 flex-1 animate-in fade-in slide-in-from-right-4 duration-500">
             <h2 className="text-sm uppercase tracking-widest font-bold text-on-surface-variant">Your Profile</h2>
-            <div className="bg-[var(--color-surface-container)] rounded-[1.5rem] p-5 border border-primary/20 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-4 opacity-10"><span className="material-symbols-outlined text-6xl text-primary">sync</span></div>
+            <div className="bg-[#151517] rounded-[1.5rem] p-5 border border-[#2A2A2D] relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10"><RotateCw className="w-16 h-16 text-primary" /></div>
                <p className="text-xs text-secondary font-bold uppercase tracking-widest mb-4">Your Details</p>
                <div className="grid grid-cols-2 gap-4">
                  <div><p className="text-[10px] text-on-surface-variant uppercase mb-1">Goal</p><p className="font-bold text-on-surface text-sm">{profile.goal}</p></div>
@@ -817,7 +1242,7 @@ Rules:
             <div className="space-y-3 pt-4">
               <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">Training Experience</label>
               {['Beginner', 'Intermediate', 'Advanced'].map(exp => (
-                <button key={exp} onClick={() => setTempWizard({...tempWizard, experience: exp})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all ${tempWizard.experience === exp ? 'bg-primary/10 border-primary text-primary' : 'bg-[var(--color-surface-container)] border-[var(--color-outline)] text-on-surface'}`}>{exp}</button>
+                <button key={exp} onClick={() => setTempWizard({...tempWizard, experience: exp})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all ${tempWizard.experience === exp ? 'bg-primary/10 border-primary text-primary' : 'bg-[#151517] border-[#2A2A2D] text-on-surface'}`}>{exp}</button>
               ))}
             </div>
             <button onClick={() => setWizardStep(2)} className="w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest text-sm mt-8">Proceed</button>
@@ -829,12 +1254,12 @@ Rules:
             <div className="space-y-3">
               <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">Equipment & Access</label>
               {['Full Gym', 'Dumbbells Only', 'Bodyweight'].map(eq => (
-                <button key={eq} onClick={() => setTempWizard({...tempWizard, gymAccess: eq})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all flex items-center justify-between ${tempWizard.gymAccess === eq ? 'bg-primary/10 border-primary text-primary' : 'bg-[var(--color-surface-container)] border-[var(--color-outline)] text-on-surface'}`}>{eq} <span className="material-symbols-outlined text-lg">{eq === 'Full Gym' ? 'fitness_center' : (eq === 'Bodyweight' ? 'sports_gymnastics' : 'barbell')}</span></button>
+                <button key={eq} onClick={() => setTempWizard({...tempWizard, gymAccess: eq})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all flex items-center justify-between ${tempWizard.gymAccess === eq ? 'bg-primary/10 border-primary text-primary' : 'bg-[#151517] border-[#2A2A2D] text-on-surface'}`}>{eq} <span className="text-primary">{eq === 'Full Gym' ? <Dumbbell className="w-5 h-5" /> : (eq === 'Bodyweight' ? <Activity className="w-5 h-5" /> : <Dumbbell className="w-5 h-5" />)}</span></button>
               ))}
             </div>
             <div className="space-y-3 pt-4">
               <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">Current Lifestyle</label>
-              <select value={tempWizard.lifestyle} onChange={(e) => setTempWizard({...tempWizard, lifestyle: e.target.value})} className="w-full bg-[var(--color-surface-container)] border border-[var(--color-outline)] p-4 rounded-[1.2rem] text-on-surface font-bold outline-none focus:border-primary">
+              <select value={tempWizard.lifestyle} onChange={(e) => setTempWizard({...tempWizard, lifestyle: e.target.value})} className="w-full bg-[#151517] border border-[#2A2A2D] p-4 rounded-[1.2rem] text-on-surface font-bold outline-none focus:border-primary">
                 <option>Highly Active (Physical Job)</option><option>Active (10k+ steps daily)</option><option>Sedentary (Desk Job)</option>
               </select>
             </div>
@@ -848,8 +1273,8 @@ Rules:
                <label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">Training Frequency</label>
                <p className="text-xs text-on-surface-variant mb-4 font-light">How many days per week are you realistically going to dedicate to training?</p>
                {[3, 4, 5, 6].map(days => (
-                 <button key={days} onClick={() => setTempWizard({...tempWizard, frequency: days})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all flex items-center justify-between ${tempWizard.frequency === days ? 'bg-primary/10 border-primary text-primary' : 'bg-[var(--color-surface-container)] border-[var(--color-outline)] text-on-surface hover:border-on-surface-variant'}`}>
-                   <span>{days} Days / Week</span><span className="material-symbols-outlined opacity-50">{days >= 5 ? 'local_fire_department' : 'timelapse'}</span>
+                 <button key={days} onClick={() => setTempWizard({...tempWizard, frequency: days})} className={`w-full p-4 rounded-[1.2rem] border text-left text-sm font-bold transition-all flex items-center justify-between ${tempWizard.frequency === days ? 'bg-primary/10 border-primary text-primary' : 'bg-[#151517] border-[#2A2A2D] text-on-surface hover:border-on-surface-variant'}`}>
+                   <span>{days} Days / Week</span><span className="opacity-50">{days >= 5 ? <Flame className="w-4 h-4 text-[#FF8A00]" /> : <Clock className="w-4 h-4" />}</span>
                  </button>
                ))}
              </div>
@@ -862,14 +1287,14 @@ Rules:
             <h2 className="text-sm uppercase tracking-widest font-bold text-on-surface-variant mb-4">Select Target Strategy</h2>
             <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-2 h-[400px]">
               {SPLIT_OPTIONS.map(split => (
-                <button key={split.id} onClick={() => setTempWizard({...tempWizard, splitId: split.id})} className={`w-full p-4 rounded-[1.5rem] border text-left transition-all ${tempWizard.splitId === split.id ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(255,122,0,0.1)] scale-[1.02]' : 'bg-[var(--color-surface-container)] border-white/5 opacity-80 hover:opacity-100'}`}>
+                <button key={split.id} onClick={() => setTempWizard({...tempWizard, splitId: split.id})} className={`w-full p-4 rounded-[1.5rem] border text-left transition-all ${tempWizard.splitId === split.id ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(255,122,0,0.1)] scale-[1.02]' : 'bg-[#151517] border-white/5 opacity-80 hover:opacity-100'}`}>
                   <div className="flex justify-between items-end mb-1"><span className="font-headline text-lg font-black text-on-surface">{split.name}</span><span className="text-[10px] uppercase tracking-widest text-primary font-bold">{split.stars}</span></div>
                   <div className="flex gap-2 items-center mb-2"><span className="text-[8px] uppercase tracking-widest bg-[var(--color-surface-container-highest)] px-2 py-0.5 rounded text-on-surface-variant">{split.level}</span></div>
                   <p className="text-xs text-on-surface-variant leading-relaxed font-light">{split.desc}</p>
                 </button>
               ))}
             </div>
-            <button onClick={handleAIWizardComplete} disabled={isGenerating} className="w-full bg-gradient-to-r from-primary to-[#CC5F00] text-black py-5 rounded-[1.5rem] font-bold text-sm uppercase tracking-widest mt-6 flex items-center justify-center gap-2 drop-shadow-[0_10px_30px_rgba(255,122,0,0.3)] shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:cursor-wait">{isGenerating ? <><span className="material-symbols-outlined animate-spin text-lg">progress_activity</span> Generating with AI...</> : <><span className="material-symbols-outlined animation-spin-slow">bolt</span> Create My Plan</>}</button>
+            <button onClick={handleAIWizardComplete} disabled={isGenerating} className="w-full bg-[#FF8A00] hover:bg-[#FF8A00]/90 text-black py-5 rounded-[1.5rem] font-bold text-sm uppercase tracking-widest mt-6 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform disabled:opacity-70 disabled:cursor-wait min-h-[44px]">{isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating with AI...</> : <><Sparkles className="w-4 h-4" /> Create My Plan</>}</button>
           </div>
         )}
       </main>
@@ -879,7 +1304,7 @@ Rules:
   if (mode === 'analyze' && analyzingExercise) {
     return (
       <main className="max-w-md mx-auto px-6 mt-16 pb-32 flex flex-col min-h-[90vh]">
-        <div className="flex justify-between items-center mb-6"><button onClick={() => setMode('planner')} className="w-12 h-12 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface hover:bg-[var(--color-surface-container-high)] transition-colors shadow-lg"><span className="material-symbols-outlined">arrow_back</span></button><span className="text-primary font-bold tracking-widest uppercase text-xs px-3 py-1 bg-primary/10 rounded-full border border-primary/20">Exercise Info</span></div>
+        <div className="flex justify-between items-center mb-6"><button onClick={() => setMode('planner')} className="w-12 h-12 rounded-full bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-[#F5F5F5] hover:bg-[#1E1E20] transition-colors shadow-lg"><ArrowLeft className="w-5 h-5" /></button><span className="text-primary font-bold tracking-widest uppercase text-xs px-3 py-1 bg-primary/10 rounded-full border border-primary/20">Exercise Info</span></div>
         <div className="text-center mb-6">
           <h2 className="font-headline text-3xl font-black text-on-surface">{analyzingExercise.name}</h2>
           <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mt-1 mb-3">Exercise breakdown</p>
@@ -896,26 +1321,16 @@ Rules:
                  (l.aliases && l.aliases.some(a => a.toLowerCase() === analyzingExercise.name.toLowerCase()))
           )?.imageUrl;
 
-          if (analyzingGif) {
+          if (analyzingGif || analyzingImg) {
             return (
-              <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black flex items-center justify-center">
-                <img src={analyzingGif} alt={analyzingExercise.name} className="w-full h-full object-contain p-2" />
-                <div className="absolute top-3 left-3 z-30 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-white">Animated Demonstration</span>
-                </div>
-              </div>
-            );
-          }
-          if (analyzingImg) {
-            return (
-              <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden border border-primary/20 shadow-[0_0_30px_rgba(255,122,0,0.1)] relative my-6 bg-black flex items-center justify-center">
-                <img src={analyzingImg} alt={analyzingExercise.name} className="w-full h-full object-contain p-2 opacity-90" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                  <span className="text-xs uppercase tracking-widest text-primary font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">fitness_center</span> Exercise Guide
-                  </span>
-                </div>
+              <div className="my-6">
+                <ExerciseMedia
+                  gifUrl={analyzingGif}
+                  imageUrl={analyzingImg}
+                  exerciseName={analyzingExercise.name}
+                  primaryMuscle={analyzingExercise.muscles[0]}
+                  aspectRatio="wide"
+                />
               </div>
             );
           }
@@ -923,13 +1338,13 @@ Rules:
         })()}
 
         <div className="space-y-4">
-          <div className="bg-[var(--color-surface-container)] rounded-[1.5rem] p-6 border border-white/5">
-            <h4 className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest font-bold mb-3 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">psychology</span> Primary Movers</h4>
+          <div className="bg-[#151517] rounded-[1.5rem] p-6 border border-[#2A2A2D]">
+            <h4 className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-primary" /> Primary Movers</h4>
             <div className="flex flex-wrap gap-2">{analyzingExercise.muscles.map((m, i) => (<span key={i} className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-full">{m}</span>))}</div>
           </div>
-          <div className="bg-[var(--color-surface-container)] rounded-[1.5rem] p-6 border border-[#FFD700]/10 shadow-[0_4px_20px_rgba(255,215,0,0.02)]">
-             <h4 className="font-label text-[10px] text-[#FFD700] uppercase tracking-widest font-bold mb-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">warning</span> Form Tips</h4>
-             <p className="text-sm text-on-surface leading-relaxed indent-2 border-l-2 border-[#FFD700]/30 pl-3">{analyzingExercise.tips}</p>
+          <div className="bg-[#151517] rounded-[1.5rem] p-6 border border-[#F5C542]/20">
+             <h4 className="font-label text-[10px] text-[#F5C542] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-[#F5C542]" /> Form Tips</h4>
+             <p className="text-sm text-on-surface leading-relaxed indent-2 border-l-2 border-[#F5C542]/30 pl-3">{analyzingExercise.tips}</p>
           </div>
         </div>
       </main>
@@ -940,52 +1355,52 @@ Rules:
     const filteredLibrary = fullLibrary.filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || ex.muscles.some(m => m.toLowerCase().includes(searchQuery.toLowerCase())));
     return (
        <main className="max-w-md mx-auto px-6 mt-16 pb-32 flex flex-col min-h-[90vh] relative">
-        <div className="flex justify-between items-center mb-8"><button onClick={() => setMode('planner')} className="w-12 h-12 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface hover:bg-[var(--color-surface-container-high)] transition-colors shadow-lg"><span className="material-symbols-outlined">close</span></button><span className="font-headline font-bold text-lg tracking-tight text-on-surface uppercase italic">Edit Workout</span></div>
-        <div className="bg-[var(--color-surface-container)] p-5 rounded-[2rem] border border-white/5 mb-6 shadow-xl space-y-4">
-           <div><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-1">Day Label</label><input type="text" className="w-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline)] p-3 rounded-xl text-on-surface font-bold font-headline text-sm outline-none focus:border-primary/50 transition-colors" value={editingWorkout.dayStr} onChange={(e) => setEditingWorkout({...editingWorkout, dayStr: e.target.value})} /></div>
-           <div><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-1">Workout Name</label><input type="text" className="w-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline)] p-3 rounded-xl text-primary font-bold font-headline text-lg outline-none focus:border-primary/50 transition-colors" value={editingWorkout.title} onChange={(e) => setEditingWorkout({...editingWorkout, title: e.target.value})} /></div>
-           <div className="flex items-center justify-between pt-2"><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">hotel</span> Mark as Rest Day</label><input type="checkbox" checked={!!editingWorkout.isRest} onChange={(e) => setEditingWorkout({...editingWorkout, isRest: e.target.checked})} className="w-5 h-5 accent-primary" /></div>
+        <div className="flex justify-between items-center mb-8"><button onClick={() => setMode('planner')} className="w-12 h-12 rounded-full bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-on-surface hover:bg-[#1E1E20] transition-colors shadow-lg"><X className="w-5 h-5" /></button><span className="font-headline font-bold text-lg tracking-tight text-on-surface uppercase italic">Edit Workout</span></div>
+        <div className="bg-[#151517] p-5 rounded-[2rem] border border-[#2A2A2D] mb-6 shadow-xl space-y-4">
+           <div><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-1">Day Label</label><input type="text" className="w-full bg-[#1E1E20] border border-[#2A2A2D] p-3 rounded-xl text-on-surface font-bold font-headline text-sm outline-none focus:border-primary/50 transition-colors" value={editingWorkout.dayStr} onChange={(e) => setEditingWorkout({...editingWorkout, dayStr: e.target.value})} /></div>
+           <div><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-1">Workout Name</label><input type="text" className="w-full bg-[#1E1E20] border border-[#2A2A2D] p-3 rounded-xl text-primary font-bold font-headline text-lg outline-none focus:border-primary/50 transition-colors" value={editingWorkout.title} onChange={(e) => setEditingWorkout({...editingWorkout, title: e.target.value})} /></div>
+           <div className="flex items-center justify-between pt-2"><label className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant flex items-center gap-1.5"><BedDouble className="w-4 h-4 text-primary" /> Mark as Rest Day</label><input type="checkbox" checked={!!editingWorkout.isRest} onChange={(e) => setEditingWorkout({...editingWorkout, isRest: e.target.checked})} className="w-5 h-5 accent-primary" /></div>
         </div>
-        <h3 className="font-headline text-lg font-black tracking-tight mb-4 flex items-center gap-2">EXERCISES <span className="text-xs font-normal text-on-surface-variant">({editingWorkout.exercises.length})</span></h3>
+        <h3 className="font-headline text-lg font-black tracking-tight mb-4 flex items-center gap-2">EXERCISES <span className="text-xs font-normal text-on-surface-variant font-mono tabular-nums">({editingWorkout.exercises.length})</span></h3>
         <div className="space-y-4 flex-1">
            {editingWorkout.exercises.map((ex, i) => (
-             <div key={i} className="bg-[var(--color-surface-container)] rounded-[1.5rem] p-5 border border-white/5 relative group shadow-sm hover:shadow-md transition-shadow">
-               <div className="absolute top-4 right-4 flex flex-col gap-1 items-center bg-black/30 p-1.5 rounded-full border border-white/5">
-                 <button onClick={() => moveExercise(i, 'up')} disabled={i === 0} className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent"><span className="material-symbols-outlined text-[16px]">expand_less</span></button>
-                 <button onClick={() => moveExercise(i, 'down')} disabled={i === editingWorkout.exercises.length - 1} className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent"><span className="material-symbols-outlined text-[16px]">expand_more</span></button>
+             <div key={i} className="bg-[#151517] rounded-[1.5rem] p-5 border border-[#2A2A2D] relative group shadow-sm hover:shadow-md transition-shadow">
+               <div className="absolute top-4 right-4 flex flex-col gap-1 items-center bg-black/40 p-1.5 rounded-full border border-[#2A2A2D]">
+                 <button onClick={() => moveExercise(i, 'up')} disabled={i === 0} className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent"><ChevronUp className="w-4 h-4" /></button>
+                 <button onClick={() => moveExercise(i, 'down')} disabled={i === editingWorkout.exercises.length - 1} className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent"><ChevronDown className="w-4 h-4" /></button>
                  <div className="w-4 h-[1px] bg-white/10 my-1"></div>
-                 <button onClick={() => removeExerciseFromEdit(i)} className="w-7 h-7 rounded-full hover:bg-[#FF4D4D]/20 text-[#FF4D4D] flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-[14px]">delete</span></button>
+                 <button onClick={() => removeExerciseFromEdit(i)} className="w-7 h-7 rounded-full hover:bg-[#FF453A]/20 text-[#FF453A] flex items-center justify-center transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                </div>
                <div className="space-y-3 pt-1 w-[80%]">
-                 <div><label className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Exercise Name</label><input type="text" className="w-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline)] px-3 py-2 rounded-lg text-sm text-on-surface font-bold outline-none focus:border-primary/50" value={ex.name} onChange={(e) => handleEditExerciseChange(i, 'name', e.target.value)} /></div>
-                 <div className="grid grid-cols-2 gap-3"><div><label className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Sets x Reps</label><input type="text" className="w-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline)] px-3 py-2 rounded-lg text-sm text-on-surface font-bold outline-none focus:border-primary/50" value={ex.reps} onChange={(e) => handleEditExerciseChange(i, 'reps', e.target.value)} /></div></div>
+                 <div><label className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Exercise Name</label><input type="text" className="w-full bg-[#1E1E20] border border-[#2A2A2D] px-3 py-2 rounded-lg text-sm text-on-surface font-bold outline-none focus:border-primary/50" value={ex.name} onChange={(e) => handleEditExerciseChange(i, 'name', e.target.value)} /></div>
+                 <div className="grid grid-cols-2 gap-3"><div><label className="text-[9px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Sets x Reps</label><input type="text" className="w-full bg-[#1E1E20] border border-[#2A2A2D] px-3 py-2 rounded-lg text-sm text-on-surface font-bold outline-none focus:border-primary/50" value={ex.reps} onChange={(e) => handleEditExerciseChange(i, 'reps', e.target.value)} /></div></div>
                </div>
              </div>
            ))}
-           <button onClick={() => setIsSearchOpen(true)} className="w-full bg-[var(--color-surface-container)] border-2 border-[dashed] border-white/10 text-on-surface-variant p-4 rounded-[1.5rem] mt-2 font-bold text-sm uppercase tracking-widest hover:border-white/20 hover:text-white transition-colors flex items-center justify-center gap-2 mb-24"><span className="material-symbols-outlined text-primary">search</span> Add Exercise</button>
+           <button onClick={() => setIsSearchOpen(true)} className="w-full bg-[#151517] border-2 border-dashed border-[#2A2A2D] text-on-surface-variant p-4 rounded-[1.5rem] mt-2 font-bold text-sm uppercase tracking-widest hover:border-white/20 hover:text-white transition-colors flex items-center justify-center gap-2 mb-24"><Search className="w-4 h-4 text-primary" /> Add Exercise</button>
         </div>
-        <button onClick={saveEditedWorkout} className="fixed bottom-[40px] left-6 right-6 max-w-md mx-auto w-[calc(100%-3rem)] bg-gradient-to-br from-primary to-[#CC5F00] py-5 rounded-[1.5rem] shadow-[0_12px_40px_rgba(255,122,0,0.3)] flex items-center justify-center gap-3 hover:opacity-90 active:scale-95 transition-all z-40"><span className="material-symbols-outlined text-black font-bold">save</span><span className="font-headline font-black uppercase tracking-widest text-black text-sm">Save Changes</span></button>
+        <button onClick={saveEditedWorkout} className="fixed bottom-[40px] left-6 right-6 max-w-md mx-auto w-[calc(100%-3rem)] bg-[#FF8A00] hover:bg-[#FF8A00]/90 py-5 rounded-[1.5rem] shadow-sm flex items-center justify-center gap-3 active:scale-95 transition-all z-40"><Check className="w-5 h-5 text-black font-bold" /><span className="font-headline font-black uppercase tracking-widest text-black text-sm">Save Changes</span></button>
 
         {isSearchOpen && (
           <div className="fixed inset-0 z-50 flex flex-col justify-end">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSearchOpen(false)}></div>
-            <div className="relative bg-[var(--color-surface)] w-full h-[85vh] rounded-t-[2.5rem] max-w-md mx-auto border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col p-6 animate-in slide-in-from-bottom-[100%] duration-300">
-               <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6"></div><h3 className="font-headline text-2xl font-black mb-4 flex items-center gap-2"><span className="material-symbols-outlined text-primary">dynamic_feed</span> Database</h3>
+            <div className="relative bg-[#151517] w-full h-[85vh] rounded-t-[2.5rem] max-w-md mx-auto border-t border-[#2A2A2D] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col p-6 animate-in slide-in-from-bottom-[100%] duration-300">
+               <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6"></div><h3 className="font-headline text-2xl font-black mb-4 flex items-center gap-2"><Dumbbell className="w-6 h-6 text-primary" /> Database</h3>
                {!customFormState ? (
                  <>
-                   <div className="relative mb-6 flex-shrink-0"><span className="material-symbols-outlined absolute left-4 top-3.5 text-on-surface-variant">search</span><input type="text" autoFocus placeholder="Search 75+ exercises..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[var(--color-surface-container)] rounded-2xl py-3 pl-12 pr-4 text-white outline-none focus:border-primary/50 border border-white/5" /></div>
+                   <div className="relative mb-6 flex-shrink-0"><Search className="w-4 h-4 absolute left-4 top-4 text-[#A1A1A6]" /><input type="text" autoFocus placeholder="Search 75+ exercises..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[#1E1E20] rounded-2xl py-3 pl-12 pr-4 text-white outline-none focus:border-primary/50 border border-[#2A2A2D]" /></div>
                    <div className="flex-1 overflow-y-auto space-y-3 pb-8 custom-scrollbar pr-2">
                      {filteredLibrary.length === 0 ? (
                        <div className="text-center mt-10"><p className="text-on-surface-variant text-sm mb-4">No exercises found.</p></div>
                      ) : (
                        filteredLibrary.map((lib, i) => (
-                         <div key={i} onClick={() => addExerciseFromLibrary(lib)} className="bg-[var(--color-surface-container-low)] border border-white/5 hover:border-primary/40 rounded-[1.5rem] p-4 flex justify-between items-center cursor-pointer group transition-all">
+                         <div key={i} onClick={() => addExerciseFromLibrary(lib)} className="bg-[#1E1E20] border border-[#2A2A2D] hover:border-primary/40 rounded-[1.5rem] p-4 flex justify-between items-center cursor-pointer group transition-all">
                            <div className="flex items-center gap-4">
-                             {lib.imageUrl && (<div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 hidden md:block border border-white/10 opacity-70 group-hover:opacity-100 transition-opacity bg-black"><img src={lib.imageUrl} alt="" className="w-full h-full object-cover" /></div>)}
+                             {lib.imageUrl && (<div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 hidden md:block border border-[#2A2A2D] opacity-70 group-hover:opacity-100 transition-opacity bg-black"><img src={lib.imageUrl} alt="" className="w-full h-full object-cover" /></div>)}
                              <div>
                                <p className="font-bold text-on-surface group-hover:text-primary transition-colors">{lib.name}</p>
                                <div className="flex gap-1 mt-1 text-[9px] uppercase tracking-widest text-on-surface-variant">
-                                 {lib.videoUrl ? <span className="text-[#FF0000] bg-[#FF0000]/10 px-1.5 rounded flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">play_circle</span>Video</span> : <span className="text-primary bg-primary/10 px-1.5 rounded flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">image</span>HD Img</span>}
+                                 {lib.videoUrl ? <span className="text-[#FF453A] bg-[#FF453A]/10 px-1.5 rounded flex items-center gap-1"><Play className="w-3 h-3" />Video</span> : <span className="text-primary bg-primary/10 px-1.5 rounded flex items-center gap-1"><ImageIcon className="w-3 h-3" />HD Img</span>}
                                  {lib.muscles.slice(0,2).map(m => <span key={m} className="bg-white/5 px-2 py-0.5 rounded-full">{m}</span>)}
                                </div>
                              </div>
@@ -993,14 +1408,14 @@ Rules:
                          </div>
                        ))
                      )}
-                     <button onClick={() => setCustomFormState(true)} className="w-full mt-4 bg-[var(--color-surface-container)] border border-[dashed] border-white/10 text-on-surface-variant py-4 rounded-[1.2rem] font-bold text-xs uppercase tracking-widest hover:text-white transition-colors">Create Custom Exercise</button>
+                     <button onClick={() => setCustomFormState(true)} className="w-full mt-4 bg-[#1E1E20] border border-dashed border-[#2A2A2D] text-on-surface-variant py-4 rounded-[1.2rem] font-bold text-xs uppercase tracking-widest hover:text-white transition-colors">Create Custom Exercise</button>
                    </div>
                  </>
                ) : (
                  <div className="flex-1 overflow-y-auto space-y-4 animate-in fade-in slide-in-from-right-4 pt-2">
-                   <button onClick={() => setCustomFormState(false)} className="text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 mb-4 hover:underline"><span className="material-symbols-outlined text-[14px]">arrow_back</span> Back to Database</button>
-                   <div><label className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Exercise Name</label><input type="text" autoFocus className="w-full bg-[var(--color-surface-container)] border border-white/10 px-4 py-3 rounded-xl text-sm text-white font-bold outline-none focus:border-primary/50" value={customEx.name} onChange={(e) => setCustomEx({...customEx, name: e.target.value})} /></div>
-                   <div className="grid grid-cols-2 gap-3"><div><label className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Sets x Reps</label><input type="text" className="w-full bg-[var(--color-surface-container)] border border-white/10 px-4 py-3 rounded-xl text-sm text-white font-bold outline-none focus:border-primary/50" value={customEx.reps} onChange={(e) => setCustomEx({...customEx, reps: e.target.value})} /></div></div>
+                   <button onClick={() => setCustomFormState(false)} className="text-primary text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 mb-4 hover:underline"><ArrowLeft className="w-3.5 h-3.5" /> Back to Database</button>
+                   <div><label className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Exercise Name</label><input type="text" autoFocus className="w-full bg-[#1E1E20] border border-[#2A2A2D] px-4 py-3 rounded-xl text-sm text-white font-bold outline-none focus:border-primary/50" value={customEx.name} onChange={(e) => setCustomEx({...customEx, name: e.target.value})} /></div>
+                   <div className="grid grid-cols-2 gap-3"><div><label className="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant block mb-1">Sets x Reps</label><input type="text" className="w-full bg-[#1E1E20] border border-[#2A2A2D] px-4 py-3 rounded-xl text-sm text-white font-bold outline-none focus:border-primary/50" value={customEx.reps} onChange={(e) => setCustomEx({...customEx, reps: e.target.value})} /></div></div>
                    <button onClick={createAndAddCustomExercise} disabled={!customEx.name} className="w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest text-sm mt-6 disabled:opacity-30 transition-all">Add Exercise</button>
                  </div>
                )}
@@ -1032,20 +1447,20 @@ Rules:
           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#1A1A1C] border border-primary/30 shadow-[0_0_40px_rgba(255,122,0,0.3)] rounded-[2rem] px-10 py-5 flex flex-col items-center animate-in fade-in zoom-in duration-300">
             <span className="text-[10px] uppercase tracking-widest font-bold text-primary mb-1 animate-pulse">Rest Timer Active</span>
             <span className="font-mono text-5xl font-black text-white">{Math.floor(restTimer/60)}:{(restTimer%60).toString().padStart(2,'0')}</span>
-            <button onClick={() => setRestTimer(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#FF0000] text-black flex items-center justify-center font-bold shadow-lg hover:scale-110 transition-transform"><span className="material-symbols-outlined text-[16px]">close</span></button>
+            <button onClick={() => setRestTimer(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#FF453A] text-black flex items-center justify-center font-bold shadow-lg hover:scale-110 transition-transform"><X className="w-4 h-4" /></button>
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-8"><button onClick={() => setMode('planner')} className="w-10 h-10 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface hover:bg-[var(--color-surface-container-high)] transition-colors shadow-lg"><span className="material-symbols-outlined">close</span></button><span className="text-primary font-bold tracking-widest uppercase text-xs px-3 py-1 bg-primary/10 rounded-full animate-pulse flex items-center gap-2 border border-primary/20"><span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 animate-ping"></span> Session Live</span></div>
+        <div className="flex justify-between items-center mb-8"><button onClick={() => setMode('planner')} className="w-10 h-10 rounded-full bg-[#151517] border border-[#2A2A2D] flex items-center justify-center text-on-surface hover:bg-[#1E1E20] transition-colors shadow-lg"><X className="w-5 h-5" /></button><span className="text-primary font-bold tracking-widest uppercase text-xs px-3 py-1 bg-primary/10 rounded-full animate-pulse flex items-center gap-2 border border-primary/20"><span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 animate-ping"></span> Session Live</span></div>
         {activeWorkout.isRest ? (
-            <div className="text-center flex-1 flex flex-col items-center justify-center"><span className="material-symbols-outlined text-[80px] text-primary/30 mb-6">self_improvement</span><h1 className="font-headline text-3xl font-black">{activeWorkout.title}</h1><p className="text-on-surface-variant mt-4 text-sm">{activeWorkout.tip || 'Take the day off.'}</p></div>
+            <div className="text-center flex-1 flex flex-col items-center justify-center"><BedDouble className="w-16 h-16 text-primary/30 mb-6" /><h1 className="font-headline text-3xl font-black">{activeWorkout.title}</h1><p className="text-on-surface-variant mt-4 text-sm">{activeWorkout.tip || 'Take the day off.'}</p></div>
         ) : (
           <div className="mb-10 text-left relative z-10">
             <h1 className="font-headline text-4xl font-black text-on-surface mb-2">{activeWorkout.title}</h1>
             
-            <div className="flex items-center gap-4 text-on-surface-variant font-label text-[10px] uppercase tracking-[0.2em] font-bold mb-4">
-               <span className="flex items-center gap-1.5 text-white/50"><span className="material-symbols-outlined text-[14px] text-primary">schedule</span> {activeWorkout.duration} MIN</span>
-               <span className="flex items-center gap-1.5 text-white/50"><span className="material-symbols-outlined text-[14px] text-[#6FFB85]">local_fire_department</span> {activeWorkout.kcal} KCAL</span>
+            <div className="flex items-center gap-4 text-on-surface-variant font-label text-[10px] uppercase tracking-[0.2em] font-bold mb-4 font-mono tabular-nums">
+               <span className="flex items-center gap-1.5 text-white/50"><Clock className="w-3.5 h-3.5 text-primary" /> {activeWorkout.duration} MIN</span>
+               <span className="flex items-center gap-1.5 text-white/50"><Flame className="w-3.5 h-3.5 text-[#30D158]" /> {activeWorkout.kcal} KCAL</span>
             </div>
 
             <p className="text-on-surface-variant text-sm leading-relaxed mb-5 border-l-2 border-primary/50 pl-3">
@@ -1062,13 +1477,13 @@ Rules:
             </div>
 
             <div className="bg-[#1A1A1C] p-4 rounded-xl border border-white/5 space-y-2 mb-8 shadow-inner">
-              <span className="text-[10px] uppercase font-bold text-[#ff9800] tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">local_fire_department</span> Warm-Up</span>
+              <span className="text-[10px] uppercase font-bold text-[#FF8A00] tracking-widest flex items-center gap-1"><Flame className="w-3.5 h-3.5" /> Warm-Up</span>
               <p className="text-on-surface-variant text-xs leading-relaxed">{activeWorkout.warmupInfo || '5 min cardiovascular warmup. Dynamic stretching. 1 light set per movement.'}</p>
             </div>
 
             <div className="bg-black/20 p-5 rounded-2xl border border-white/5 mb-6 text-center">
               <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Session Clock</span>
-              <h2 className="font-headline text-5xl font-black text-[#6FFB85] font-mono tracking-tighter">{mins.toString().padStart(2,'0')}:{secs.toString().padStart(2,'0')}</h2>
+              <h2 className="font-headline text-5xl font-black text-[#30D158] font-mono tracking-tighter">{mins.toString().padStart(2,'0')}:{secs.toString().padStart(2,'0')}</h2>
               <div className="w-full bg-[#252528] h-1.5 rounded-full mt-4 overflow-hidden"><div className="bg-primary h-full transition-all duration-300" style={{ width: `${progress}%` }}></div></div>
             </div>
             
@@ -1081,17 +1496,17 @@ Rules:
               const isExerciseCompleted = currentExerciseSets.length > 0 && currentExerciseSets.every(s => s.completed);
 
               return (
-              <div key={i} className={`p-5 rounded-[1.5rem] flex flex-col transition-all border shadow-md relative overflow-hidden ${isExerciseCompleted ? 'bg-primary/10 border-primary/30' : 'bg-[var(--color-surface-container)] border-white/5 hover:border-white/20'}`}>
+              <div key={i} className={`p-5 rounded-[1.5rem] flex flex-col transition-all border shadow-md relative overflow-hidden ${isExerciseCompleted ? 'bg-primary/10 border-primary/30' : 'bg-[#151517] border-[#2A2A2D] hover:border-white/20'}`}>
                 {isExerciseCompleted && <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>}
                 <div className="flex justify-between items-center relative z-10 w-full mb-3">
                   <div>
                     <button onClick={() => { setAnalyzingExercise(ex); setMode('analyze'); }} className="text-left group text-on-surface">
                       <p className={`font-bold transition-colors group-hover:text-primary ${isExerciseCompleted ? 'text-primary/70 line-through' : 'text-on-surface'}`}>{ex.name}</p>
-                      <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mt-1 flex items-center gap-1 mb-2">Sets: {ex.reps} <span className="material-symbols-outlined text-[10px] group-hover:text-primary">info</span></p>
+                      <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mt-1 flex items-center gap-1 mb-2">Sets: {ex.reps} <Info className="w-3 h-3 group-hover:text-primary" /></p>
                       <p className={`text-xs leading-relaxed transition-opacity ${isExerciseCompleted ? 'opacity-30' : 'text-white/80'}`}>{ex.description || 'Track your sets perfectly.'}</p>
                       {formatLastSession(ex.name) && !isExerciseCompleted && (
-                        <p className="text-[11px] text-[#6FFB85] font-semibold mt-2 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">history</span>
+                        <p className="text-[11px] text-[#30D158] font-semibold mt-2 flex items-center gap-1">
+                          <History className="w-3.5 h-3.5" />
                           {formatLastSession(ex.name)}
                         </p>
                       )}
@@ -1111,18 +1526,14 @@ Rules:
 
                   if (!isExerciseCompleted && (effectiveGif || effectiveImg)) {
                     return (
-                      <div className="w-full aspect-video rounded-xl overflow-hidden mt-2 mb-4 relative border border-white/10 bg-black flex items-center justify-center">
-                        {effectiveGif ? (
-                          <img src={effectiveGif} alt={ex.name} className="w-full h-full object-contain p-1" loading="lazy" />
-                        ) : (
-                          <img src={effectiveImg} alt={ex.name} className="w-full h-full object-cover opacity-80" />
-                        )}
-                        {effectiveGif && (
-                          <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5 z-30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            Animated Form Demo
-                          </div>
-                        )}
+                      <div className="mt-2 mb-4">
+                        <ExerciseMedia
+                          gifUrl={effectiveGif}
+                          imageUrl={effectiveImg}
+                          exerciseName={ex.name}
+                          primaryMuscle={ex.muscles?.[0]}
+                          aspectRatio="wide"
+                        />
                       </div>
                     );
                   }
@@ -1132,7 +1543,7 @@ Rules:
                 {/* AI Coaching Box */}
                 {!isExerciseCompleted && (
                   <div className="mt-3 mb-4 bg-primary/5 border border-primary/20 rounded-xl p-3 flex gap-3 items-start relative z-10">
-                    <span className="material-symbols-outlined text-primary text-[16px] mt-0.5 animate-pulse">smart_toy</span>
+                    <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                     <p className="text-[11px] text-on-surface-variant leading-relaxed italic">"Trainer Note: Auto-rest set to 90s. Maintain 1-2 RIR for optimal hypertrophy. Control the eccentric phase."</p>
                   </div>
                 )}
@@ -1165,28 +1576,28 @@ Rules:
                            }} className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black transition-colors disabled:opacity-50 ${set.setType === 'N' ? 'bg-white/5 text-white/50' : set.setType === 'D' ? 'bg-[#ff9800]/20 text-[#ff9800]' : set.setType === 'F' ? 'bg-[#ff0000]/20 text-[#ff0000]' : 'bg-[#00bcd4]/20 text-[#00bcd4]'}`} disabled={set.completed}>
                              {set.setType}
                            </button>
-                           <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest w-4 text-center">{setIdx + 1}</span>
+                           <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest w-4 text-center font-mono tabular-nums">{setIdx + 1}</span>
                            <div className="flex-1 flex gap-2">
                              <div className="relative flex-1">
                                <input type="text" placeholder="-" disabled={set.completed} value={set.weight} onChange={(e) => {
                                  const newSets = [...liveSetsData[i]];
                                  newSets[setIdx].weight = e.target.value;
                                  setLiveSetsData({...liveSetsData, [i]: newSets});
-                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[#151517]'} border border-[#2A2A2D] rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold font-mono tabular-nums disabled:border-transparent placeholder:text-white/20`} />
                              </div>
                              <div className="relative flex-1">
                                <input type="text" placeholder="-" disabled={set.completed} value={set.reps} onChange={(e) => {
                                  const newSets = [...liveSetsData[i]];
                                  newSets[setIdx].reps = e.target.value;
                                  setLiveSetsData({...liveSetsData, [i]: newSets});
-                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[#151517]'} border border-[#2A2A2D] rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold font-mono tabular-nums disabled:border-transparent placeholder:text-white/20`} />
                              </div>
                              <div className="relative flex-1">
                                <input type="text" placeholder="RPE" disabled={set.completed} value={set.rpe} onChange={(e) => {
                                  const newSets = [...liveSetsData[i]];
                                  newSets[setIdx].rpe = e.target.value;
                                  setLiveSetsData({...liveSetsData, [i]: newSets});
-                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[var(--color-surface)]'} border border-white/5 rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold disabled:border-transparent placeholder:text-white/20`} />
+                               }} className={`w-full ${set.completed ? 'bg-transparent text-primary/70' : 'bg-[#151517]'} border border-[#2A2A2D] rounded-lg py-2.5 px-2 text-xs text-white outline-none focus:border-primary/50 text-center font-bold font-mono tabular-nums disabled:border-transparent placeholder:text-white/20`} />
                              </div>
                            </div>
                            <button onClick={() => {
@@ -1196,7 +1607,7 @@ Rules:
                                setLiveSetsData({...liveSetsData, [i]: newSets});
                                if (togglingOn && !isExerciseCompleted) setRestTimer(90);
                            }} className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center transition-colors border ${set.completed ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(255,122,0,0.4)]' : 'bg-white/5 border-white/10 hover:bg-white/10 text-transparent'}`}>
-                             <span className="material-symbols-outlined text-sm font-bold">check</span>
+                             <Check className="w-4 h-4 text-black font-bold" />
                            </button>
                         </div>
                         {lastSetForIdx && !set.completed && (
@@ -1210,9 +1621,9 @@ Rules:
                               if (lastSetForIdx.setType) newSets[setIdx].setType = lastSetForIdx.setType as SetType;
                               setLiveSetsData({...liveSetsData, [i]: newSets});
                             }}
-                            className="flex items-center gap-1 px-10 text-[10px] text-primary/75 hover:text-primary transition-colors text-left self-start py-0.5 cursor-pointer"
+                            className="flex items-center gap-1 px-10 text-[10px] text-primary/75 hover:text-primary transition-colors text-left self-start py-0.5 cursor-pointer font-mono tabular-nums"
                           >
-                            <span className="material-symbols-outlined text-[12px]">history</span>
+                            <History className="w-3 h-3" />
                             <span>Last Set {setIdx + 1}: {lastSetForIdx.weight} lbs x {lastSetForIdx.reps} {lastSetForIdx.rpe ? `@RPE${lastSetForIdx.rpe}` : ''} {lastSetForIdx.setType && lastSetForIdx.setType !== 'N' ? `[${lastSetForIdx.setType}]` : ''} <span className="text-white/30 text-[9px]">(click to fill)</span></span>
                           </button>
                         )}
@@ -1224,7 +1635,7 @@ Rules:
             )})}
           </div>
         )}
-        <button onClick={triggerSummary} className="mt-10 w-full bg-gradient-to-br from-[#6FFB85] to-[#4caf50] py-5 rounded-[1.5rem] shadow-[0_12px_40px_rgba(111,251,133,0.3)] flex items-center justify-center gap-3 active:scale-95 transition-all z-10"><span className="material-symbols-outlined text-black font-bold">task_alt</span><span className="font-headline font-black uppercase tracking-widest text-black text-sm">Finish Workout</span></button>
+        <button onClick={triggerSummary} className="mt-10 w-full bg-[#30D158] hover:bg-[#30D158]/90 py-5 rounded-[1.5rem] shadow-sm flex items-center justify-center gap-3 active:scale-95 transition-all z-10"><CheckCircle2 className="w-5 h-5 text-black font-bold" /><span className="font-headline font-black uppercase tracking-widest text-black text-sm">Finish Workout</span></button>
       </main>
     );
   }
@@ -1235,105 +1646,294 @@ Rules:
 
     return (
       <main className="max-w-md mx-auto px-6 pt-12 pb-32 flex flex-col items-center justify-center min-h-[90vh] relative z-10">
-        <div className="absolute inset-0 bg-primary/5 blur-[100px] pointer-events-none"></div>
         <div className="relative mb-6">
-           <span className="material-symbols-outlined text-[100px] text-primary drop-shadow-[0_0_30px_rgba(255,122,0,0.6)] animate-bounce">military_tech</span>
+           <Trophy className="w-24 h-24 text-primary animate-bounce" />
         </div>
         <h1 className="font-headline text-5xl font-black mb-1 text-center tracking-tighter text-on-surface uppercase italic">Workout <span className="text-primary">Complete!</span></h1>
         <p className="text-primary text-[10px] uppercase font-bold tracking-[0.2em] mb-10">Great job — session saved!</p>
 
-        <div className="w-full bg-[#1A1A1C] border border-white/10 rounded-[2rem] p-6 shadow-2xl relative z-10 mb-8 space-y-6">
+        <div className="w-full bg-[#151517] border border-[#2A2A2D] rounded-[2rem] p-6 shadow-2xl relative z-10 mb-8 space-y-6">
            <div className="grid grid-cols-2 gap-4">
-             <div className="bg-black/40 rounded-xl p-4 flex flex-col items-center border border-white/5">
-                <span className="material-symbols-outlined text-primary mb-1 text-3xl">timer</span>
-                <span className="text-2xl font-black font-mono text-on-surface">{Math.max(1, Math.floor(elapsed/60))}m</span>
+             <div className="bg-[#1E1E20] rounded-xl p-4 flex flex-col items-center border border-[#2A2A2D]">
+                <Clock className="w-6 h-6 text-primary mb-1" />
+                <span className="text-2xl font-black font-mono tabular-nums text-on-surface">{Math.max(1, Math.floor(elapsed/60))}m</span>
                 <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-bold">Duration</span>
              </div>
-             <div className="bg-black/40 rounded-xl p-4 flex flex-col items-center border border-white/5">
-                <span className="material-symbols-outlined text-[#6FFB85] mb-1 text-3xl">local_fire_department</span>
-                <span className="text-2xl font-black font-mono text-on-surface">{activeWorkout.kcal}</span>
+             <div className="bg-[#1E1E20] rounded-xl p-4 flex flex-col items-center border border-[#2A2A2D]">
+                <Flame className="w-6 h-6 text-[#30D158] mb-1" />
+                <span className="text-2xl font-black font-mono tabular-nums text-on-surface">{activeWorkout.kcal}</span>
                 <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-bold">Kcal Burned</span>
              </div>
-             <div className="bg-black/40 rounded-xl p-4 flex flex-col items-center border border-white/5 col-span-2">
-                <span className="material-symbols-outlined text-[#ff9800] mb-1 text-3xl">barbell</span>
-                <span className="text-2xl font-black font-mono text-white">{totalCompleted} Sets Hit</span>
+             <div className="bg-[#1E1E20] rounded-xl p-4 flex flex-col items-center border border-[#2A2A2D] col-span-2">
+                <Dumbbell className="w-6 h-6 text-[#FF8A00] mb-1" />
+                <span className="text-2xl font-black font-mono tabular-nums text-white">{totalCompleted} Sets Hit</span>
                 <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-bold">Total Volume</span>
              </div>
            </div>
 
-           <div className="border-t border-white/10 pt-6">
-             <div className="flex justify-between items-center mb-4 text-[#ff9800]">
-               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">emoji_events</span> 3 Personal Records Crushed!</span>
-               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">local_fire_department</span> High Calorie Burn</span>
+           <div className="border-t border-[#2A2A2D] pt-6">
+             <div className="flex justify-between items-center mb-4 text-[#FF8A00]">
+               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> 3 Personal Records Crushed!</span>
+               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5"><Flame className="w-3.5 h-3.5" /> High Calorie Burn</span>
              </div>
              <div className="flex justify-between items-center mb-2">
                 <span className="text-xs uppercase font-bold text-white tracking-widest">Level 14 <span className="text-primary">Stryker</span></span>
-                <span className="text-xs font-bold text-primary">+450 XP</span>
+                <span className="text-xs font-bold text-primary font-mono tabular-nums">+450 XP</span>
              </div>
-             <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-white/10"><div className="w-[85%] h-full bg-gradient-to-r from-primary to-[#CC5F00] rounded-full"></div></div>
+             <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#2A2A2D]"><div className="w-[85%] h-full bg-[#FF8A00] rounded-full"></div></div>
            </div>
         </div>
 
-        <button onClick={finishWorkout} className="w-full bg-white text-black py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)]">Done — Back to My Plan</button>
+        <button onClick={finishWorkout} className="w-full bg-white text-black py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-sm">Done — Back to My Plan</button>
       </main>
     );
   }
 
 
   return (
-    <main className="max-w-md mx-auto px-5 pt-6 pb-32">
-      {/* Header */}
-      <section className="mb-5">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-0.5">{DAY_LABELS_FULL[todayIdx]}</p>
-            <h1 className="font-headline text-2xl font-extrabold tracking-tight text-on-surface">Today's Workout</h1>
+    <main className="w-full max-w-6xl mx-auto px-3.5 sm:px-6 pt-4 sm:pt-6 pb-32 min-w-0 box-border">
+      {/* ─── Header & Top Actions ─── */}
+      <section className="mb-4 sm:mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] font-headline font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] block mb-0.5">
+              Performance Training OS
+            </span>
+            <h1 className="font-headline text-2xl sm:text-3xl font-black tracking-tight text-[var(--color-on-surface)] truncate">
+              Workout Hub
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => { setWorkouts([]); setMode('gateway'); }} className="w-9 h-9 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all" title="Regenerate plan">
-              <span className="material-symbols-outlined text-[18px]">refresh</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowLogPastModal(true)}
+              className="h-9 px-3.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--color-border)] flex items-center gap-1.5 text-xs font-headline font-bold uppercase tracking-wider text-[var(--color-on-surface)] transition-all active:scale-95"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <span>Log Past Workout</span>
+            </button>
+            {workouts.length > 0 && workoutTab === 'plan' && (
+              <button
+                onClick={() => { setWorkouts([]); }}
+                className="h-9 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--color-border)] flex items-center gap-1.5 text-xs font-semibold text-[var(--color-on-surface-variant)] hover:text-white transition-all active:scale-95"
+                title="Reset Split"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Reset Split</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── High-Impact Quick Training / Spontaneous Training Hero ─── */}
+      <section className="mb-6 p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-elevated)] border border-[var(--color-border)] relative overflow-hidden shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--color-action)]/15 border border-[var(--color-action)]/30 flex items-center justify-center text-[var(--color-action)] shrink-0">
+              <Play className="w-6 h-6 fill-[var(--color-action)] stroke-none ml-0.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-headline font-black text-base sm:text-lg text-[var(--color-on-surface)] uppercase tracking-tight">
+                  Quick Start Training
+                </h3>
+                <span className="w-2 h-2 rounded-full bg-[var(--color-action)] animate-pulse" />
+              </div>
+              <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5">
+                Train on your schedule without a fixed plan · Legs today, Back & Biceps tomorrow
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
+            <button
+              onClick={() => handleOpenQuickStart()}
+              className="flex-1 sm:flex-initial h-11 px-5 rounded-2xl bg-[var(--color-action)] hover:brightness-110 text-white font-headline font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[var(--color-action)]/20 active:scale-95 transition-all"
+            >
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>Quick Start Tool</span>
+            </button>
+            <button
+              onClick={() => handleStartFreestyle()}
+              className="h-11 px-4 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-[var(--color-border)] text-xs font-headline font-bold uppercase tracking-wider text-[var(--color-on-surface)] flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0"
+              title="Start Blank Session"
+            >
+              <Dumbbell className="w-4 h-4 text-[var(--color-primary)]" />
+              <span className="hidden sm:inline">Blank Slate</span>
+            </button>
+            <button
+              onClick={() => setShowLogPastModal(true)}
+              className="h-11 px-4 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-[var(--color-border)] text-xs font-headline font-bold uppercase tracking-wider text-[var(--color-on-surface)] flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0"
+              title="Log completed workout"
+            >
+              <Plus className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Log Past</span>
             </button>
           </div>
         </div>
-      </section>
 
-      {/* ─── Workout Navigation Hub ─── */}
-      <section className="mb-5">
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
-          <Link
-            to="/workout/weekly-planner"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined text-primary text-[16px]">calendar_month</span>
-            Weekly Planner
-          </Link>
-          <Link
-            to="/exercises"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[#6FFB85] text-[16px]">menu_book</span>
-            Exercises
-          </Link>
-          <Link
-            to="/workout/templates/new"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[#60A5FA] text-[16px]">add_box</span>
-            New Template
-          </Link>
-          <Link
-            to="/workout/history"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[var(--color-surface-container)] hover:bg-white/[0.08] text-xs font-headline font-bold text-on-surface flex-shrink-0 border border-white/[0.04] active:scale-95 transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[#FBBF24] text-[16px]">history</span>
-            History
-          </Link>
+        {/* 1-Tap Quick Split Focus Chips */}
+        <div className="pt-2 border-t border-[var(--color-border)]/60 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--color-muted)] shrink-0 pr-1">
+            1-Tap Focus:
+          </span>
+          {QUICK_SPLIT_PRESETS.slice(0, 6).map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => handleOpenQuickStart(preset.id)}
+              className="py-1.5 px-3 rounded-xl bg-white/[0.04] hover:bg-[#FF8A00]/20 hover:text-[#FF8A00] border border-[var(--color-border)] hover:border-[#FF8A00]/40 text-xs font-semibold text-[var(--color-on-surface)] transition-all flex items-center gap-1.5 shrink-0 active:scale-95"
+            >
+              <Play className="w-2.5 h-2.5 fill-current opacity-70" />
+              <span>{preset.shortLabel}</span>
+            </button>
+          ))}
         </div>
       </section>
 
-      {/* ─── Horizontal Day Selector ─── */}
-      <section className="mb-6">
-        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
+      {/* ─── In-Page Tab Navigation (Plan / Past Workouts / Templates) ─── */}
+      <div className="flex items-center gap-2 border-b border-[var(--color-border)] mb-6 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => handleTabChange('plan')}
+          className={`pb-3 px-3.5 sm:px-5 font-headline text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative shrink-0 flex items-center gap-2 ${
+            workoutTab === 'plan'
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-on-surface)]'
+          }`}
+        >
+          <Calendar className="w-4 h-4 stroke-[2]" />
+          <span>Training Plan</span>
+          {workoutTab === 'plan' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)] rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+          )}
+        </button>
+
+        <button
+          onClick={() => handleTabChange('history')}
+          className={`pb-3 px-3.5 sm:px-5 font-headline text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative shrink-0 flex items-center gap-2 ${
+            workoutTab === 'history'
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-on-surface)]'
+          }`}
+        >
+          <History className="w-4 h-4 stroke-[2]" />
+          <span>Past Workouts</span>
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+            workoutTab === 'history' ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' : 'bg-white/[0.06] text-[var(--color-muted)]'
+          }`}>
+            {sessions.length}
+          </span>
+          {workoutTab === 'history' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)] rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+          )}
+        </button>
+
+        <button
+          onClick={() => handleTabChange('templates')}
+          className={`pb-3 px-3.5 sm:px-5 font-headline text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative shrink-0 flex items-center gap-2 ${
+            workoutTab === 'templates'
+              ? 'text-[var(--color-primary)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-on-surface)]'
+          }`}
+        >
+          <PlusSquare className="w-4 h-4 stroke-[2]" />
+          <span>Templates</span>
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+            workoutTab === 'templates' ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' : 'bg-white/[0.06] text-[var(--color-muted)]'
+          }`}>
+            {templates.length}
+          </span>
+          {workoutTab === 'templates' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)] rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+          )}
+        </button>
+      </div>
+
+      {/* ─── TAB 1: TRAINING PLAN ─── */}
+      {workoutTab === 'plan' && (
+        <div className="space-y-6 sm:space-y-8">
+          {workouts.length === 0 ? (
+            <div className="p-6 sm:p-10 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] max-w-2xl mx-auto space-y-6">
+              <div className="text-center space-y-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#FF8A00] block">
+                  SPONTANEOUS ATHLETIC SYSTEM
+                </span>
+                <h3 className="font-headline font-black text-xl sm:text-2xl text-[var(--color-on-surface)] uppercase tracking-tight">
+                  Train Today · No Fixed Plan Needed
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--color-muted)] max-w-lg mx-auto">
+                  Workout on your own terms. Train <span className="text-[#F5F5F5] font-semibold">Legs today, Back & Biceps tomorrow</span>, or start a freestyle session with 1 tap.
+                </p>
+              </div>
+
+              {/* 1-Tap Quick Split Starters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {QUICK_SPLIT_PRESETS.slice(0, 4).map((preset) => (
+                  <div
+                    key={preset.id}
+                    className="p-4 rounded-2xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:border-[#FF8A00]/50 transition-all flex flex-col justify-between space-y-3"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-headline font-bold text-sm text-[var(--color-on-surface)]">
+                          {preset.name}
+                        </h4>
+                        <span className="text-[10px] font-mono text-[#FF8A00] font-bold">
+                          {preset.recommendedExercises.length} Ex
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[var(--color-muted)] line-clamp-1">
+                        {preset.tagline}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleInstantStartSplit(preset.id)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#FF8A00] hover:brightness-110 active:scale-[0.98] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#FF8A00]/20"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-black stroke-none" />
+                      <span>Start {preset.shortLabel}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Secondary actions: Custom tool or structured splits */}
+              <div className="pt-4 border-t border-[var(--color-border)] flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => handleOpenQuickStart()}
+                  className="py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-[var(--color-border)] text-[var(--color-on-surface)] font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#FF8A00]" />
+                  <span>Custom Muscle Focus</span>
+                </button>
+                <button
+                  onClick={() => setMode('ai-wizard')}
+                  className="py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-[var(--color-border)] text-[var(--color-on-surface)] font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                  <span>AI Split Wizard</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('templates')}
+                  className="py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-[var(--color-border)] text-[var(--color-on-surface)] font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <PlusSquare className="w-3.5 h-3.5" />
+                  <span>Browse Templates</span>
+                </button>
+                <button
+                  onClick={startBlankCanvas}
+                  className="py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-[var(--color-border)] text-[var(--color-on-surface)] font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Custom Split</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ─── Compact Weekly Timeline (Avoid Huge Pill Buttons) ─── */}
+              <section className="mb-6 sm:mb-8 w-full max-w-full overflow-hidden">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 w-full max-w-full custom-scrollbar no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
           {workouts.map((wk, idx) => {
             const isSelected = selectedDay === idx;
             const isToday = idx === Math.min(todayIdx, workouts.length - 1);
@@ -1342,25 +1942,26 @@ Rules:
               <button
                 key={idx}
                 onClick={() => { setActiveDay(idx); setExpandedExIdx(null); }}
-                className={`flex flex-col items-center min-w-[52px] py-2.5 px-2 rounded-2xl transition-all duration-200 border flex-shrink-0 ${
+                className={`min-w-[48px] sm:min-w-[56px] min-h-[48px] py-2 px-1 sm:px-2 rounded-xl text-center transition-all border flex-shrink-0 sm:flex-1 ${
                   isSelected
-                    ? 'bg-primary text-black border-primary shadow-[0_4px_20px_rgba(255,122,0,0.3)] scale-105'
+                    ? 'bg-[var(--color-surface-elevated)] text-[var(--color-primary)] border-[var(--color-primary)] shadow-sm'
                     : isToday
-                      ? 'bg-primary/10 text-primary border-primary/30'
-                      : 'bg-[var(--color-surface-container)] text-on-surface-variant border-transparent hover:border-white/10'
+                      ? 'bg-[var(--color-surface)] text-[var(--color-on-surface)] border-[var(--color-border)]'
+                      : 'bg-[var(--color-surface)] text-[var(--color-muted)] border-transparent hover:border-[var(--color-border)]'
                 }`}
               >
-                <span className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? 'text-black/60' : ''}`}>
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider block">
                   {DAY_LABELS[idx] || `D${idx + 1}`}
                 </span>
-                <span className={`text-base font-black mt-0.5 ${isSelected ? 'text-black' : ''}`}>
-                  {dayIsRest
-                    ? <span className="material-symbols-outlined text-[16px]">hotel</span>
-                    : String(idx + 1).padStart(2, '0')
-                  }
+                <span className="text-xs sm:text-sm font-black mt-0.5 block tabular-nums">
+                  {dayIsRest ? (
+                    <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto opacity-70" />
+                  ) : (
+                    String(idx + 1).padStart(2, '0')
+                  )}
                 </span>
                 {isToday && !isSelected && (
-                  <div className="w-1 h-1 rounded-full bg-primary mt-1"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] mx-auto mt-1" />
                 )}
               </button>
             );
@@ -1368,309 +1969,782 @@ Rules:
         </div>
       </section>
 
-      {/* ─── Today's Workout Hero Card ─── */}
-      {todayWorkout && (
-        <section className="mb-6" key={`hero-${selectedDay}`}>
-          <div className={`animate-hero-card rounded-[1.8rem] overflow-hidden border transition-all duration-300 ${
-            isRestDay
-              ? 'bg-[var(--color-surface-container)] border-white/5'
-              : 'bg-gradient-to-br from-[var(--color-surface-container)] to-[var(--color-surface-container-low)] border-primary/15 shadow-[0_8px_40px_rgba(0,0,0,0.2)]'
-          }`}>
-            {/* Hero header */}
-            <div className="p-6 pb-4">
+      {/* ─── Responsive Content Grid ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full max-w-full">
+        {/* ── LEFT COLUMN (Session Hero & Editorial Exercise Log) ── */}
+        <div className="lg:col-span-7 space-y-5 sm:space-y-6 min-w-0 w-full max-w-full">
+          {/* Today's Workout Hero */}
+          {todayWorkout && (
+            <section className="p-4 sm:p-7 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl relative overflow-hidden w-full max-w-full">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  {isRestDay ? (
-                    <>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">self_improvement</span>
-                      </div>
-                      <h2 className="font-headline text-2xl font-black text-on-surface-variant">{todayWorkout.title}</h2>
-                      <p className="text-on-surface-variant/60 text-sm mt-2 leading-relaxed">{todayWorkout.tip || 'Focus on sleep, nutrition, and deep tissue recovery today. Your muscles grow during rest — prioritize 7-9 hours of sleep, stay hydrated, and consider light stretching or foam rolling.'}</p>
-                      <div className="mt-4 bg-[#64B5F6]/5 border border-[#64B5F6]/15 rounded-xl p-3 flex gap-3 items-start">
-                        <span className="material-symbols-outlined text-[#64B5F6] text-[16px] mt-0.5">tips_and_updates</span>
-                        <p className="text-[11px] text-on-surface-variant leading-relaxed">Active recovery helps more than complete rest. Consider a 20-min walk, light yoga, or foam rolling to boost blood flow and accelerate muscle repair.</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-primary/70 mb-1 block">
-                        {DAY_LABELS_FULL[selectedDay] || `Day ${selectedDay + 1}`} — Workout
-                      </span>
-                      <h2 className="font-headline text-3xl font-black text-on-surface tracking-tight leading-none mb-3">{todayWorkout.title}</h2>
-
-                      {/* Stats row */}
-                      <div className="flex items-center gap-2 flex-wrap mb-4">
-                        <span className="flex items-center gap-1 text-[11px] text-on-surface-variant font-semibold bg-white/5 px-3 py-1.5 rounded-full">
-                          <span className="material-symbols-outlined text-[13px] text-primary">schedule</span> {todayWorkout.duration} min
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] text-on-surface-variant font-semibold bg-white/5 px-3 py-1.5 rounded-full">
-                          <span className="material-symbols-outlined text-[13px] text-[#6FFB85]">local_fire_department</span> {todayWorkout.kcal} kcal
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] text-on-surface-variant font-semibold bg-white/5 px-3 py-1.5 rounded-full">
-                          <span className="material-symbols-outlined text-[13px] text-[#64B5F6]">fitness_center</span> {exerciseCount} moves
-                        </span>
-                      </div>
-
-                      {/* Rich description */}
-                      {todayWorkout.description && (
-                        <p className="text-on-surface-variant text-[12.5px] leading-relaxed mb-4 border-l-2 border-primary/30 pl-3 italic">
-                          {todayWorkout.description}
-                        </p>
-                      )}
-
-                      {/* Warmup info */}
-                      {todayWorkout.warmupInfo && (
-                        <div className="bg-[#ff9800]/5 border border-[#ff9800]/15 rounded-xl p-3 flex gap-3 items-start mb-4">
-                          <span className="material-symbols-outlined text-[#ff9800] text-[16px] mt-0.5 animate-pulse">whatshot</span>
-                          <div>
-                            <span className="text-[9px] uppercase font-bold tracking-[0.15em] text-[#ff9800] block mb-0.5">Warm-Up Required</span>
-                            <p className="text-[11px] text-on-surface-variant leading-relaxed">{todayWorkout.warmupInfo}</p>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-[var(--color-action)] block mb-1">
+                    {DAY_LABELS_FULL[selectedDay] || `Day ${selectedDay + 1}`} · {isRestDay ? 'Recovery Day' : 'Training Day'}
+                  </span>
+                  <h2 className="font-headline text-xl sm:text-3xl font-black text-[var(--color-on-surface)] tracking-tight leading-tight truncate">
+                    {todayWorkout.title}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[var(--color-on-surface-variant)] mt-1 font-medium truncate">
+                    {todayWorkout.targetMuscles?.join(' · ') || (isRestDay ? 'Tissue Regeneration' : 'Full Body')}
+                  </p>
                 </div>
               </div>
 
-              {/* Target muscles */}
-              {!isRestDay && todayWorkout.targetMuscles && todayWorkout.targetMuscles.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {todayWorkout.targetMuscles.map((m: string, i: number) => (
-                    <span key={i} className="px-2.5 py-1 bg-primary/8 border border-primary/15 rounded-full text-[9px] text-primary font-bold uppercase tracking-wider">
-                      {m}
-                    </span>
-                  ))}
+              {!isRestDay && (
+                <>
+                  {/* Workout Stats Strip - Responsive 3-Column Grid */}
+                  <div className="grid grid-cols-3 divide-x divide-[var(--color-border)] py-3 border-y border-[var(--color-border)] my-4 text-xs text-[var(--color-on-surface-variant)] w-full">
+                    <div className="pr-1.5 sm:pr-2 min-w-0">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] block truncate">Duration</span>
+                      <span className="font-bold text-[var(--color-on-surface)] tabular-nums truncate block text-xs sm:text-sm">{todayWorkout.duration} min</span>
+                    </div>
+                    <div className="px-1.5 sm:px-2 min-w-0 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] block truncate">Volume</span>
+                      <span className="font-bold text-[var(--color-on-surface)] tabular-nums truncate block text-xs sm:text-sm">{exerciseCount} exercises</span>
+                    </div>
+                    <div className="pl-1.5 sm:pl-2 min-w-0 text-right">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] block truncate">Est. Load</span>
+                      <span className="font-bold text-[var(--color-on-surface)] tabular-nums truncate block text-xs sm:text-sm">{todayWorkout.kcal} kcal</span>
+                    </div>
+                  </div>
+
+                  {/* DOMINANT ACTION CTA IN ACTION ORANGE */}
+                  <div className="space-y-3 w-full">
+                    <button
+                      onClick={startWorkoutSession}
+                      className="w-full min-h-[48px] sm:min-h-[50px] py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl bg-[var(--color-action)] hover:brightness-110 active:scale-[0.98] transition-all text-white font-headline font-black text-xs sm:text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[var(--color-action)]/25"
+                    >
+                      <Play className="w-4 h-4 fill-white stroke-none shrink-0" />
+                      <span>Start Workout</span>
+                    </button>
+
+                    <div className="flex gap-2 w-full">
+                      <button
+                        onClick={() => { setEditingWorkout(todayWorkout); setEditingWorkoutIdx(selectedDay); setMode('edit'); }}
+                        className="flex-1 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-on-surface-variant)] flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 shrink-0" /> <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => duplicateWorkout(e, selectedDay)}
+                        className="flex-1 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-on-surface-variant)] flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                      >
+                        <Copy className="w-3.5 h-3.5 shrink-0" /> <span>Duplicate</span>
+                      </button>
+                      <button
+                        onClick={(e) => deleteWorkout(e, selectedDay)}
+                        className="w-11 min-h-[44px] flex items-center justify-center rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors shrink-0"
+                        title="Delete Day"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isRestDay && (
+                <div className="py-4 space-y-3">
+                  <p className="text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
+                    {todayWorkout.tip || 'Focus on active recovery, hydration, and deep sleep. Muscular protein synthesis and connective tissue repair occur during periods of scheduled rest.'}
+                  </p>
+                  <button
+                    onClick={startWorkoutSession}
+                    className="w-full py-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-xs font-bold uppercase tracking-wider text-[var(--color-on-surface)] transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    Mark Recovery Complete
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ─── EDITORIAL EXERCISE LOG (NO BOX CARDS) ─── */}
+          {!isRestDay && exerciseCount > 0 && (
+            <section className="space-y-2">
+              <div className="flex justify-between items-center px-1 mb-2">
+                <span className="text-[10px] font-headline font-bold uppercase tracking-[0.2em] text-[var(--color-muted)]">
+                  Exercise Order & Target Load
+                </span>
+                <span className="text-xs font-mono font-medium text-[var(--color-muted)]">
+                  {exerciseCount} Movements
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {todayWorkout.exercises.map((ex, i) => {
+                  const isExpanded = expandedExIdx === i;
+                  const validVid = ex.videoUrl ? resolveValidVideo(ex.videoUrl) : '';
+                  const lastSets = getLastSessionSets(ex.name);
+
+                  return (
+                    <div
+                      key={`${selectedDay}-${i}`}
+                      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                        isExpanded
+                          ? 'bg-[var(--color-surface)] border-[var(--color-primary)]/40 shadow-md'
+                          : 'bg-[var(--color-surface)]/70 hover:bg-[var(--color-surface)] border-[var(--color-border)]'
+                      }`}
+                    >
+                      {/* Editorial Row */}
+                      <div
+                        className="flex items-center gap-3.5 p-3.5 cursor-pointer group select-none"
+                        onClick={() => setExpandedExIdx(isExpanded ? null : i)}
+                      >
+                        {/* 01, 02 Number */}
+                        <span className="font-mono text-xs font-bold text-[var(--color-muted)] group-hover:text-[var(--color-primary)] w-5 text-center">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+
+                        {/* Exercise Name & Muscles */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-headline font-bold text-sm text-[var(--color-on-surface)] group-hover:text-[var(--color-primary)] truncate transition-colors">
+                            {ex.name}
+                          </h4>
+                          <p className="text-[11px] text-[var(--color-on-surface-variant)] truncate mt-0.5">
+                            {ex.muscles.slice(0, 2).join(' · ')}
+                          </p>
+                        </div>
+
+                        {/* Target Reps / Load */}
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-xs font-mono font-bold text-[var(--color-primary)] block tabular-nums">
+                            {ex.reps}
+                          </span>
+                          {lastSets.length > 0 ? (
+                            <span className="text-[10px] text-[var(--color-muted)] font-mono block">
+                              Last: {lastSets[0].weight}×{lastSets[0].reps}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[var(--color-muted)] font-mono block">
+                              Target
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Chevron */}
+                        <div className="text-[var(--color-muted)] group-hover:text-[var(--color-on-surface)] transition-transform duration-200">
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-[var(--color-primary)]" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="px-5 pb-5 pt-2 space-y-4 border-t border-[var(--color-border)]">
+                          {/* Animated Form Guide */}
+                          {(ex.gifUrl || ex.imageUrl || validVid) && (
+                            <div className="w-full">
+                              <ExerciseMedia
+                                gifUrl={ex.gifUrl}
+                                imageUrl={ex.imageUrl}
+                                videoId={validVid}
+                                exerciseName={ex.name}
+                                primaryMuscle={ex.muscles?.[0]}
+                                aspectRatio="wide"
+                              />
+                            </div>
+                          )}
+
+                          {/* Form Tip */}
+                          {ex.tips && (
+                            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2.5 items-start text-xs">
+                              <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-0.5">Execution Cue</span>
+                                <p className="text-[var(--color-on-surface)]/90 leading-relaxed">{ex.tips}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Historical Performance */}
+                          {lastSets.length > 0 && (
+                            <div className="p-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-xs">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] block mb-1.5">
+                                Previous Session Performance
+                              </span>
+                              <div className="space-y-1">
+                                {lastSets.map((s, si) => (
+                                  <div key={si} className="flex justify-between font-mono text-[11px] text-[var(--color-on-surface-variant)]">
+                                    <span>Set {si + 1}</span>
+                                    <span className="text-[var(--color-on-surface)] font-bold">{s.weight} lbs × {s.reps} reps</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Full Breakdown Button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAnalyzingExercise(ex); setMode('analyze'); }}
+                            className="w-full py-2.5 rounded-xl bg-[var(--color-surface-elevated)] hover:bg-white/[0.06] text-xs font-semibold text-[var(--color-primary)] transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                            <span>Biomechanical Breakdown</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add New Day Button */}
+              <button
+                onClick={addNewDay}
+                className="w-full py-3.5 rounded-2xl border border-dashed border-[var(--color-border)] hover:border-[var(--color-primary)]/40 text-[var(--color-on-surface-variant)] hover:text-white transition-colors flex items-center justify-center gap-2 text-xs font-semibold mt-4"
+              >
+                <Plus className="w-4 h-4" /> Add Training Day
+              </button>
+            </section>
+          )}
+        </div>
+
+        {/* ── RIGHT COLUMN (Large Anatomical Muscle Training Map) ── */}
+        <div className="lg:col-span-5 space-y-6">
+          {!isRestDay && (
+            <section className="p-6 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-headline font-bold text-sm uppercase tracking-wider text-[var(--color-on-surface)]">
+                    Target Muscle Anatomy
+                  </h3>
+                  <p className="text-xs text-[var(--color-muted)] mt-0.5">
+                    Stimulus & recovery distribution
+                  </p>
+                </div>
+              </div>
+
+              <div className="py-2">
+                <MuscleHeatmap
+                  muscles={allWorkoutMuscles}
+                  size={200}
+                  showControls={true}
+                  showLegend={true}
+                  showSymmetryCard={true}
+                />
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+
+              {/* Recent Activity Strip preview in Plan */}
+              {sessions.length > 0 && (
+                <section className="pt-6 border-t border-[var(--color-border)]/60">
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="flex items-center gap-2">
+                      <History className="w-4 h-4 text-[var(--color-primary)]" />
+                      <h3 className="font-headline font-bold text-xs sm:text-sm uppercase tracking-wider text-[var(--color-on-surface)]">
+                        Recent Logged Workouts
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => handleTabChange('history')}
+                      className="text-xs font-semibold text-[var(--color-primary)] hover:underline flex items-center gap-1"
+                    >
+                      View All Past Workouts ({sessions.length}) <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {sessions.slice(0, 3).map(session => (
+                      <div
+                        key={session.id}
+                        onClick={() => setHistoryDetailId(session.id)}
+                        className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)]/40 cursor-pointer transition-all hover:bg-[var(--color-surface-elevated)] group flex flex-col justify-between"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-headline font-bold text-xs sm:text-sm text-[var(--color-on-surface)] truncate group-hover:text-[var(--color-primary)] transition-colors">
+                            {session.templateName}
+                          </h4>
+                          <span className="text-[10px] text-[var(--color-muted)] font-medium shrink-0">
+                            {new Date(session.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-[var(--color-muted)]">
+                          <span className="flex items-center gap-1 font-mono">
+                            <Clock className="w-3 h-3 text-[var(--color-primary)]" />
+                            {formatDuration(session.duration)}
+                          </span>
+                          <span className="flex items-center gap-1 font-mono">
+                            <Dumbbell className="w-3 h-3 text-[var(--color-action)]" />
+                            {formatVolume(session.totalVolume)} lbs
+                          </span>
+                          {session.prsHit.length > 0 && (
+                            <span className="text-[10px] font-bold text-[var(--color-primary)] flex items-center gap-0.5">
+                              <Trophy className="w-3 h-3" /> {session.prsHit.length} PR{session.prsHit.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 2: PAST WORKOUTS HISTORY ─── */}
+      {workoutTab === 'history' && (
+        <div className="space-y-6">
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                <Dumbbell className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)] block">Total Workouts</span>
+                <span className="font-headline font-black text-lg sm:text-2xl text-[var(--color-on-surface)] tabular-nums block">
+                  {historyStats.totalSessions}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-action)]/10 text-[var(--color-action)] flex items-center justify-center shrink-0">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)] block">Volume Moved</span>
+                <span className="font-headline font-black text-lg sm:text-2xl text-[var(--color-on-surface)] tabular-nums truncate block">
+                  {formatVolume(historyStats.totalVolume)} <span className="text-xs font-normal text-[var(--color-muted)]">lbs</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)] block">Time Trained</span>
+                <span className="font-headline font-black text-lg sm:text-2xl text-[var(--color-on-surface)] tabular-nums block">
+                  {historyStats.totalHours} <span className="text-xs font-normal text-[var(--color-muted)]">hrs</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)] block">PRs Crushed</span>
+                <span className="font-headline font-black text-lg sm:text-2xl text-[var(--color-on-surface)] tabular-nums block">
+                  {historyStats.totalPRs}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search, Filter & Calendar Controls */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left 5 Cols: Month Calendar */}
+            <div className="lg:col-span-5 space-y-3">
+              <HistoryCalendar
+                sessions={sessions}
+                currentMonth={historyCurrentMonth}
+                onPrevMonth={() => setHistoryCurrentMonth(new Date(historyCurrentMonth.getFullYear(), historyCurrentMonth.getMonth() - 1, 1))}
+                onNextMonth={() => setHistoryCurrentMonth(new Date(historyCurrentMonth.getFullYear(), historyCurrentMonth.getMonth() + 1, 1))}
+                selectedDate={historySelectedDate}
+                onSelectDate={(d) => setHistorySelectedDate(historySelectedDate === d ? null : d)}
+              />
+
+              {historySelectedDate && (
+                <div className="p-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-between text-xs">
+                  <span className="text-[var(--color-muted)] font-medium">
+                    Filtering: <strong className="text-[var(--color-primary)]">{historySelectedDate}</strong>
+                  </span>
+                  <button
+                    onClick={() => setHistorySelectedDate(null)}
+                    className="text-[var(--color-primary)] hover:underline font-bold text-[11px] flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" /> Clear Date Filter
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* ─── Muscle Heatmap ─── */}
-            {!isRestDay && allWorkoutMuscles.length > 0 && (
-              <>
-                <div className="mx-6 h-px bg-white/5"></div>
-                <div className="px-6 py-5">
-                  <div className="flex items-center gap-1.5 mb-4">
-                    <span className="material-symbols-outlined text-[14px] text-primary">accessibility_new</span>
-                    <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-on-surface-variant">Muscle Activation Map</span>
+            {/* Right 7 Cols: Search & Session Cards */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-[var(--color-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder="Search workouts or exercises..."
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-xs text-[var(--color-on-surface)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:outline-none transition-all"
+                  />
+                  {historySearchQuery && (
+                    <button
+                      onClick={() => setHistorySearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowLogPastModal(true)}
+                  className="py-2.5 px-4 rounded-xl bg-[var(--color-primary)] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--color-primary)]/20 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Log Workout
+                </button>
+              </div>
+
+              {filteredHistorySessions.length === 0 ? (
+                <div className="p-8 sm:p-12 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-white/[0.04] text-[var(--color-muted)] flex items-center justify-center mx-auto">
+                    <History className="w-7 h-7" />
                   </div>
-                  <div className="bg-black/20 rounded-2xl border border-white/[0.04] p-4 flex items-center justify-center">
-                    <MuscleHeatmap muscles={allWorkoutMuscles} size={135} showControls={true} showLegend={true} />
+                  <div className="space-y-1">
+                    <h4 className="font-headline font-bold text-base text-[var(--color-on-surface)]">
+                      {sessions.length === 0 ? 'No Workouts Logged Yet' : 'No Matching Workouts'}
+                    </h4>
+                    <p className="text-xs text-[var(--color-muted)] max-w-sm mx-auto">
+                      {sessions.length === 0
+                        ? 'Track your freestyle workouts live or log past sessions to see your full history and PR trajectory here.'
+                        : 'Try clearing your date or search filters to see all completed workouts.'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                    <button
+                      onClick={() => setShowLogPastModal(true)}
+                      className="py-2.5 px-4 rounded-xl bg-[var(--color-primary)] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--color-primary)]/20"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Log Past Session
+                    </button>
+                    <button
+                      onClick={() => handleStartFreestyle()}
+                      className="py-2.5 px-4 rounded-xl bg-[var(--color-surface-elevated)] text-[var(--color-on-surface)] border border-[var(--color-border)] font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 hover:bg-white/[0.06] active:scale-95 transition-all"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" /> Start Freestyle
+                    </button>
                   </div>
                 </div>
-              </>
-            )}
-
-            {/* Divider */}
-            <div className="mx-6 h-px bg-white/5"></div>
-
-            {/* ─── Exercise List ─── */}
-            {!isRestDay && exerciseCount > 0 && (
-              <div className="p-4 space-y-2">
-                <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-on-surface-variant px-2 mb-1 block">{exerciseCount} Exercises</span>
-                {todayWorkout.exercises.map((ex, i) => {
-                  const isExpanded = expandedExIdx === i;
-                  const validVid = ex.videoUrl ? resolveValidVideo(ex.videoUrl) : '';
-                  return (
-                  <div
-                    key={`${selectedDay}-${i}`}
-                    className={`animate-exercise-enter rounded-xl border transition-all duration-300 overflow-hidden ${
-                      isExpanded
-                        ? 'bg-[var(--color-surface-container)] border-primary/20 shadow-lg'
-                        : 'bg-[var(--color-surface-container-low)] border-white/[0.03] hover:border-white/10 hover:shadow-md'
-                    }`}
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    {/* ── Collapsed Row (always visible) ── */}
+              ) : (
+                <div className="space-y-3">
+                  {filteredHistorySessions.map((session) => (
                     <div
-                      className="flex items-center gap-3 py-2.5 px-3 cursor-pointer group"
-                      onClick={() => setExpandedExIdx(isExpanded ? null : i)}
+                      key={session.id}
+                      className="relative group bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:border-[var(--color-primary)]/40 rounded-2xl p-4 transition-all cursor-pointer"
+                      onClick={() => setHistoryDetailId(session.id)}
                     >
-                      {/* Number badge */}
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                        isExpanded ? 'bg-primary text-black' : 'bg-primary/8 text-primary'
-                      }`}>
-                        <span className="text-[10px] font-black">{i + 1}</span>
-                      </div>
-                      {/* Thumbnail */}
-                      <div className="w-11 h-11 rounded-xl bg-black/40 overflow-hidden flex-shrink-0 border border-white/5 group-hover:border-primary/20 transition-colors">
-                        {ex.imageUrl ? (
-                          <img src={ex.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" alt={ex.name} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-white/20 text-sm">fitness_center</span>
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className="font-headline font-black text-sm sm:text-base text-[var(--color-on-surface)] group-hover:text-[var(--color-primary)] transition-colors truncate">
+                              {session.templateName}
+                            </h4>
+                            {session.prsHit.length > 0 && (
+                              <span className="bg-amber-500/15 text-amber-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                                <Trophy className="w-3 h-3" />
+                                {session.prsHit.length} PR{session.prsHit.length > 1 ? 's' : ''}
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-[13px] truncate transition-colors ${isExpanded ? 'text-primary' : 'text-on-surface group-hover:text-primary'}`}>{ex.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[10px] text-primary/80 font-bold">{ex.reps}</p>
-                          {ex.muscles.length > 0 && (
-                            <>
-                              <span className="text-white/10">·</span>
-                              <p className="text-[10px] text-on-surface-variant/60 truncate">{ex.muscles.slice(0, 2).join(', ')}</p>
-                            </>
-                          )}
+                          <p className="text-[10px] text-[var(--color-muted)] font-medium uppercase tracking-wider">
+                            {new Date(session.startedAt).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })} · {new Date(session.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </p>
+                        </div>
+
+                        {/* Top-right quick actions */}
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleRepeatSession(session)}
+                            title="Repeat Workout"
+                            className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-[var(--color-surface-container)] hover:bg-[var(--color-primary)]/20 hover:text-[var(--color-primary)] text-[var(--color-muted)] text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95"
+                          >
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Repeat</span>
+                          </button>
+                          <button
+                            onClick={() => setHistoryDeleteTarget(session.id)}
+                            title="Delete Session"
+                            className="p-1.5 rounded-lg text-[var(--color-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-90"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                      {/* Expand chevron */}
-                      <span className={`material-symbols-outlined text-on-surface-variant/40 text-[18px] transition-transform duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180 text-primary' : ''}`}>
-                        expand_more
+
+                      {/* Session exercise summary badges */}
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {session.exercises.slice(0, 4).map((ex, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/[0.04] text-[var(--color-on-surface-variant)]"
+                          >
+                            {ex.exerciseName} ({ex.sets.length} sets)
+                          </span>
+                        ))}
+                        {session.exercises.length > 4 && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/[0.04] text-[var(--color-muted)]">
+                            +{session.exercises.length - 4} more
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Footer Stats Strip */}
+                      <div className="flex items-center gap-4 text-xs font-mono text-[var(--color-muted)] pt-2.5 border-t border-[var(--color-border)]/50">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                          {formatDuration(session.duration)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="w-3.5 h-3.5 text-[var(--color-action)]" />
+                          {formatVolume(session.totalVolume)} lbs
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Activity className="w-3.5 h-3.5 text-blue-400" />
+                          {session.totalSets} total sets
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: WORKOUT TEMPLATES & STARTER BLUEPRINTS ─── */}
+      {workoutTab === 'templates' && (
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-headline font-black text-lg sm:text-xl text-[var(--color-on-surface)]">
+                Workout Routines & Blueprints
+              </h3>
+              <p className="text-xs sm:text-sm text-[var(--color-muted)] mt-0.5">
+                Start structured workouts in 1 tap, customize exercises, or build your own personal workout templates.
+              </p>
+            </div>
+            <button
+              onClick={() => handleStartFreestyle('Custom Routine Template')}
+              className="py-2.5 px-4 rounded-xl bg-[var(--color-primary)] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--color-primary)]/20 shrink-0"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" /> Create Routine
+            </button>
+          </div>
+
+          {/* User's Custom Templates */}
+          <div className="space-y-3">
+            <h4 className="font-headline font-bold text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              My Saved Templates ({templates.length})
+            </h4>
+
+            {templates.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-center space-y-2">
+                <p className="text-xs text-[var(--color-muted)]">
+                  You haven't saved any custom templates yet. Save any completed workout as a template, or start from one of the athletic blueprints below.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {templates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)]/50 transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h5 className="font-headline font-black text-sm sm:text-base text-[var(--color-on-surface)]">
+                          {tpl.name}
+                        </h5>
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] shrink-0">
+                          {tpl.exercises.length} Ex
+                        </span>
+                      </div>
+                      {tpl.description && (
+                        <p className="text-xs text-[var(--color-muted)] line-clamp-2">
+                          {tpl.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {tpl.targetMuscles.map((m, i) => (
+                          <span
+                            key={i}
+                            className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/[0.04] text-[var(--color-on-surface-variant)]"
+                          >
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-border)]">
+                      <button
+                        onClick={() => {
+                          startSession(tpl);
+                          navigate('/workout/active');
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-[var(--color-action)] text-white font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--color-action)]/20"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" /> Start
+                      </button>
+                      <button
+                        onClick={() => duplicateTemplate(tpl.id)}
+                        title="Duplicate"
+                        className="p-2.5 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-white transition-all active:scale-90"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setTemplateDeleteTarget(tpl.id)}
+                        title="Delete"
+                        className="p-2.5 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-red-400 transition-all active:scale-90"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Starter Athletic Blueprints */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-headline font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                Athletic Starter Blueprints
+              </h4>
+              <span className="text-[10px] text-[var(--color-muted)]">Verified hypertrophy routines</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {STARTER_BLUEPRINTS.map((bp) => (
+                <div
+                  key={bp.id}
+                  className="p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-primary)]/40 transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h5 className="font-headline font-black text-sm sm:text-base text-[var(--color-on-surface)]">
+                          {bp.name}
+                        </h5>
+                        <p className="text-xs text-[var(--color-muted)] mt-0.5">
+                          {bp.description}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] shrink-0">
+                        {bp.exercises.length} Exercises
                       </span>
                     </div>
 
-                    {/* ── Expanded Content ── */}
-                    {isExpanded && (
-                      <div className="px-4 pb-4 pt-1 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        {/* Divider */}
-                        <div className="h-px bg-white/5 -mx-1"></div>
-
-                        {/* Description */}
-                        {ex.description && (
-                          <p className="text-on-surface-variant text-[12px] leading-relaxed">
-                            {ex.description}
-                          </p>
-                        )}
-
-                        {/* Form Guide demonstration */}
-                        {(ex.gifUrl || ex.imageUrl || validVid) && (
-                          <div className="w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black relative flex items-center justify-center group/vid">
-                            {ex.gifUrl ? (
-                              <img
-                                src={ex.gifUrl}
-                                alt={ex.name}
-                                className="w-full h-full object-contain p-1"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <img
-                                src={ex.imageUrl || (validVid ? `https://img.youtube.com/vi/${validVid}/hqdefault.jpg` : '')}
-                                alt={ex.name}
-                                className="w-full h-full object-cover opacity-80 group-hover/vid:opacity-100 transition-opacity"
-                              />
-                            )}
-                            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full text-[8px] font-bold text-white/90 uppercase tracking-wider flex items-center gap-1.5 shadow-md">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Form Guide
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Tips */}
-                        {ex.tips && (
-                          <div className="bg-[#FFD700]/5 border border-[#FFD700]/15 rounded-lg p-3 flex gap-2.5 items-start">
-                            <span className="material-symbols-outlined text-[#FFD700] text-[14px] mt-0.5">tips_and_updates</span>
-                            <div>
-                              <span className="text-[8px] uppercase font-bold tracking-[0.15em] text-[#FFD700] block mb-0.5">Form Tip</span>
-                              <p className="text-[11px] text-on-surface-variant leading-relaxed">{ex.tips}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Muscles */}
-                        {ex.muscles.length > 0 && (
-                          <div>
-                            <span className="text-[8px] uppercase font-bold tracking-[0.15em] text-on-surface-variant/50 block mb-1.5">Target Muscles</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {ex.muscles.map((m, mi) => (
-                                <span key={mi} className="px-2 py-0.5 bg-primary/8 border border-primary/15 rounded-full text-[9px] text-primary font-semibold">
-                                  {m}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Last Performance */}
-                        {getLastSessionSets(ex.name).length > 0 && (
-                          <div className="bg-[#6FFB85]/5 border border-[#6FFB85]/15 rounded-xl p-3">
-                            <div className="flex items-center gap-2 mb-2 text-[#6FFB85]">
-                              <span className="material-symbols-outlined text-[15px]">history</span>
-                              <span className="text-[9px] uppercase font-bold tracking-[0.15em]">Last Session Performance ({getLastSessionSets(ex.name)[0].date})</span>
-                            </div>
-                            <div className="space-y-1">
-                              {getLastSessionSets(ex.name).map((set, sIdx) => (
-                                <div key={sIdx} className="flex justify-between items-center text-[11px] text-on-surface-variant">
-                                  <span>Set {sIdx + 1} {set.setType && set.setType !== 'N' ? `[${set.setType}]` : ''}</span>
-                                  <span className="font-mono text-white/90">{set.weight} lbs x {set.reps} {set.rpe ? `@RPE ${set.rpe}` : ''}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Detailed view button */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setAnalyzingExercise(ex); setMode('analyze'); }}
-                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-primary/8 text-primary hover:bg-primary/15 transition-colors text-[11px] font-semibold"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">info</span> View Full Breakdown
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  );
-                })}
-
-                {/* Pro tip */}
-                {todayWorkout.tip && (
-                  <div className="mt-3 bg-secondary/5 border border-secondary/15 rounded-xl p-3 flex gap-3 items-start animate-exercise-enter" style={{ animationDelay: `${exerciseCount * 60 + 100}ms` }}>
-                    <span className="material-symbols-outlined text-secondary text-[16px] mt-0.5">lightbulb</span>
-                    <div>
-                      <span className="text-[9px] uppercase font-bold tracking-[0.15em] text-secondary block mb-0.5">Pro Tip</span>
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed">{todayWorkout.tip}</p>
+                    {/* Exercise preview pills */}
+                    <div className="space-y-1.5 pt-2">
+                      {bp.exercises.map((ex, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-white/[0.03]">
+                          <span className="font-medium text-[var(--color-on-surface-variant)]">{ex.exerciseName}</span>
+                          <span className="font-mono text-[10px] text-[var(--color-muted)]">{ex.sets.length} sets</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* Action buttons */}
-            <div className="px-4 pb-4 pt-2 space-y-3">
-              {/* Start / Mark Done CTA */}
-              <button onClick={startWorkoutSession} className={`w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
-                isRestDay
-                  ? 'bg-white/5 text-on-surface-variant border border-white/5 hover:bg-white/10'
-                  : 'bg-primary text-black shadow-[0_4px_20px_rgba(255,122,0,0.25)] hover:shadow-[0_8px_30px_rgba(255,122,0,0.35)]'
-              }`}>
-                <span className="material-symbols-outlined text-lg">{isRestDay ? 'check_circle' : 'play_arrow'}</span>
-                {isRestDay ? 'Mark as Done' : 'Start Workout'}
-              </button>
-
-              {/* Secondary actions row */}
-              <div className="flex gap-2">
-                <button onClick={() => { setEditingWorkout(todayWorkout); setEditingWorkoutIdx(selectedDay); setMode('edit'); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-[11px] font-semibold text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[14px]">edit</span> Edit
-                </button>
-                <button onClick={(e) => duplicateWorkout(e, selectedDay)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-[11px] font-semibold text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[14px]">content_copy</span> Copy
-                </button>
-                <button onClick={(e) => deleteWorkout(e, selectedDay)} className="w-10 flex items-center justify-center py-2.5 rounded-xl bg-[#FF4D4D]/8 text-[#FF4D4D] hover:bg-[#FF4D4D]/15 transition-colors">
-                  <span className="material-symbols-outlined text-[16px]">delete</span>
-                </button>
-              </div>
+                  <div className="pt-2 border-t border-[var(--color-border)]">
+                    <button
+                      onClick={() => {
+                        startSession(bp);
+                        navigate('/workout/active');
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-primary)] text-black font-headline font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--color-primary)]/20"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" /> Start Routine
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
       )}
 
-
-
-      <button onClick={addNewDay} className="w-full py-4 rounded-2xl border-2 border-dashed border-[var(--color-outline)] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2 text-sm font-semibold mt-2 mb-6">
-        <span className="material-symbols-outlined text-lg">add</span> Add Day
-      </button>
-
+      {/* Delete Workout Day Modal */}
       <ConfirmModal
         isOpen={workoutDeleteTarget !== null}
         onConfirm={confirmDeleteWorkout}
         onCancel={() => setWorkoutDeleteTarget(null)}
-        title="Delete Workout?"
+        title="Delete Workout Day?"
         message="Are you sure you want to delete this workout day? This action cannot be undone."
         confirmLabel="Delete"
         variant="danger"
       />
+
+      {/* Delete History Session Modal */}
+      <ConfirmModal
+        isOpen={historyDeleteTarget !== null}
+        onConfirm={handleConfirmDeleteHistory}
+        onCancel={() => setHistoryDeleteTarget(null)}
+        title="Delete Workout History?"
+        message="Are you sure you want to delete this recorded session? This will remove its volume and PR records."
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
+      {/* Delete Custom Template Modal */}
+      <ConfirmModal
+        isOpen={templateDeleteTarget !== null}
+        onConfirm={async () => {
+          if (templateDeleteTarget) {
+            await deleteTemplate(templateDeleteTarget);
+            setTemplateDeleteTarget(null);
+          }
+        }}
+        onCancel={() => setTemplateDeleteTarget(null)}
+        title="Delete Template?"
+        message="Are you sure you want to remove this saved workout template?"
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
+      {/* Session Detail Drill-down Modal */}
+      {historyDetailSession && (
+        <SessionDetail
+          session={historyDetailSession}
+          onClose={() => setHistoryDetailId(null)}
+          onDelete={(id) => {
+            setHistoryDeleteTarget(id);
+          }}
+        />
+      )}
+
+      {/* Log Past Workout Modal */}
+      {showLogPastModal && (
+        <LogPastWorkoutModal
+          isOpen={showLogPastModal}
+          onClose={() => setShowLogPastModal(false)}
+        />
+      )}
+
+      {/* Spontaneous Training Quick Start Modal */}
+      <QuickStartWorkoutModal
+        isOpen={quickStartModalOpen}
+        onClose={() => setQuickStartModalOpen(false)}
+        defaultFocusId={quickStartDefaultFocus}
+      />
+
     </main>
   );
 }

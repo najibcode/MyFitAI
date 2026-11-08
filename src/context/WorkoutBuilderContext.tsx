@@ -24,6 +24,7 @@ import type { MuscleGroup, ExerciseType } from '../types/exercise';
 import { detectPR, detectSessionPRs } from '../engine/prDetection';
 import { getProgressionRecommendation, countConsecutiveFailures, type ProgressionRecommendation } from '../engine/progression';
 import { audioFeedback } from '../utils/audioTones';
+import { QUICK_SPLIT_PRESETS, buildQuickTemplate } from '../data/quickWorkoutSplits';
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -60,10 +61,12 @@ interface WorkoutBuilderContextType {
   activeSession: WorkoutSession | null;
   isSessionActive: boolean;
   sessionElapsed: number;
-  startSession: (template?: WorkoutTemplate) => void;
+  startSession: (template?: WorkoutTemplate, customName?: string) => void;
   endSession: () => Promise<WorkoutSession | null>;
   cancelSession: () => void;
   updateSessionNotes: (notes: string) => void;
+  updateWorkoutName: (name: string) => void;
+  saveCompletedSession: (session: WorkoutSession) => Promise<WorkoutSession>;
 
   // Set Logging
   logSet: (exerciseIdx: number, setIdx: number, set: LoggedSet) => void;
@@ -72,6 +75,7 @@ interface WorkoutBuilderContextType {
   prependWarmupSets: (exerciseIdx: number, warmupSets: LoggedSet[]) => void;
   updateExerciseNotes: (exerciseIdx: number, notes: string) => void;
   addExerciseToSession: (exercise: SessionExercise) => void;
+  addMultipleExercisesToSession: (exercises: SessionExercise[]) => void;
   removeExerciseFromSession: (exerciseIdx: number) => void;
   reorderExercisesInSession: (from: number, to: number) => void;
   toggleExerciseSuperset: (exIdx: number) => void;
@@ -246,7 +250,14 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
 
   const loadTemplates = useCallback(async () => {
     try {
-      const all = await db.templates.getAll();
+      let all = await db.templates.getAll();
+      if (all.length === 0) {
+        const defaultTemplates = QUICK_SPLIT_PRESETS
+          .filter(p => p.recommendedExercises.length > 0)
+          .map(p => buildQuickTemplate(p));
+        await db.templates.saveMany(defaultTemplates);
+        all = await db.templates.getAll();
+      }
       setTemplates(all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
     } catch (e) {
       console.error('[WorkoutBuilder] Failed to load templates:', e);
@@ -368,7 +379,7 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
 
   // ─── Session Operations ───────────────────────────────────
 
-  const startSession = useCallback((template?: WorkoutTemplate) => {
+  const startSession = useCallback((template?: WorkoutTemplate, customName?: string) => {
     const exercises: SessionExercise[] = template
       ? template.exercises.map(ex => ({
           exerciseId: ex.exerciseId,
@@ -377,19 +388,45 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
           thumbnailEmoji: ex.thumbnailEmoji,
           primaryMuscles: ex.primaryMuscles,
           isUnilateral: ex.isUnilateral,
+          isBodyweight: ex.isBodyweight,
           supersetGroup: ex.supersetGroup,
-          sets: ex.sets.map(s => createDefaultLoggedSet(s.setType)),
+          restSeconds: ex.restSeconds,
+          notes: ex.notes,
+          warmupNotes: ex.warmupNotes,
+          gifUrl: ex.gifUrl,
+          imageUrl: ex.imageUrl,
+          progressionRule: ex.progressionRule,
+          sets: ex.sets.map(s => {
+            const def = createDefaultLoggedSet(s.setType);
+            return {
+              ...def,
+              reps: s.targetReps || 0,
+              weight: s.targetWeight || 0,
+              duration: s.targetDuration,
+              distance: s.targetDistance,
+              rpe: s.rpe || 0,
+              rir: s.rir,
+              isDrop: s.isDrop || s.setType === 'drop',
+              dropLevel: s.dropLevel,
+              isBodyweight: s.isBodyweight,
+              addedWeight: s.addedWeight,
+              repsPerSide: s.repsPerSide,
+            };
+          }),
         }))
       : [];
 
     const session: WorkoutSession = {
       id: crypto.randomUUID(),
       templateId: template?.id,
-      templateName: template?.name || 'Quick Workout',
+      templateName: customName || template?.name || 'Freestyle Workout',
       type: (template?.type || 'strength') as WorkoutType,
       startedAt: new Date().toISOString(),
       duration: 0,
       exercises,
+      setGroups: template?.setGroups,
+      warmupNotes: template?.warmupNotes,
+      cooldownNotes: template?.cooldownNotes,
       totalVolume: 0,
       totalSets: 0,
       totalReps: 0,
@@ -467,6 +504,13 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
     });
   }, []);
 
+  const addMultipleExercisesToSession = useCallback((newExercises: SessionExercise[]) => {
+    setActiveSession(prev => {
+      if (!prev) return prev;
+      return { ...prev, exercises: [...prev.exercises, ...newExercises] };
+    });
+  }, []);
+
   const removeExerciseFromSession = useCallback((exerciseIdx: number) => {
     setActiveSession(prev => {
       if (!prev) return prev;
@@ -516,6 +560,56 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
   const updateSessionNotes = useCallback((notes: string) => {
     setActiveSession(prev => prev ? { ...prev, notes } : prev);
   }, []);
+
+  const updateWorkoutName = useCallback((name: string) => {
+    setActiveSession(prev => prev ? { ...prev, templateName: name } : prev);
+  }, []);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      const all = await db.sessions.getAll();
+      setSessions(all.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()));
+    } catch (e) {
+      console.error('[WorkoutBuilder] Failed to load sessions:', e);
+    }
+  }, []);
+
+  const saveCompletedSession = useCallback(async (session: WorkoutSession): Promise<WorkoutSession> => {
+    const totalVolume = calculateSessionVolume(session.exercises);
+    const totalSets = session.exercises.reduce((sum, ex) =>
+      sum + ex.sets.filter(s => s.completed).length, 0
+    );
+    const totalReps = session.exercises.reduce((sum, ex) =>
+      sum + ex.sets.filter(s => s.completed).reduce((r, s) => r + s.reps, 0), 0
+    );
+    const musclesWorked = session.musclesWorked && session.musclesWorked.length > 0
+      ? session.musclesWorked
+      : ([...new Set(session.exercises.flatMap(ex => ex.primaryMuscles || []))] as MuscleGroup[]);
+
+    const finalizedSession: WorkoutSession = {
+      ...session,
+      totalVolume: session.totalVolume || totalVolume,
+      totalSets: session.totalSets || totalSets,
+      totalReps: session.totalReps || totalReps,
+      musclesWorked,
+    };
+
+    // Detect PRs
+    const { prs, updatedPRMap } = detectSessionPRs(finalizedSession, personalRecords);
+    finalizedSession.prsHit = prs;
+
+    // Update PRs in state and storage
+    setPersonalRecords(updatedPRMap);
+    const prObj: Record<string, PRRecord[]> = {};
+    updatedPRMap.forEach((value, key) => { prObj[key] = value; });
+    storage.set(PR_STORAGE_KEY, prObj);
+
+    // Save to IndexedDB
+    await db.sessions.save(finalizedSession);
+    await loadSessions();
+
+    return finalizedSession;
+  }, [personalRecords, loadSessions]);
 
   const endSession = useCallback(async (): Promise<WorkoutSession | null> => {
     if (!activeSession) return null;
@@ -662,15 +756,6 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
 
   // ─── History ──────────────────────────────────────────────
 
-  const loadSessions = useCallback(async () => {
-    try {
-      const all = await db.sessions.getAll();
-      setSessions(all.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()));
-    } catch (e) {
-      console.error('[WorkoutBuilder] Failed to load sessions:', e);
-    }
-  }, []);
-
   const deleteSession = useCallback(async (id: string) => {
     await db.sessions.delete(id);
     await loadSessions();
@@ -762,9 +847,9 @@ export function WorkoutBuilderProvider({ children }: { children: React.ReactNode
         routines, activeRoutine, loadRoutines, saveRoutine, deleteRoutine, setActiveRoutine,
         scheduleOverrides, loadScheduleOverrides, addScheduleOverride, removeScheduleOverride, getTodaysWorkout,
         activeSession, isSessionActive, sessionElapsed,
-        startSession, endSession, cancelSession, updateSessionNotes,
+        startSession, endSession, cancelSession, updateSessionNotes, updateWorkoutName, saveCompletedSession,
         logSet, addSetToExercise, removeSet, prependWarmupSets, updateExerciseNotes,
-        addExerciseToSession, removeExerciseFromSession, reorderExercisesInSession, toggleExerciseSuperset,
+        addExerciseToSession, addMultipleExercisesToSession, removeExerciseFromSession, reorderExercisesInSession, toggleExerciseSuperset,
         restTimer, startRestTimer, pauseRestTimer, resumeRestTimer, skipRest, addRestTime,
         personalRecords, loadPRs, checkForPR,
         getProgressionRec,
